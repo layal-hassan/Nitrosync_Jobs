@@ -1,6 +1,5 @@
 <script setup>
 import { computed } from 'vue'
-import linkedInIcon from '../../assets/linkedin.svg'
 import {
   Archive,
   Bell,
@@ -155,13 +154,20 @@ const iconMap = {
 }
 
 const iconComponent = computed(() => iconMap[props.name] ?? Info)
-const isLinkedIn = computed(() => props.name === 'linkedin')
+const brandIconMap = {
+  linkedin: 'https://www.google.com/s2/favicons?domain=linkedin.com&sz=64',
+  indeed: 'https://www.google.com/s2/favicons?domain=indeed.com&sz=64',
+  glassdoor: 'https://www.google.com/s2/favicons?domain=glassdoor.com&sz=64',
+}
+
+const brandIconSrc = computed(() => brandIconMap[props.name] ?? '')
+const isBrandIcon = computed(() => Boolean(brandIconSrc.value))
 </script>
 
 <template>
   <img
-    v-if="isLinkedIn"
-    :src="linkedInIcon"
+    v-if="isBrandIcon"
+    :src="brandIconSrc"
     alt=""
     aria-hidden="true"
     :width="size"

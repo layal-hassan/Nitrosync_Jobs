@@ -574,13 +574,16 @@ const activityItems = [
   grid-template-areas:
     'tasks recommendations quick'
     'activity activity automation';
-  align-items: start;
+  align-items: stretch;
 }
 
 .nitro-panel {
   padding: 14px 14px 12px;
   border: 1px solid #edf1f8;
   border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   background: rgba(255, 255, 255, 0.92);
 }
 
@@ -617,6 +620,12 @@ const activityItems = [
 .nitro-recommendation-list {
   display: grid;
   gap: 14px;
+}
+
+.nitro-task-list,
+.nitro-recommendation-list,
+.nitro-quick-grid {
+  flex: 1 1 auto;
 }
 
 .nitro-task-row {
