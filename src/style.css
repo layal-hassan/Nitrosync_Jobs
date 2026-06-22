@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #556074;
+  background: #f7f8fc;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --app-bg: #f7f8fc;
+  --panel-bg: #ffffff;
+  --panel-soft: #fbfbfe;
+  --text-main: #172554;
+  --text-muted: #66758f;
+  --text-soft: #94a3b8;
+  --border: #e4ebf5;
+  --border-strong: #d7e1ee;
+  --primary: #f25fb3;
+  --primary-soft: #fff0f7;
+  --primary-border: #f8c9de;
+  --scrollbar-thumb-start: #f36ab6;
+  --scrollbar-thumb-end: #b784df;
+  --scrollbar-thumb-hover-start: #eb4fa7;
+  --scrollbar-thumb-hover-end: #9d67dd;
+  --scrollbar-track-start: #fcf9ff;
+  --scrollbar-track-end: #eef4fb;
+  --scrollbar-track-border: #e7eefe;
+  --shadow-soft: 0 18px 44px rgba(15, 23, 42, 0.06);
+  --font-title-lg: 30px;
+  --font-title-md: 14px;
+  --font-title-sm: 12px;
+  --font-body-lg: 13px;
+  --font-body-md: 11px;
+  --font-body-sm: 10px;
+  --font-caption: 9px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100vh;
+}
+
+body {
+  margin: 0;
+  color: var(--text-main);
+  background:
+    radial-gradient(circle at top left, rgba(242, 95, 179, 0.08), transparent 22%),
+    linear-gradient(180deg, #fbfcff 0%, #f5f7fb 100%);
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #c98ac7 #f3f6fb;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c98ac7 #f3f6fb;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: linear-gradient(180deg, var(--scrollbar-track-start) 0%, var(--scrollbar-track-end) 100%);
+  border: 1px solid var(--scrollbar-track-border);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, var(--scrollbar-thumb-start) 0%, var(--scrollbar-thumb-end) 100%) padding-box;
+  box-shadow: 0 4px 14px rgba(242, 95, 179, 0.2);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background:
+    linear-gradient(180deg, var(--scrollbar-thumb-hover-start) 0%, var(--scrollbar-thumb-hover-end) 100%) padding-box;
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background:
+    linear-gradient(180deg, #e6459f 0%, #915ad8 100%) padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track-end);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
