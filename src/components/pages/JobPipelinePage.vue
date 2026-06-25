@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import AppIcon from '../shared/AppIcon.vue'
 import { getJobById } from '../../data/jobs'
 
@@ -19,14 +19,15 @@ const emit = defineEmits(['back'])
 const job = computed(() => getJobById(props.jobId))
 
 const stageFocusMap = {
-  applied: 'new',
-  screening: 'qualified',
-  qualified: 'qualified',
-  interview: 'shortlisted',
+  applied: 'applied',
+  new: 'applied',
+  screening: 'screening',
+  qualified: 'screening',
+  interview: 'interview',
   shortlisted: 'shortlisted',
   assessment: 'assessment',
   validation: 'validation',
-  offer: 'validation',
+  offer: 'offer',
   hired: 'hired',
 }
 
@@ -34,82 +35,193 @@ const activeColumnSlug = computed(() => stageFocusMap[props.focusStage] ?? '')
 const activeBoardView = ref('board')
 const activeAudienceView = ref('recruiter')
 
-const pipelineColumns = computed(() => [
-  {
-    slug: 'new',
-    title: 'New',
-    count: job.value.pipeline[0]?.value ?? 12,
-    average: '2.1 avg. days',
-    health: 'Healthy',
-    tone: 'green',
-    cards: [
-      { name: 'Ava Martinez', role: 'Product Designer', source: 'Dribbble', match: '92% match', note: 'Added 2 days ago' },
-      { name: 'Liam Anderson', role: 'UX Designer', source: 'Behance', match: '88% match', note: 'Added 3 days ago' },
-      { name: 'Noah Williams', role: 'Product Designer', source: 'LinkedIn', match: '78% match', note: 'Added 5 days ago' },
-    ],
-  },
-  {
-    slug: 'qualified',
-    title: 'Qualified',
-    count: job.value.pipeline[1]?.value ?? 10,
-    average: '3.4 avg. days',
-    health: 'At risk',
-    tone: 'orange',
-    cards: [
-      { name: 'Isabella Chen', role: 'UX Designer', source: 'Airbnb', match: '90% match', note: 'Review pending' },
-      { name: 'James Wilson', role: 'Product Designer', source: 'Google', match: '85% match', note: 'Review pending' },
-      { name: 'Mia Brown', role: 'UX Designer', source: 'Meta', match: '80% match', note: 'Review pending' },
-    ],
-  },
-  {
-    slug: 'shortlisted',
-    title: 'Shortlisted',
-    count: job.value.pipeline[2]?.value ?? 8,
-    average: '6.2 avg. days',
-    health: 'Bottleneck',
-    tone: 'pink',
-    cards: [
-      { name: 'Ethan Johnson', role: 'Senior UX Designer', source: 'Spotify', match: '93% match', note: 'Interview tomorrow' },
-      { name: 'Olivia Davis', role: 'UX Designer', source: 'Shopify', match: '91% match', note: 'Interview in 3 days' },
-      { name: 'Benjamin Lee', role: 'Product Designer', source: 'Adobe', match: '78% match', note: 'Interview in 3 days' },
-    ],
-  },
-  {
-    slug: 'assessment',
-    title: 'Assessment',
-    count: 5,
-    average: '4.3 avg. days',
-    health: 'Healthy',
-    tone: 'green',
-    cards: [
-      { name: 'Charlotte Taylor', role: 'UX Designer', source: 'Microsoft', match: '92% match', note: 'Assessment due tomorrow' },
-      { name: 'Daniel Harris', role: 'Product Designer', source: 'Amazon', match: '84% match', note: 'Assessment due in 2 days' },
-    ],
-  },
-  {
-    slug: 'validation',
-    title: 'Validation',
-    count: job.value.pipeline[3]?.value ?? 5,
-    average: '1.6 avg. days',
-    health: 'Good',
-    tone: 'green',
-    cards: [
-      { name: 'Amelia Clark', role: 'Senior UX Designer', source: 'Monzo', match: '95% match', note: 'Offer sent' },
-      { name: 'Lucas Rodriguez', role: 'UX Designer', source: 'Revolut', match: '89% match', note: 'Offer sent' },
-    ],
-  },
-  {
-    slug: 'hired',
-    title: 'Hired',
-    count: job.value.pipeline[4]?.value ?? 1,
-    average: 'Latest',
-    health: 'Completed',
-    tone: 'green',
-    cards: [
-      { name: 'Grace Hall', role: 'Senior UX Designer', source: 'Wise', match: '', note: 'Joined 2 days ago' },
-    ],
-  },
-])
+const pipelineStagePresets = {
+  applied: { average: '2.1 avg. days', health: 'Healthy', tone: 'green' },
+  new: { average: '2.1 avg. days', health: 'Healthy', tone: 'green' },
+  screening: { average: '3.4 avg. days', health: 'At risk', tone: 'orange' },
+  qualified: { average: '3.4 avg. days', health: 'At risk', tone: 'orange' },
+  interview: { average: '6.2 avg. days', health: 'Bottleneck', tone: 'pink' },
+  shortlisted: { average: '6.2 avg. days', health: 'Bottleneck', tone: 'pink' },
+  assessment: { average: '4.3 avg. days', health: 'Healthy', tone: 'green' },
+  validation: { average: '1.6 avg. days', health: 'Good', tone: 'green' },
+  offer: { average: '1.6 avg. days', health: 'Good', tone: 'green' },
+  hired: { average: 'Latest', health: 'Completed', tone: 'green' },
+}
+
+const pipelineStageCandidates = {
+  applied: [
+    { name: 'Ava Martinez', role: 'Product Designer', source: 'Dribbble', match: '92% match', note: 'Added 2 days ago' },
+    { name: 'Liam Anderson', role: 'UX Designer', source: 'Behance', match: '88% match', note: 'Added 3 days ago' },
+    { name: 'Noah Williams', role: 'Product Designer', source: 'LinkedIn', match: '78% match', note: 'Added 5 days ago' },
+  ],
+  screening: [
+    { name: 'Isabella Chen', role: 'UX Designer', source: 'Airbnb', match: '90% match', note: 'Review pending' },
+    { name: 'James Wilson', role: 'Product Designer', source: 'Google', match: '85% match', note: 'Review pending' },
+    { name: 'Mia Brown', role: 'UX Designer', source: 'Meta', match: '80% match', note: 'Review pending' },
+  ],
+  interview: [
+    { name: 'Ethan Johnson', role: 'Senior UX Designer', source: 'Spotify', match: '93% match', note: 'Interview tomorrow' },
+    { name: 'Olivia Davis', role: 'UX Designer', source: 'Shopify', match: '91% match', note: 'Interview in 3 days' },
+    { name: 'Benjamin Lee', role: 'Product Designer', source: 'Adobe', match: '78% match', note: 'Interview in 3 days' },
+  ],
+  shortlisted: [
+    { name: 'Ethan Johnson', role: 'Senior UX Designer', source: 'Spotify', match: '93% match', note: 'Interview tomorrow' },
+    { name: 'Olivia Davis', role: 'UX Designer', source: 'Shopify', match: '91% match', note: 'Interview in 3 days' },
+    { name: 'Benjamin Lee', role: 'Product Designer', source: 'Adobe', match: '78% match', note: 'Interview in 3 days' },
+  ],
+  assessment: [
+    { name: 'Charlotte Taylor', role: 'UX Designer', source: 'Microsoft', match: '92% match', note: 'Assessment due tomorrow' },
+    { name: 'Daniel Harris', role: 'Product Designer', source: 'Amazon', match: '84% match', note: 'Assessment due in 2 days' },
+  ],
+  validation: [
+    { name: 'Amelia Clark', role: 'Senior UX Designer', source: 'Monzo', match: '95% match', note: 'Offer sent' },
+    { name: 'Lucas Rodriguez', role: 'UX Designer', source: 'Revolut', match: '89% match', note: 'Offer sent' },
+  ],
+  offer: [
+    { name: 'Amelia Clark', role: 'Senior UX Designer', source: 'Monzo', match: '95% match', note: 'Offer sent' },
+    { name: 'Lucas Rodriguez', role: 'UX Designer', source: 'Revolut', match: '89% match', note: 'Offer sent' },
+  ],
+  hired: [
+    { name: 'Grace Hall', role: 'Senior UX Designer', source: 'Wise', match: '', note: 'Joined 2 days ago' },
+  ],
+}
+
+function normalizePipelineStage(label = '') {
+  return label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+}
+
+function createPipelineBoard() {
+  return (job.value?.pipeline ?? []).map((stage, stageIndex) => {
+    const slug = normalizePipelineStage(stage.label)
+    const preset = pipelineStagePresets[slug] ?? { average: '2.0 avg. days', health: 'Active', tone: 'green' }
+    const seededCards = (pipelineStageCandidates[slug] ?? []).slice(0, Math.max(0, Math.min(stage.value, 3)))
+
+    return {
+      slug,
+      title: stage.label,
+      count: stage.value ?? 0,
+      average: preset.average,
+      health: preset.health,
+      tone: preset.tone,
+      cards: seededCards.map((candidate, candidateIndex) => ({
+        id: `${slug}-${stageIndex}-${candidateIndex}`,
+        ...candidate,
+      })),
+    }
+  })
+}
+
+const pipelineBoard = ref(createPipelineBoard())
+const draggedCandidateId = ref('')
+const draggedFromColumnSlug = ref('')
+const dragOverColumnSlug = ref('')
+const draggedColumnSlug = ref('')
+const columnDragOverSlug = ref('')
+
+watch(job, () => {
+  pipelineBoard.value = createPipelineBoard()
+  draggedCandidateId.value = ''
+  draggedFromColumnSlug.value = ''
+  dragOverColumnSlug.value = ''
+  draggedColumnSlug.value = ''
+  columnDragOverSlug.value = ''
+})
+
+const pipelineColumns = computed(() => pipelineBoard.value)
+const visiblePipelineCandidateCount = computed(() => pipelineColumns.value.reduce((total, column) => total + column.count, 0))
+
+function onCandidateDragStart(columnSlug, candidateId) {
+  draggedFromColumnSlug.value = columnSlug
+  draggedCandidateId.value = candidateId
+}
+
+function onCandidateDragEnd() {
+  draggedCandidateId.value = ''
+  draggedFromColumnSlug.value = ''
+  dragOverColumnSlug.value = ''
+}
+
+function onColumnDragOver(columnSlug) {
+  if (draggedColumnSlug.value) {
+    columnDragOverSlug.value = columnSlug
+    return
+  }
+
+  if (!draggedCandidateId.value) {
+    return
+  }
+
+  dragOverColumnSlug.value = columnSlug
+}
+
+function onColumnDrop(columnSlug) {
+  if (draggedColumnSlug.value) {
+    const sourceIndex = pipelineBoard.value.findIndex((column) => column.slug === draggedColumnSlug.value)
+    const targetIndex = pipelineBoard.value.findIndex((column) => column.slug === columnSlug)
+
+    if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) {
+      onColumnDragEnd()
+      return
+    }
+
+    const [movedColumn] = pipelineBoard.value.splice(sourceIndex, 1)
+
+    if (!movedColumn) {
+      onColumnDragEnd()
+      return
+    }
+
+    pipelineBoard.value.splice(targetIndex, 0, movedColumn)
+    onColumnDragEnd()
+    return
+  }
+
+  if (!draggedCandidateId.value || !draggedFromColumnSlug.value || draggedFromColumnSlug.value === columnSlug) {
+    onCandidateDragEnd()
+    return
+  }
+
+  const sourceColumn = pipelineBoard.value.find((column) => column.slug === draggedFromColumnSlug.value)
+  const targetColumn = pipelineBoard.value.find((column) => column.slug === columnSlug)
+
+  if (!sourceColumn || !targetColumn) {
+    onCandidateDragEnd()
+    return
+  }
+
+  const candidateIndex = sourceColumn.cards.findIndex((candidate) => candidate.id === draggedCandidateId.value)
+
+  if (candidateIndex === -1) {
+    onCandidateDragEnd()
+    return
+  }
+
+  const [candidate] = sourceColumn.cards.splice(candidateIndex, 1)
+
+  if (!candidate) {
+    onCandidateDragEnd()
+    return
+  }
+
+  targetColumn.cards.push(candidate)
+  sourceColumn.count = Math.max(sourceColumn.cards.length, sourceColumn.count - 1)
+  targetColumn.count += 1
+
+  onCandidateDragEnd()
+}
+
+function onColumnHandleDragStart(columnSlug) {
+  draggedColumnSlug.value = columnSlug
+  columnDragOverSlug.value = columnSlug
+  draggedCandidateId.value = ''
+  draggedFromColumnSlug.value = ''
+  dragOverColumnSlug.value = ''
+}
+
+function onColumnDragEnd() {
+  draggedColumnSlug.value = ''
+  columnDragOverSlug.value = ''
+}
 
 const recruiterTabs = ['Pipeline', 'Candidates', 'Hiring Team', 'Analytics', 'More']
 const managerTabs = ['Overview', 'Candidates', 'Interviews', 'Feedback', 'Decisions']
@@ -564,7 +676,7 @@ const compareInterviewInsights = [
 const hiringManagerActions = [
   { title: 'Review Sarah Johnson', note: 'Final interview completed', meta: 'High priority', tone: 'pink', icon: 'star', action: 'review-feedback' },
   { title: 'Submit feedback', note: 'Interview with Daniel Brown', meta: 'Due tomorrow', tone: 'orange', icon: 'mail', action: 'review-feedback' },
-  { title: 'Complete scorecard', note: 'For Emily Smith', meta: 'Due in 2 days', tone: 'orange', icon: 'clipboard-check', action: 'complete-feedback', candidateId: 'emily-smith' },
+  { title: 'Complete scorecard', note: 'For Liam Johnson', meta: 'Due in 2 days', tone: 'orange', icon: 'clipboard-check', action: 'complete-feedback', candidateId: 'liam-johnson' },
   { title: 'Approve offer', note: 'For Michael Williams', meta: 'Due in 3 days', tone: 'green', icon: 'checkCircle', action: 'none' },
 ]
 
@@ -616,80 +728,105 @@ const hiringManagerProgress = {
   ],
 }
 
-const reviewFeedbackStats = [
-  { label: 'Need Your Feedback', value: '2', icon: 'user', tone: 'pink' },
-  { label: 'Awaiting Others', value: '3', icon: 'users', tone: 'orange' },
-  { label: 'Average overdue', value: '4 days', icon: 'info', tone: 'violet' },
-  { label: 'Jobs affected', value: '3', icon: 'trend-up', tone: 'green' },
-]
+const reviewFeedbackSummary = {
+  title: 'Send feedback to 5 candidates',
+  note: 'Feedback is overdue and candidates are waiting.',
+  job: 'Graphic Designer',
+  impact: 'Reduce delay by 4 days',
+  priority: 'High',
+  priorityTone: 'pink',
+  why: 'These candidates are waiting for your feedback. Providing feedback will help move them forward and reduce time-to-hire.',
+  impactCards: [
+    { icon: 'users', tone: 'green', value: '+4', label: 'Potential hires', note: 'Additional hires likely' },
+    { icon: 'clock', tone: 'blue', value: '-4 days', label: 'Time-to-hire', note: 'Faster hiring cycle' },
+    { icon: 'user-check', tone: 'violet', value: '5', label: 'Candidates', note: 'will move forward' },
+  ],
+  tip: 'Start with the most overdue interviews first. It clears the bottleneck faster and shortens the cycle for everyone else.',
+}
 
 const reviewFeedbackCandidates = [
   {
-    id: 'sarah-johnson',
-    initials: 'SJ',
-    name: 'Sarah Johnson',
-    role: 'Frontend Developer',
-    department: 'Engineering',
-    departmentTone: 'pink',
+    id: 'ethan-miller',
+    initials: 'EM',
+    name: 'Ethan Miller',
+    role: 'Graphic Designer',
+    appliedOn: '12 May',
+    source: 'LinkedIn',
+    sourceTone: 'blue',
+    stage: 'Interview',
+    stageDetail: '2nd Round',
+    stageTone: 'violet',
+    lastActivity: '5 days ago',
+    waiting: '5 days',
+    avatarTone: 'brown',
     ownFeedback: true,
-    statusLabel: 'Your feedback is required',
-    statusTitle: 'Interview completed',
-    statusMeta: '2 days ago',
-    overdue: '1 day overdue',
-    overdueTone: 'green',
   },
   {
-    id: 'daniel-brown',
+    id: 'olivia-smith',
     initials: 'DB',
-    name: 'Daniel Brown',
-    role: 'Product Manager',
-    department: 'Product',
-    departmentTone: 'orange',
+    name: 'Olivia Smith',
+    role: 'Graphic Designer',
+    appliedOn: '14 May',
+    source: 'Careers Page',
+    sourceTone: 'green',
+    stage: 'Interview',
+    stageDetail: '2nd Round',
+    stageTone: 'violet',
+    lastActivity: '6 days ago',
+    waiting: '6 days',
+    avatarTone: 'sand',
     ownFeedback: false,
     missingFrom: 'Alex Rivera',
-    missingRole: 'Interviewer',
-    overdue: '2 days overdue',
-    overdueTone: 'orange',
   },
   {
-    id: 'emily-smith',
-    initials: 'ES',
-    name: 'Emily Smith',
+    id: 'liam-johnson',
+    initials: 'LJ',
+    name: 'Liam Johnson',
     role: 'Graphic Designer',
-    department: 'Design',
-    departmentTone: 'violet',
+    appliedOn: '15 May',
+    source: 'eReferral',
+    sourceTone: 'orange',
+    stage: 'Assessment',
+    stageDetail: 'Design Test',
+    stageTone: 'yellow',
+    lastActivity: '7 days ago',
+    waiting: '7 days',
+    avatarTone: 'amber',
     ownFeedback: false,
     missingFrom: 'Hiring Manager',
-    missingRole: 'Hiring Manager',
-    overdue: '5 days overdue',
-    overdueTone: 'violet',
   },
   {
-    id: 'liam-wilson',
-    initials: 'LW',
-    name: 'Liam Wilson',
-    role: 'Account Executive',
-    department: 'Sales',
-    departmentTone: 'green',
+    id: 'ava-brown',
+    initials: 'AB',
+    name: 'Ava Brown',
+    role: 'Graphic Designer',
+    appliedOn: '16 May',
+    source: 'LinkedIn',
+    sourceTone: 'blue',
+    stage: 'Assessment',
+    stageDetail: 'Portfolio Review',
+    stageTone: 'yellow',
+    lastActivity: '8 days ago',
+    waiting: '8 days',
+    avatarTone: 'rose',
     ownFeedback: true,
-    statusLabel: 'Your feedback is required',
-    statusTitle: 'Interview completed',
-    statusMeta: '1 day ago',
-    overdue: '1 day overdue',
-    overdueTone: 'green',
   },
   {
-    id: 'ava-carter',
-    initials: 'AC',
-    name: 'Ava Carter',
-    role: 'Marketing Specialist',
-    department: 'Marketing',
-    departmentTone: 'orange',
+    id: 'maya-chen',
+    initials: 'MC',
+    name: 'Maya Chen',
+    role: 'Graphic Designer',
+    appliedOn: '18 May',
+    source: 'Indeed',
+    sourceTone: 'orange',
+    stage: 'Interview',
+    stageDetail: 'Portfolio Review',
+    stageTone: 'blue',
+    lastActivity: '9 days ago',
+    waiting: '9 days',
+    avatarTone: 'olive',
     ownFeedback: false,
     missingFrom: 'John Lee',
-    missingRole: 'Interviewer',
-    overdue: '6 days overdue',
-    overdueTone: 'orange',
   },
 ]
 
@@ -708,7 +845,8 @@ const feedbackEvaluationTemplate = [
 ]
 
 const reviewFeedbackModal = ref('')
-const selectedFeedbackCandidateId = ref('sarah-johnson')
+const selectedFeedbackCandidateId = ref('ethan-miller')
+const reviewFeedbackSelected = ref(reviewFeedbackCandidates.map((candidate) => candidate.id))
 const feedbackRecommendation = ref('strong-hire')
 const feedbackNotes = ref('')
 const feedbackRatings = ref(
@@ -722,6 +860,22 @@ const selectedFeedbackCandidate = computed(
   () => reviewFeedbackCandidates.find((candidate) => candidate.id === selectedFeedbackCandidateId.value) ?? reviewFeedbackCandidates[0],
 )
 
+const reviewFeedbackSelectedCount = computed(() => reviewFeedbackSelected.value.length)
+const reviewFeedbackAllSelected = computed(() => {
+  return reviewFeedbackCandidates.length > 0 && reviewFeedbackSelected.value.length === reviewFeedbackCandidates.length
+})
+const reviewFeedbackSendLabel = computed(() => {
+  const count = reviewFeedbackSelectedCount.value
+  return `Send feedback to ${count} ${count === 1 ? 'candidate' : 'candidates'}`
+})
+const reviewFeedbackPrimaryCandidateId = computed(() => {
+  const selectedOwnFeedbackCandidate = reviewFeedbackCandidates.find(
+    (candidate) => reviewFeedbackSelected.value.includes(candidate.id) && candidate.ownFeedback,
+  )
+
+  return selectedOwnFeedbackCandidate?.id ?? reviewFeedbackCandidates.find((candidate) => candidate.ownFeedback)?.id ?? reviewFeedbackCandidates[0]?.id ?? ''
+})
+
 const feedbackEvaluationRows = computed(() =>
   feedbackEvaluationTemplate.map((item) => ({
     ...item,
@@ -732,10 +886,11 @@ const feedbackEvaluationRows = computed(() =>
 const feedbackNoteCount = computed(() => feedbackNotes.value.length)
 
 function openReviewFeedbackModal() {
+  reviewFeedbackSelected.value = reviewFeedbackCandidates.map((candidate) => candidate.id)
   reviewFeedbackModal.value = 'list'
 }
 
-function openCompleteFeedbackModal(candidateId = 'sarah-johnson') {
+function openCompleteFeedbackModal(candidateId = 'ethan-miller') {
   selectedFeedbackCandidateId.value = candidateId
   reviewFeedbackModal.value = 'complete'
 }
@@ -753,6 +908,33 @@ function updateFeedbackRating(key, rating) {
     ...feedbackRatings.value,
     [key]: rating,
   }
+}
+
+function toggleReviewFeedbackCandidate(candidateId) {
+  if (reviewFeedbackSelected.value.includes(candidateId)) {
+    reviewFeedbackSelected.value = reviewFeedbackSelected.value.filter((id) => id !== candidateId)
+    return
+  }
+
+  reviewFeedbackSelected.value = [...reviewFeedbackSelected.value, candidateId]
+}
+
+function toggleReviewFeedbackSelectAll() {
+  if (reviewFeedbackAllSelected.value) {
+    reviewFeedbackSelected.value = []
+    return
+  }
+
+  reviewFeedbackSelected.value = reviewFeedbackCandidates.map((candidate) => candidate.id)
+}
+
+function openSelectedFeedbackFlow() {
+  if (!reviewFeedbackPrimaryCandidateId.value) {
+    closeFeedbackModal()
+    return
+  }
+
+  openCompleteFeedbackModal(reviewFeedbackPrimaryCandidateId.value)
 }
 
 function handleManagerAction(item) {
@@ -957,7 +1139,7 @@ function goBack() {
               <div class="job-pipeline-board-title">
                 <h2>{{ activeBoardView === 'timeline' ? 'Timeline' : activeBoardView === 'workload' ? 'Workload' : activeBoardView === 'compare' ? 'Compare' : 'Pipeline' }}</h2>
                 <span v-if="activeBoardView === 'compare'">{{ compareCandidates.length }} selected</span>
-                <span v-else-if="activeBoardView !== 'workload'">48 candidates</span>
+                <span v-else-if="activeBoardView !== 'workload'">{{ visiblePipelineCandidateCount }} candidates</span>
               </div>
 
               <div class="job-pipeline-board-controls">
@@ -985,9 +1167,30 @@ function goBack() {
                   v-for="column in pipelineColumns"
                   :key="column.slug"
                   class="job-pipeline-column"
-                  :class="[toneClass(column.tone), { 'is-focused': activeColumnSlug === column.slug }]"
+                  :class="[
+                    toneClass(column.tone),
+                    {
+                      'is-focused': activeColumnSlug === column.slug,
+                      'is-drop-target': dragOverColumnSlug === column.slug && draggedCandidateId,
+                      'is-column-drop-target': columnDragOverSlug === column.slug && draggedColumnSlug,
+                    },
+                  ]"
+                  @dragover.prevent="onColumnDragOver(column.slug)"
+                  @drop.prevent="onColumnDrop(column.slug)"
                 >
                   <div class="job-pipeline-column-head">
+                    <button
+                      class="job-pipeline-column-handle"
+                      type="button"
+                      draggable="true"
+                      aria-label="Reorder column"
+                      @dragstart="onColumnHandleDragStart(column.slug)"
+                      @dragend="onColumnDragEnd"
+                    >
+                      <span />
+                      <span />
+                      <span />
+                    </button>
                     <div class="job-pipeline-column-heading">
                       <strong>{{ column.title }}</strong>
                       <small>{{ column.count }} candidates</small>
@@ -1001,7 +1204,15 @@ function goBack() {
                   <span class="job-pipeline-column-bar" :class="toneClass(column.tone)" />
 
                   <div class="job-pipeline-column-cards">
-                    <article v-for="candidate in column.cards" :key="candidate.name" class="job-pipeline-candidate-card">
+                    <article
+                      v-for="candidate in column.cards"
+                      :key="candidate.id"
+                      class="job-pipeline-candidate-card"
+                      :class="{ 'is-dragging': draggedCandidateId === candidate.id }"
+                      draggable="true"
+                      @dragstart="onCandidateDragStart(column.slug, candidate.id)"
+                      @dragend="onCandidateDragEnd"
+                    >
                       <div class="job-pipeline-candidate-top">
                         <span class="job-pipeline-candidate-avatar">
                           <span aria-hidden="true" />
@@ -2073,8 +2284,8 @@ function goBack() {
                 <AppIcon name="mail" :size="18" />
               </span>
               <div>
-                <strong>Review feedback</strong>
-                <small>5 candidates are waiting for feedback</small>
+                <strong>{{ reviewFeedbackSummary.title }}</strong>
+                <small>{{ reviewFeedbackSummary.note }}</small>
               </div>
             </div>
             <button class="job-pipeline-feedback-close" type="button" @click="closeFeedbackModal">
@@ -2082,73 +2293,166 @@ function goBack() {
             </button>
           </header>
 
-          <div class="job-pipeline-feedback-stats">
-            <article v-for="item in reviewFeedbackStats" :key="item.label" class="job-pipeline-feedback-stat-card">
-              <span class="job-pipeline-feedback-stat-icon" :class="toneClass(item.tone)">
-                <AppIcon :name="item.icon" :size="16" />
-              </span>
-              <div>
-                <strong>{{ item.value }}</strong>
-                <small>{{ item.label }}</small>
-              </div>
-            </article>
-          </div>
-
-          <div class="job-pipeline-feedback-list">
-            <article v-for="item in reviewFeedbackCandidates" :key="item.id" class="job-pipeline-feedback-row">
-              <div class="job-pipeline-feedback-person">
-                <span class="job-pipeline-feedback-avatar" :class="toneClass(item.departmentTone)">{{ item.initials }}</span>
+          <div class="job-pipeline-feedback-modal__body">
+            <section class="job-pipeline-feedback-summary">
+              <div class="job-pipeline-feedback-summary__item">
+                <span class="job-pipeline-feedback-summary__icon">
+                  <AppIcon name="briefcase" :size="18" />
+                </span>
                 <div>
-                  <strong>{{ item.name }}</strong>
-                  <small>{{ item.role }}</small>
-                  <span class="job-pipeline-feedback-department" :class="toneClass(item.departmentTone)">
-                    <AppIcon name="briefcase" :size="11" />
-                    {{ item.department }}
-                  </span>
+                  <small>Job</small>
+                  <strong>{{ reviewFeedbackSummary.job }}</strong>
                 </div>
               </div>
 
-              <div class="job-pipeline-feedback-status-block">
-                <template v-if="item.ownFeedback">
-                  <span class="job-pipeline-feedback-pill is-soft-pink">{{ item.statusLabel }}</span>
-                  <strong>{{ item.statusTitle }}</strong>
-                  <small>{{ item.statusMeta }}</small>
-                </template>
-                <template v-else>
-                  <span>Missing feedback from</span>
-                  <strong>{{ item.missingFrom }}</strong>
-                  <small>{{ item.missingRole }}</small>
-                </template>
+              <div class="job-pipeline-feedback-summary__item">
+                <span class="job-pipeline-feedback-summary__icon">
+                  <AppIcon name="users" :size="18" />
+                </span>
+                <div>
+                  <small>Candidates</small>
+                  <strong>{{ reviewFeedbackCandidates.length }}</strong>
+                </div>
               </div>
 
-              <div class="job-pipeline-feedback-actions">
-                <span class="job-pipeline-feedback-pill" :class="`is-${item.overdueTone}`">{{ item.overdue }}</span>
-                <button
-                  class="job-pipeline-feedback-action-button"
-                  :class="{ 'is-primary': item.ownFeedback }"
-                  type="button"
-                  @click="item.ownFeedback ? openCompleteFeedbackModal(item.id) : null"
-                >
-                  <AppIcon :name="item.ownFeedback ? 'edit' : 'share'" :size="13" />
-                  <span>{{ item.ownFeedback ? 'Complete Feedback' : 'Send reminder' }}</span>
-                </button>
+              <div class="job-pipeline-feedback-summary__item">
+                <span class="job-pipeline-feedback-summary__icon">
+                  <AppIcon name="clock" :size="18" />
+                </span>
+                <div>
+                  <small>Impact</small>
+                  <strong>{{ reviewFeedbackSummary.impact }}</strong>
+                </div>
               </div>
-            </article>
+
+              <div class="job-pipeline-feedback-summary__priority">
+                <small>Priority</small>
+                <strong :class="toneClass(reviewFeedbackSummary.priorityTone)">{{ reviewFeedbackSummary.priority }}</strong>
+              </div>
+            </section>
+
+            <div class="job-pipeline-feedback-layout">
+              <section class="job-pipeline-feedback-candidates">
+                <div class="job-pipeline-feedback-candidates__head">
+                  <label class="job-pipeline-feedback-check">
+                    <input :checked="reviewFeedbackAllSelected" type="checkbox" @change="toggleReviewFeedbackSelectAll" />
+                    <span class="job-pipeline-feedback-check__box">
+                      <AppIcon name="check" :size="12" />
+                    </span>
+                    <strong>Candidates ({{ reviewFeedbackCandidates.length }})</strong>
+                  </label>
+
+                  <div class="job-pipeline-feedback-candidates__controls">
+                    <button class="job-pipeline-feedback-candidates__select" type="button" @click="toggleReviewFeedbackSelectAll">
+                      {{ reviewFeedbackAllSelected ? 'Deselect all' : 'Select all' }}
+                    </button>
+                    <button class="job-pipeline-feedback-candidates__sort" type="button">
+                      <span>Sort by: Oldest</span>
+                      <AppIcon name="chevronDown" :size="14" />
+                    </button>
+                  </div>
+                </div>
+
+                <div class="job-pipeline-feedback-candidates__list">
+                  <article
+                    v-for="item in reviewFeedbackCandidates"
+                    :key="item.id"
+                    class="job-pipeline-feedback-candidate"
+                    :class="{
+                      'is-selected': reviewFeedbackSelected.includes(item.id),
+                      'is-clickable': item.ownFeedback,
+                    }"
+                    @click="item.ownFeedback ? openCompleteFeedbackModal(item.id) : null"
+                  >
+                    <label class="job-pipeline-feedback-check job-pipeline-feedback-check--row" @click.stop>
+                      <input :checked="reviewFeedbackSelected.includes(item.id)" type="checkbox" @change="toggleReviewFeedbackCandidate(item.id)" />
+                      <span class="job-pipeline-feedback-check__box">
+                        <AppIcon name="check" :size="12" />
+                      </span>
+                    </label>
+
+                    <div class="job-pipeline-feedback-candidate__avatar" :class="`tone-${item.avatarTone}`">
+                      {{ item.initials }}
+                    </div>
+
+                    <div class="job-pipeline-feedback-candidate__identity">
+                      <strong>{{ item.name }}</strong>
+                      <p>Applied on {{ item.appliedOn }}</p>
+                      <span class="job-pipeline-feedback-candidate__source" :class="toneClass(item.sourceTone)">{{ item.source }}</span>
+                    </div>
+
+                    <div class="job-pipeline-feedback-candidate__stage">
+                      <strong>
+                        <span class="job-pipeline-feedback-candidate__dot" :class="toneClass(item.stageTone)" />
+                        {{ item.stage }}
+                      </strong>
+                      <p>{{ item.stageDetail }}</p>
+                      <small class="job-pipeline-feedback-candidate__inline-note">
+                        {{ item.ownFeedback ? 'Your feedback is required' : `Waiting on ${item.missingFrom}` }}
+                      </small>
+                    </div>
+
+                    <div class="job-pipeline-feedback-candidate__meta">
+                      <span>Last activity</span>
+                      <strong>{{ item.lastActivity }}</strong>
+                    </div>
+
+                    <div class="job-pipeline-feedback-candidate__meta">
+                      <span>Waiting</span>
+                      <strong class="is-red">{{ item.waiting }}</strong>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <aside class="job-pipeline-feedback-aside">
+                <section class="job-pipeline-feedback-aside__card">
+                  <div class="job-pipeline-feedback-aside__head">
+                    <h3>Why this is recommended</h3>
+                    <AppIcon name="info" :size="15" />
+                  </div>
+                  <p>{{ reviewFeedbackSummary.why }}</p>
+                </section>
+
+                <section class="job-pipeline-feedback-aside__card">
+                  <span class="job-pipeline-feedback-aside__label">Expected impact</span>
+                  <div class="job-pipeline-feedback-impact">
+                    <div v-for="item in reviewFeedbackSummary.impactCards" :key="item.label" class="job-pipeline-feedback-impact__item">
+                      <span class="job-pipeline-feedback-impact__icon" :class="toneClass(item.tone)">
+                        <AppIcon :name="item.icon" :size="17" />
+                      </span>
+                      <div>
+                        <strong :class="toneClass(item.tone)">{{ item.value }}</strong>
+                        <h4>{{ item.label }}</h4>
+                        <p>{{ item.note }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="job-pipeline-feedback-tip">
+                  <div class="job-pipeline-feedback-tip__head">
+                    <AppIcon name="sparkles" :size="15" />
+                    <strong>AI tip</strong>
+                  </div>
+                  <p>{{ reviewFeedbackSummary.tip }}</p>
+                </section>
+              </aside>
+            </div>
           </div>
 
           <footer class="job-pipeline-feedback-modal-footer">
-            <button class="job-pipeline-feedback-secondary-button" type="button">
-              <AppIcon name="document" :size="14" />
-              <span>Export list</span>
-            </button>
+            <div class="job-pipeline-feedback-modal-note">
+              <AppIcon name="info" :size="14" />
+              <span>Feedback helps candidates move forward and improves your hiring outcomes.</span>
+            </div>
             <div class="job-pipeline-feedback-footer-actions">
-              <button class="job-pipeline-feedback-secondary-button is-accent" type="button">
-                <AppIcon name="share" :size="14" />
-                <span>Send reminders (3)</span>
+              <button class="job-pipeline-feedback-secondary-button" type="button" @click="closeFeedbackModal">
+                <span>Cancel</span>
               </button>
-              <button class="job-pipeline-feedback-primary-button" type="button" @click="openCompleteFeedbackModal()">
-                <AppIcon name="edit" :size="14" />
-                <span>Complete my feedback (2)</span>
+              <button class="job-pipeline-feedback-primary-button" type="button" @click="openSelectedFeedbackFlow">
+                <AppIcon name="mail" :size="14" />
+                <span>{{ reviewFeedbackSendLabel }}</span>
               </button>
             </div>
           </footer>
@@ -2860,7 +3164,7 @@ function goBack() {
 .job-pipeline-board {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: 152px;
+  grid-auto-columns: 172px;
   gap: 8px;
   width: max-content;
   min-width: 0;
@@ -4294,14 +4598,12 @@ function goBack() {
 .job-pipeline-feedback-overlay,
 .job-pipeline-feedback-modal-head,
 .job-pipeline-feedback-modal-title,
-.job-pipeline-feedback-stats,
-.job-pipeline-feedback-stat-card,
-.job-pipeline-feedback-row,
-.job-pipeline-feedback-person,
-.job-pipeline-feedback-status-block,
-.job-pipeline-feedback-actions,
 .job-pipeline-feedback-modal-footer,
 .job-pipeline-feedback-footer-actions,
+.job-pipeline-feedback-summary,
+.job-pipeline-feedback-candidates__controls,
+.job-pipeline-feedback-aside__head,
+.job-pipeline-feedback-tip__head,
 .job-pipeline-complete-feedback-meta,
 .job-pipeline-complete-feedback-options,
 .job-pipeline-complete-feedback-rating-row,
@@ -4316,16 +4618,13 @@ function goBack() {
   z-index: 60;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 18px;
   background: rgba(17, 24, 39, 0.18);
   backdrop-filter: blur(10px);
 }
 
 .job-pipeline-feedback-modal,
 .job-pipeline-complete-feedback-modal {
-  width: min(100%, 980px);
-  max-height: min(90vh, 920px);
-  overflow-y: auto;
   border: 1px solid #e8edf6;
   border-radius: 26px;
   background: #fff;
@@ -4333,13 +4632,17 @@ function goBack() {
 }
 
 .job-pipeline-feedback-modal {
+  width: min(1160px, calc(100vw - 36px));
+  max-height: calc(100vh - 36px);
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
-  padding: 26px 30px 24px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   overflow: hidden;
 }
 
 .job-pipeline-complete-feedback-modal {
+  width: min(100%, 980px);
+  max-height: min(90vh, 920px);
+  overflow-y: auto;
   padding: 22px 0 0;
 }
 
@@ -4347,6 +4650,18 @@ function goBack() {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+}
+
+.job-pipeline-feedback-modal .job-pipeline-feedback-modal-head,
+.job-pipeline-feedback-modal .job-pipeline-feedback-modal-footer {
+  padding-left: 34px;
+  padding-right: 34px;
+}
+
+.job-pipeline-feedback-modal .job-pipeline-feedback-modal-head {
+  padding-top: 22px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #edf2f8;
 }
 
 .job-pipeline-feedback-modal-title {
@@ -4395,7 +4710,6 @@ function goBack() {
 }
 
 .job-pipeline-feedback-close,
-.job-pipeline-feedback-action-button,
 .job-pipeline-feedback-secondary-button,
 .job-pipeline-feedback-primary-button,
 .job-pipeline-complete-feedback-option,
@@ -4409,198 +4723,12 @@ function goBack() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border-radius: 12px;
   color: #9aa5b8;
+  border: 1px solid #e2e8f3;
   cursor: pointer;
-}
-
-.job-pipeline-feedback-stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0;
-  margin-top: 24px;
-  border: 1px solid #e8edf6;
-  border-radius: 24px;
-  overflow: hidden;
-}
-
-.job-pipeline-feedback-stat-card {
-  align-items: center;
-  gap: 14px;
-  padding: 20px 22px;
-  background: #fff;
-}
-
-.job-pipeline-feedback-stat-card + .job-pipeline-feedback-stat-card {
-  border-left: 1px solid #edf1f7;
-}
-
-.job-pipeline-feedback-stat-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
-  background: #f5f7fb;
-  color: #7f8ba0;
-}
-
-.job-pipeline-feedback-stat-icon.is-pink {
-  background: #fff1f7;
-  color: #ff5aa7;
-}
-
-.job-pipeline-feedback-stat-icon.is-orange {
-  background: #fff5ea;
-  color: #ff922c;
-}
-
-.job-pipeline-feedback-stat-icon.is-violet {
-  background: #f4efff;
-  color: #7c63ff;
-}
-
-.job-pipeline-feedback-stat-icon.is-green {
-  background: #edf9f1;
-  color: #22b161;
-}
-
-.job-pipeline-feedback-stat-card strong {
-  display: block;
-  color: #162447;
-  font-size: 0.92rem;
-  line-height: 1.1;
-}
-
-.job-pipeline-feedback-stat-card small {
-  display: block;
-  margin-top: 4px;
-  color: #6f7f98;
-  font-size: 0.58rem;
-}
-
-.job-pipeline-feedback-list {
-  margin-top: 22px;
-  border: 1px solid #e8edf6;
-  border-radius: 24px;
-  overflow: hidden;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-.job-pipeline-feedback-row {
-  align-items: center;
-  gap: 16px;
-  padding: 20px 24px;
-  background: #fff;
-}
-
-.job-pipeline-feedback-row + .job-pipeline-feedback-row {
-  border-top: 1px solid #edf1f7;
-}
-
-.job-pipeline-feedback-person,
-.job-pipeline-feedback-status-block {
-  min-width: 0;
-  flex: 1;
-}
-
-.job-pipeline-feedback-person {
-  align-items: center;
-  gap: 16px;
-  max-width: 340px;
-}
-
-.job-pipeline-feedback-avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 58px;
-  height: 58px;
-  flex: 0 0 58px;
-  border-radius: 999px;
-  font-size: 0.84rem;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-}
-
-.job-pipeline-feedback-avatar.is-pink {
-  background: #fff1f7;
-  color: #ff5aa7;
-}
-
-.job-pipeline-feedback-avatar.is-orange {
-  background: #fff5ea;
-  color: #ff922c;
-}
-
-.job-pipeline-feedback-avatar.is-violet {
-  background: #f4efff;
-  color: #7c63ff;
-}
-
-.job-pipeline-feedback-avatar.is-green {
-  background: #edf9f1;
-  color: #22b161;
-}
-
-.job-pipeline-feedback-person strong,
-.job-pipeline-feedback-status-block strong {
-  display: block;
-  color: #162447;
-  font-size: 0.74rem;
-  line-height: 1.2;
-}
-
-.job-pipeline-feedback-person small,
-.job-pipeline-feedback-status-block small,
-.job-pipeline-feedback-status-block span {
-  display: block;
-  color: #7d889b;
-  font-size: 0.58rem;
-  line-height: 1.4;
-}
-
-.job-pipeline-feedback-department {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 6px;
-  font-size: 0.56rem;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.job-pipeline-feedback-department.is-pink {
-  color: #ff5aa7;
-}
-
-.job-pipeline-feedback-department.is-orange {
-  color: #ff922c;
-}
-
-.job-pipeline-feedback-department.is-violet {
-  color: #7c63ff;
-}
-
-.job-pipeline-feedback-department.is-green {
-  color: #22b161;
-}
-
-.job-pipeline-feedback-status-block {
-  display: grid;
-  gap: 3px;
-}
-
-.job-pipeline-feedback-actions {
-  margin-left: auto;
-  flex: 0 0 188px;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 16px;
 }
 
 .job-pipeline-feedback-pill {
@@ -4635,7 +4763,6 @@ function goBack() {
   background: #f4efff;
 }
 
-.job-pipeline-feedback-action-button,
 .job-pipeline-feedback-secondary-button,
 .job-pipeline-feedback-primary-button {
   display: inline-flex;
@@ -4652,17 +4779,10 @@ function goBack() {
   white-space: nowrap;
 }
 
-.job-pipeline-feedback-action-button,
 .job-pipeline-feedback-secondary-button {
   border: 1px solid #e2e8f2;
   color: #4e5d78;
   background: #fff;
-}
-
-.job-pipeline-feedback-action-button.is-primary,
-.job-pipeline-feedback-secondary-button.is-accent {
-  border-color: #ffc0d9;
-  color: #ff5aa7;
 }
 
 .job-pipeline-feedback-primary-button {
@@ -4672,21 +4792,484 @@ function goBack() {
   box-shadow: 0 14px 28px rgba(236, 91, 167, 0.22);
 }
 
+.job-pipeline-feedback-modal__body {
+  padding: 16px 34px;
+  overflow: auto;
+  display: grid;
+  gap: 16px;
+}
+
+.job-pipeline-feedback-summary {
+  padding: 14px 20px;
+  border: 1px solid #edf2f8;
+  border-radius: 18px;
+  gap: 0;
+}
+
+.job-pipeline-feedback-summary__item {
+  flex: 1;
+  min-width: 0;
+  padding-right: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.job-pipeline-feedback-summary__item + .job-pipeline-feedback-summary__item {
+  padding-left: 18px;
+  border-left: 1px solid #edf2f8;
+}
+
+.job-pipeline-feedback-summary__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: #94a3b8;
+  background: #f8fafc;
+}
+
+.job-pipeline-feedback-summary small,
+.job-pipeline-feedback-summary__priority small {
+  display: block;
+  margin-bottom: 4px;
+  color: #a0abc0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.job-pipeline-feedback-summary strong,
+.job-pipeline-feedback-summary__priority strong {
+  color: #162447;
+  font-size: 0.88rem;
+  line-height: 1.3;
+}
+
+.job-pipeline-feedback-summary__priority {
+  min-width: 120px;
+  align-self: stretch;
+  padding-left: 20px;
+  border-left: 1px solid #edf2f8;
+  display: grid;
+  align-content: center;
+}
+
+.job-pipeline-feedback-summary__priority strong.is-pink,
+.job-pipeline-feedback-summary__priority strong.is-orange {
+  width: fit-content;
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 2px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.job-pipeline-feedback-summary__priority strong.is-pink {
+  color: #ef5da8;
+  background: #fff1f6;
+}
+
+.job-pipeline-feedback-summary__priority strong.is-orange {
+  color: #ff8a34;
+  background: #fff4ea;
+}
+
+.job-pipeline-feedback-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 332px;
+  gap: 22px;
+  align-items: start;
+}
+
+.job-pipeline-feedback-candidates {
+  min-width: 0;
+  border-right: 1px solid #edf2f8;
+  padding-right: 22px;
+  display: grid;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.job-pipeline-feedback-candidates__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.job-pipeline-feedback-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #162447;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.job-pipeline-feedback-check input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.job-pipeline-feedback-check__box {
+  width: 22px;
+  height: 22px;
+  border: 1px solid #f0b8cf;
+  border-radius: 7px;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: transparent;
+  background: #fff;
+  transition: 0.2s ease;
+}
+
+.job-pipeline-feedback-check input:checked + .job-pipeline-feedback-check__box {
+  border-color: #ef5da8;
+  color: #fff;
+  background: #ef5da8;
+}
+
+.job-pipeline-feedback-candidates__controls {
+  justify-content: flex-end;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.job-pipeline-feedback-candidates__select {
+  border: 0;
+  padding: 0;
+  color: #ef5da8;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.job-pipeline-feedback-candidates__sort {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #e2e8f3;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #334155;
+  background: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.job-pipeline-feedback-candidates__list {
+  display: grid;
+  gap: 12px;
+}
+
+.job-pipeline-feedback-candidate {
+  display: grid;
+  grid-template-columns: 28px 54px minmax(180px, 1.2fr) minmax(148px, 0.95fr) minmax(120px, 0.75fr) minmax(92px, 0.65fr);
+  padding: 14px 14px 14px 12px;
+  border: 1px solid #edf2f8;
+  border-radius: 14px;
+  gap: 14px;
+  align-items: center;
+  transition: 0.18s ease;
+}
+
+.job-pipeline-feedback-candidate.is-selected {
+  border-color: #f1bfd6;
+  box-shadow: 0 10px 24px rgba(241, 93, 168, 0.08);
+}
+
+.job-pipeline-feedback-candidate.is-clickable {
+  cursor: pointer;
+}
+
+.job-pipeline-feedback-candidate.is-clickable:hover {
+  border-color: #e8b2cb;
+  transform: translateY(-1px);
+}
+
+.job-pipeline-feedback-check--row {
+  align-self: center;
+}
+
+.job-pipeline-feedback-candidate__avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.job-pipeline-feedback-candidate__avatar.tone-brown {
+  background: linear-gradient(135deg, #2b211e 0%, #8e6749 100%);
+}
+
+.job-pipeline-feedback-candidate__avatar.tone-sand {
+  background: linear-gradient(135deg, #d7b68f 0%, #6e5841 100%);
+}
+
+.job-pipeline-feedback-candidate__avatar.tone-amber {
+  background: linear-gradient(135deg, #4f382a 0%, #b88348 100%);
+}
+
+.job-pipeline-feedback-candidate__avatar.tone-rose {
+  background: linear-gradient(135deg, #5f3533 0%, #cf857d 100%);
+}
+
+.job-pipeline-feedback-candidate__avatar.tone-olive {
+  background: linear-gradient(135deg, #41372e 0%, #8d7749 100%);
+}
+
+.job-pipeline-feedback-candidate__identity,
+.job-pipeline-feedback-candidate__stage,
+.job-pipeline-feedback-candidate__meta {
+  min-width: 0;
+}
+
+.job-pipeline-feedback-candidate__identity strong,
+.job-pipeline-feedback-candidate__stage strong,
+.job-pipeline-feedback-candidate__meta strong {
+  display: block;
+  color: #162447;
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+
+.job-pipeline-feedback-candidate__identity p,
+.job-pipeline-feedback-candidate__stage p,
+.job-pipeline-feedback-candidate__meta p,
+.job-pipeline-feedback-candidate__inline-note {
+  margin: 4px 0 0;
+  color: #7b879a;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.job-pipeline-feedback-candidate__inline-note {
+  display: block;
+}
+
+.job-pipeline-feedback-candidate__source {
+  width: fit-content;
+  margin-top: 8px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.job-pipeline-feedback-candidate__source.is-blue {
+  color: #3b82f6;
+  background: #eef4ff;
+}
+
+.job-pipeline-feedback-candidate__source.is-green {
+  color: #22b161;
+  background: #ecfbf3;
+}
+
+.job-pipeline-feedback-candidate__source.is-orange {
+  color: #ff8a34;
+  background: #fff4ea;
+}
+
+.job-pipeline-feedback-candidate__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.job-pipeline-feedback-candidate__dot.is-violet {
+  background: #9b67ff;
+}
+
+.job-pipeline-feedback-candidate__dot.is-yellow {
+  background: #eab308;
+}
+
+.job-pipeline-feedback-candidate__dot.is-blue {
+  background: #3b82f6;
+}
+
+.job-pipeline-feedback-candidate__meta span {
+  display: block;
+  margin-bottom: 4px;
+  color: #9aa6bb;
+  font-size: 0.62rem;
+}
+
+.job-pipeline-feedback-candidate__meta strong.is-red {
+  color: #ef4444;
+}
+
+.job-pipeline-feedback-aside {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  position: sticky;
+  top: 0;
+}
+
+.job-pipeline-feedback-aside__card {
+  display: grid;
+  gap: 14px;
+}
+
+.job-pipeline-feedback-aside__head {
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.job-pipeline-feedback-aside__head h3 {
+  margin: 0;
+  color: #162447;
+  font-size: 0.88rem;
+}
+
+.job-pipeline-feedback-aside__head :deep(svg) {
+  color: #94a3b8;
+}
+
+.job-pipeline-feedback-aside__card p {
+  margin: 0;
+  color: #5b6981;
+  font-size: 0.76rem;
+  line-height: 1.65;
+}
+
+.job-pipeline-feedback-aside__label {
+  color: #a0abc0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.job-pipeline-feedback-impact {
+  display: grid;
+  gap: 14px;
+}
+
+.job-pipeline-feedback-impact__item {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.job-pipeline-feedback-impact__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.job-pipeline-feedback-impact__icon.is-green {
+  color: #22b161;
+  background: #ecfbf3;
+}
+
+.job-pipeline-feedback-impact__icon.is-blue {
+  color: #3b82f6;
+  background: #edf4ff;
+}
+
+.job-pipeline-feedback-impact__icon.is-violet {
+  color: #9b67ff;
+  background: #f6efff;
+}
+
+.job-pipeline-feedback-impact__item strong {
+  display: block;
+  font-size: 1rem;
+  line-height: 1.1;
+}
+
+.job-pipeline-feedback-impact__item strong.is-green {
+  color: #22b161;
+}
+
+.job-pipeline-feedback-impact__item strong.is-blue {
+  color: #3b82f6;
+}
+
+.job-pipeline-feedback-impact__item strong.is-violet {
+  color: #9b67ff;
+}
+
+.job-pipeline-feedback-impact__item h4 {
+  margin: 4px 0 3px;
+  color: #162447;
+  font-size: 0.84rem;
+}
+
+.job-pipeline-feedback-impact__item p {
+  margin: 0;
+  color: #7c889d;
+  font-size: 0.72rem;
+}
+
+.job-pipeline-feedback-tip {
+  padding: 16px 18px;
+  border: 1px solid #cfe1ff;
+  border-radius: 12px;
+  background: #f5f9ff;
+  display: grid;
+  gap: 12px;
+}
+
+.job-pipeline-feedback-tip__head {
+  justify-content: flex-start;
+  gap: 8px;
+  color: #2e6cf6;
+}
+
+.job-pipeline-feedback-tip p {
+  margin: 0;
+  color: #5b6981;
+  font-size: 0.74rem;
+  line-height: 1.65;
+}
+
 .job-pipeline-feedback-modal-footer {
-  margin-top: 18px;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  flex-wrap: wrap;
-  border-top: 1px solid #edf1f7;
+  border-top: 1px solid #edf2f8;
   padding-top: 16px;
+  padding-bottom: 20px;
   background: #fff;
+}
+
+.job-pipeline-feedback-modal-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #6f7d94;
+  font-size: 0.72rem;
 }
 
 .job-pipeline-feedback-footer-actions {
   align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
   justify-content: flex-end;
   margin-left: auto;
 }
@@ -4697,6 +5280,10 @@ function goBack() {
   border-top: 1px solid #edf1f7;
   background: #fff;
   border-radius: 0 0 26px 26px;
+}
+
+.job-pipeline-complete-feedback-modal .job-pipeline-feedback-modal-head {
+  padding: 0 32px 18px;
 }
 
 .job-pipeline-complete-feedback-meta {
@@ -5874,23 +6461,66 @@ function goBack() {
 }
 
 .job-pipeline-column {
-  min-width: 152px;
-  max-width: 152px;
+  position: relative;
+  min-width: 172px;
+  max-width: 172px;
   padding: 7px;
   border: 1px solid #e9eef6;
   border-radius: 14px;
   background: #fbfcff;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
 }
 
 .job-pipeline-column.is-focused {
   box-shadow: 0 0 0 2px rgba(255, 90, 167, 0.18);
 }
 
+.job-pipeline-column.is-drop-target {
+  border-color: #ff8bc0;
+  background: #fff7fb;
+  box-shadow: 0 0 0 2px rgba(255, 90, 167, 0.12);
+}
+
+.job-pipeline-column.is-column-drop-target {
+  border-color: #7c6cff;
+  background: #f7f6ff;
+  box-shadow: 0 0 0 2px rgba(124, 108, 255, 0.14);
+}
+
 .job-pipeline-column-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
+  padding-left: 24px;
   align-items: flex-start;
+}
+
+.job-pipeline-column-handle {
+  position: absolute;
+  top: 11px;
+  left: 9px;
+  display: inline-grid;
+  grid-auto-flow: row;
+  gap: 3px;
+  align-content: start;
+  justify-items: center;
+  width: 18px;
+  padding: 3px 0;
+  border: 0;
+  background: transparent;
+  cursor: grab;
+  z-index: 1;
+}
+
+.job-pipeline-column-handle:active {
+  cursor: grabbing;
+}
+
+.job-pipeline-column-handle span {
+  display: block;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: #bac5d7;
 }
 
 .job-pipeline-column-heading,
@@ -5902,13 +6532,13 @@ function goBack() {
 
 .job-pipeline-column-heading {
   display: grid;
-  gap: 4px;
+  gap: 3px;
 }
 
 .job-pipeline-column-head strong {
   display: block;
   color: #162447;
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   line-height: 1.18;
 }
 
@@ -5925,15 +6555,18 @@ function goBack() {
 
 .job-pipeline-column-meta {
   display: grid;
-  flex-direction: column;
-  align-items: flex-end;
+  justify-items: start;
   gap: 4px;
-  text-align: right;
+  margin-top: 0;
+  text-align: left;
 }
 
 .job-pipeline-column-meta em {
   font-style: normal;
   font-weight: 700;
+  font-size: 0.66rem;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .job-pipeline-column-meta em.is-green {
@@ -5980,6 +6613,18 @@ function goBack() {
   border: 1px solid #e8edf6;
   border-radius: 11px;
   background: #fff;
+  cursor: grab;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+}
+
+.job-pipeline-candidate-card:active {
+  cursor: grabbing;
+}
+
+.job-pipeline-candidate-card.is-dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+  box-shadow: 0 10px 24px rgba(22, 36, 71, 0.12);
 }
 
 .job-pipeline-candidate-top {
@@ -6346,27 +6991,24 @@ function goBack() {
     grid-template-columns: 1fr;
   }
 
-  .job-pipeline-feedback-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .job-pipeline-feedback-layout {
+    grid-template-columns: 1fr;
   }
 
-  .job-pipeline-feedback-row,
+  .job-pipeline-feedback-candidates {
+    border-right: 0;
+    padding-right: 0;
+  }
+
+  .job-pipeline-feedback-aside {
+    position: static;
+  }
+
   .job-pipeline-complete-feedback-options,
   .job-pipeline-complete-feedback-rating-row,
   .job-pipeline-feedback-modal-footer {
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .job-pipeline-feedback-actions,
-  .job-pipeline-feedback-person {
-    max-width: none;
-    flex: 1 1 auto;
-  }
-
-  .job-pipeline-feedback-actions {
-    margin-left: 0;
-    align-items: flex-start;
   }
 }
 
@@ -6437,19 +7079,75 @@ function goBack() {
     flex-wrap: wrap;
   }
 
-  .job-pipeline-feedback-modal,
-  .job-pipeline-complete-feedback-modal {
-    width: min(100%, 1000px);
+  .job-pipeline-feedback-modal {
+    width: min(100%, calc(100vw - 20px));
   }
 
-  .job-pipeline-feedback-stats {
-    grid-template-columns: 1fr;
+  .job-pipeline-feedback-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .job-pipeline-feedback-footer-actions {
     width: 100%;
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .job-pipeline-feedback-candidates__head {
+    grid-template-columns: 1fr;
+  }
+
+  .job-pipeline-feedback-candidates__controls {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .job-pipeline-feedback-candidate {
+    grid-template-columns: 28px 54px minmax(0, 1fr);
+    align-items: flex-start;
+  }
+
+  .job-pipeline-feedback-candidate__stage,
+  .job-pipeline-feedback-candidate__meta {
+    grid-column: 2 / -1;
+  }
+}
+
+@media (max-width: 820px) {
+  .job-pipeline-feedback-overlay {
+    padding: 10px;
+  }
+
+  .job-pipeline-feedback-modal .job-pipeline-feedback-modal-head,
+  .job-pipeline-feedback-modal .job-pipeline-feedback-modal-footer,
+  .job-pipeline-feedback-modal__body {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .job-pipeline-feedback-summary {
+    grid-template-columns: 1fr;
+    padding: 10px 0;
+  }
+
+  .job-pipeline-feedback-summary__item,
+  .job-pipeline-feedback-summary__priority {
+    padding: 14px 18px;
+    border-left: 0;
+  }
+
+  .job-pipeline-feedback-summary__item + .job-pipeline-feedback-summary__item,
+  .job-pipeline-feedback-summary__priority {
+    border-top: 1px solid #edf2f8;
+  }
+
+  .job-pipeline-complete-feedback-modal .job-pipeline-feedback-modal-head,
+  .job-pipeline-complete-feedback-meta,
+  .job-pipeline-complete-feedback-section,
+  .job-pipeline-feedback-modal-footer.is-complete {
+    padding-left: 20px;
+    padding-right: 20px;
   }
 }
 </style>
