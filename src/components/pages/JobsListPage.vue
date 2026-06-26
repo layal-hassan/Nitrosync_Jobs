@@ -19,27 +19,41 @@ const jobsPerPage = ref('10')
 const actionMenu = ref(null)
 const actionMenuRef = ref(null)
 let actionMenuRaf = 0
+const closingSoonActionMenu = ref(null)
+const closingSoonActionMenuRef = ref(null)
+let closingSoonActionMenuRaf = 0
 const reviewCandidatesActionMenu = ref(null)
 const reviewCandidatesActionMenuRef = ref(null)
 let reviewCandidatesActionMenuRaf = 0
 const filterModalOpen = ref(false)
 const reviewFeedbackModalOpen = ref(false)
 const sendReminderModalOpen = ref(false)
+const contactHiringManagerModalOpen = ref(false)
 const completeFeedbackModalOpen = ref(false)
 const feedbackSuccessModalOpen = ref(false)
+const recentWinsModalOpen = ref(false)
 const duplicateJobModalOpen = ref(false)
 const duplicateJobSuccessModalOpen = ref(false)
 const shareJobModalOpen = ref(false)
+const boostJobModalOpen = ref(false)
+const refreshPostingModalOpen = ref(false)
+const refreshPostingSuccessModalOpen = ref(false)
+const publishJobBoardsModalOpen = ref(false)
 const scheduleInterviewsModalOpen = ref(false)
 const closingSoonJobsModalOpen = ref(false)
 const reviewCandidatesModalOpen = ref(false)
+const riskReviewCandidatesModalOpen = ref(false)
+const moveCandidateForwardModalOpen = ref(false)
 const jobsAttentionModalOpen = ref(false)
+const readyForActionModalOpen = ref(false)
+const upcomingRisksModalOpen = ref(false)
 const actionPlanModalOpen = ref(false)
 const actionPlanFeedbackModalOpen = ref(false)
 const actionPlanFeedbackView = ref('list')
 const actionPlanApprovalModalOpen = ref(false)
 const reschedulePublicationModalOpen = ref(false)
 const reschedulePublicationSuccessModalOpen = ref(false)
+const editClosingDateModalOpen = ref(false)
 const pauseJobModalOpen = ref(false)
 const pauseJobSuccessModalOpen = ref(false)
 const closeJobModalOpen = ref(false)
@@ -104,6 +118,9 @@ const duplicateJobAdvancedPanels = ref({
 const duplicateJobSuccessData = ref(null)
 const reschedulePublicationTarget = ref(null)
 const reschedulePublicationSuccessData = ref(null)
+const editClosingDateTarget = ref(null)
+const contactHiringManagerTarget = ref(null)
+const publishJobBoardsTarget = ref(null)
 const pauseJobTarget = ref(null)
 const pauseJobSuccessData = ref(null)
 const closeJobTarget = ref(null)
@@ -136,6 +153,26 @@ const reschedulePublicationForm = ref({
   glassdoor: true,
   keepVisibility: true,
 })
+const editClosingDateForm = ref({
+  currentDate: '15 Jun 2025',
+  currentTime: '17:00',
+  newDate: '29 Jun 2025',
+  newTime: '17:00',
+  timezone: 'Europe/Stockholm (GMT+2)',
+  reason: 'Extending closing date to increase application volume.',
+  updateJobBoards: true,
+  notifyHiringTeam: true,
+  notifyInterestedApplicants: false,
+  quickAction: '14',
+})
+const contactHiringManagerForm = ref({
+  message: '',
+  scheduleMeeting: true,
+  date: '24 Jun 2025',
+  time: '14:00',
+  duration: '30 min',
+})
+const publishJobBoardsSelectedIds = ref(['indeed', 'monster'])
 const pauseJobForm = ref({
   reason: 'freeze',
   autoResume: false,
@@ -152,12 +189,34 @@ const archiveJobForm = ref({
 const copilotJobMode = ref('default')
 const copilotJobQuestion = ref('')
 const copilotJobAsked = ref('')
+const recentWinsFilter = ref('All wins')
+const recentWinsRange = ref('Last 30 days')
+const readyForActionSort = ref('Priority')
 const shareJobTarget = ref(null)
 const shareJobCopied = ref(false)
+const boostJobTarget = ref(null)
+const refreshPostingTarget = ref(null)
+const refreshPostingSuccessData = ref(null)
 const attentionActiveFilter = ref('all')
 const reviewCandidatesTarget = ref(null)
+const riskReviewCandidatesTarget = ref(null)
+const moveCandidateForwardTarget = ref(null)
+const reviewFeedbackTarget = ref(null)
 const reviewCandidatesSearch = ref('')
 const reviewCandidatesSort = ref('Newest')
+const moveCandidateForwardStage = ref('offer')
+const moveCandidateForwardComment = ref('')
+const moveCandidateForwardNotifyHiringManager = ref(true)
+const moveCandidateForwardNotifyRecruiter = ref(true)
+const moveCandidateForwardNotifyTimeline = ref(true)
+const moveCandidateForwardNotifyCandidate = ref(false)
+const refreshPostingExpandedImprovementId = ref('title-visibility')
+const refreshPostingCompareView = ref(true)
+const refreshPostingDescriptionExpanded = ref(false)
+const reviewFeedbackRecipient = ref('')
+const reviewFeedbackMessage = ref('')
+const reviewFeedbackReminderTiming = ref('send-now')
+const reviewFeedbackCustomDate = ref('30 Jun 2026')
 const reviewCandidatesSelectedIds = ref([])
 const reviewCandidatesActiveId = ref('')
 const reviewCandidatesEmailModalOpen = ref(false)
@@ -593,6 +652,52 @@ const filteredJobsAttentionCards = computed(() => (
     : jobsAttentionActionCards.filter((card) => card.filterId === attentionActiveFilter.value)
 ))
 
+const jobsAttentionPriorityJob = computed(() => jobsAttentionModalRows[0] ?? null)
+const readyForActionRows = computed(() => {
+  const rows = [...readyForActionModalRows]
+
+  if (readyForActionSort.value === 'Health') {
+    return rows.sort((left, right) => right.health - left.health)
+  }
+
+  if (readyForActionSort.value === 'Days Open') {
+    return rows.sort((left, right) => right.daysOpen - left.daysOpen)
+  }
+
+  return rows.sort((left, right) => left.priority - right.priority)
+})
+const readyForActionAdvisorJob = computed(() => (
+  readyForActionModalRows.find((item) => item.id === 'product-marketing-manager')
+  ?? readyForActionRows.value[0]
+  ?? null
+))
+const readyForActionMomentumBreakdown = computed(() => ([
+  { label: 'Offer Ready', value: 3, tone: 'pink' },
+  { label: 'Finalists Ready', value: 2, tone: 'orange' },
+  { label: 'Accepted Offers', value: 1, tone: 'violet' },
+  { label: 'Onboarding Ready', value: 1, tone: 'blue' },
+]))
+const readyForActionMomentumTotal = computed(() => (
+  readyForActionMomentumBreakdown.value.reduce((sum, item) => sum + item.value, 0)
+))
+const readyForActionTimeSavedItems = [
+  'Offer automation',
+  'Candidate summaries',
+  'Interview consolidation',
+  'Approval workflows',
+]
+const upcomingRisksAdvisorJob = computed(() => (
+  upcomingRisksModalRows.find((item) => item.id === 'hr-manager')
+  ?? upcomingRisksModalRows[0]
+  ?? null
+))
+const upcomingRisksOverview = computed(() => ([
+  { label: 'High Risk', value: 2, tone: 'pink' },
+  { label: 'Medium Risk', value: 2, tone: 'orange' },
+  { label: 'Low Risk', value: 1, tone: 'yellow' },
+  { label: 'Total', value: upcomingRisksModalRows.length, tone: 'slate' },
+]))
+
 const jobLookup = Object.fromEntries(jobs.map((job) => [job.id, job]))
 
 const briefingSummary = {
@@ -687,6 +792,376 @@ const briefingReadyForAction = [
   }),
 ]
 
+const readyForActionModalStats = [
+  { id: 'final-shortlist', value: 2, label: 'Final Shortlist Ready', icon: 'users', tone: 'pink' },
+  { id: 'offers-ready', value: 3, label: 'Offers Ready', icon: 'archive', tone: 'pink' },
+  { id: 'candidate-accepted', value: 1, label: 'Candidate Accepted', icon: 'checkCircle', tone: 'green' },
+  { id: 'background-checks', value: 2, label: 'Background Checks', icon: 'clipboard-check', tone: 'blue' },
+  { id: 'onboarding-ready', value: 1, label: 'Onboarding Ready', icon: 'bolt', tone: 'orange' },
+]
+
+const readyForActionModalRows = [
+  {
+    id: 'graphic-designer',
+    title: 'Graphic Designer',
+    department: 'Design',
+    workMode: 'Hybrid',
+    location: 'New York, NY',
+    daysOpen: 21,
+    status: 'On Track',
+    icon: 'edit',
+    tone: 'pink',
+    health: 85,
+    metrics: [
+      { label: 'Applied', value: 98 },
+      { label: 'Interviews', value: 16 },
+      { label: 'Offers', value: 3 },
+      { label: 'Hired', value: 1 },
+    ],
+    nextAction: 'Review finalists',
+    actionDescription: '2 offer-ready candidates awaiting your decision.',
+    actionNotes: ['12 candidates interviewed', 'All interview feedback completed'],
+    actionPill: 'Expected time saved 2 Days',
+    primaryActionLabel: 'Review Finalists',
+    primaryActionId: 'review-finalists',
+    priority: 3,
+  },
+  {
+    id: 'senior-frontend-developer',
+    title: 'Senior Frontend Developer',
+    department: 'Engineering',
+    workMode: 'Remote',
+    location: 'Austin, TX',
+    daysOpen: 25,
+    status: 'On Track',
+    icon: 'compare',
+    tone: 'pink',
+    health: 95,
+    metrics: [
+      { label: 'Applied', value: 120 },
+      { label: 'Interviews', value: 18 },
+      { label: 'Offers', value: 4 },
+      { label: 'Hired', value: 2 },
+    ],
+    nextAction: 'Complete onboarding',
+    actionDescription: 'Candidate has accepted the offer. Let\'s get them started.',
+    actionNotes: ['Offer accepted', 'Background check completed'],
+    actionPill: 'Candidate can start next week',
+    primaryActionLabel: 'Complete Onboarding',
+    primaryActionId: 'complete-onboarding',
+    priority: 2,
+  },
+  {
+    id: 'product-marketing-manager',
+    title: 'Product Marketing Manager',
+    department: 'Marketing',
+    workMode: 'Hybrid',
+    location: 'San Francisco, CA',
+    daysOpen: 18,
+    status: 'On Track',
+    icon: 'users',
+    tone: 'pink',
+    health: 70,
+    metrics: [
+      { label: 'Applied', value: 75 },
+      { label: 'Interviews', value: 12 },
+      { label: 'Offers', value: 2 },
+      { label: 'Hired', value: 0 },
+    ],
+    nextAction: 'Create offer',
+    actionDescription: '2 strong candidates ready for an offer.',
+    actionNotes: ['Top candidate approved', 'Compensation approved'],
+    actionPill: 'Reduce time-to-hire by 5 days',
+    primaryActionLabel: 'Create Offer',
+    primaryActionId: 'create-offer',
+    priority: 1,
+  },
+  {
+    id: 'backend-engineer',
+    title: 'Backend Engineer',
+    department: 'Engineering',
+    workMode: 'Hybrid',
+    location: 'Chicago, IL',
+    daysOpen: 19,
+    status: 'On Track',
+    icon: 'briefcase',
+    tone: 'pink',
+    health: 88,
+    metrics: [
+      { label: 'Applied', value: 84 },
+      { label: 'Interviews', value: 14 },
+      { label: 'Offers', value: 2 },
+      { label: 'Hired', value: 1 },
+    ],
+    nextAction: 'Send final offer',
+    actionDescription: 'Legal and salary approvals are complete.',
+    actionNotes: ['Offer draft ready', 'Hiring manager approved'],
+    actionPill: 'Expected time saved 1 Day',
+    primaryActionLabel: 'Send Offer',
+    primaryActionId: 'send-offer',
+    priority: 4,
+  },
+  {
+    id: 'customer-success-manager',
+    title: 'Customer Success Manager',
+    department: 'Customer Success',
+    workMode: 'Remote',
+    location: 'Dubai, UAE',
+    daysOpen: 16,
+    status: 'On Track',
+    icon: 'user-check',
+    tone: 'pink',
+    health: 82,
+    metrics: [
+      { label: 'Applied', value: 66 },
+      { label: 'Interviews', value: 10 },
+      { label: 'Offers', value: 1 },
+      { label: 'Hired', value: 0 },
+    ],
+    nextAction: 'Schedule final sync',
+    actionDescription: 'Candidate is aligned and waiting for final sign-off.',
+    actionNotes: ['References completed', 'Panel recommendation submitted'],
+    actionPill: 'Can close this week',
+    primaryActionLabel: 'Schedule Final Step',
+    primaryActionId: 'schedule-final',
+    priority: 5,
+  },
+  {
+    id: 'people-operations-specialist',
+    title: 'People Operations Specialist',
+    department: 'People',
+    workMode: 'On-site',
+    location: 'Riyadh, SA',
+    daysOpen: 14,
+    status: 'On Track',
+    icon: 'document',
+    tone: 'pink',
+    health: 78,
+    metrics: [
+      { label: 'Applied', value: 58 },
+      { label: 'Interviews', value: 9 },
+      { label: 'Offers', value: 1 },
+      { label: 'Hired', value: 0 },
+    ],
+    nextAction: 'Confirm background checks',
+    actionDescription: 'Offer accepted pending final verification.',
+    actionNotes: ['Candidate documents submitted', 'Payroll setup pending'],
+    actionPill: 'Onboarding ready after checks',
+    primaryActionLabel: 'Complete Checks',
+    primaryActionId: 'complete-checks',
+    priority: 6,
+  },
+]
+
+const readyForActionSortOptions = ['Priority', 'Health', 'Days Open']
+
+const upcomingRisksModalStats = [
+  { id: 'high-risk', value: 2, label: 'High Risk', icon: 'alert', tone: 'pink' },
+  { id: 'medium-risk', value: 2, label: 'Medium Risk', icon: 'alert', tone: 'orange' },
+  { id: 'low-risk', value: 1, label: 'Low Risk', icon: 'sparkles', tone: 'yellow' },
+  { id: 'watch-list', value: 17, label: 'Jobs to watch', icon: 'calendar', tone: 'violet' },
+]
+
+const upcomingRisksModalRows = [
+  {
+    id: 'hr-manager',
+    title: 'HR Manager',
+    department: 'Human Resources',
+    employmentType: 'Full-time',
+    location: 'San Francisco, CA',
+    daysOpen: 21,
+    riskLevel: 'High Risk',
+    riskTone: 'pink',
+    icon: 'users',
+    riskTitle: 'Candidate pipeline shrinking',
+    reasons: [
+      'Only 2 qualified candidates remain',
+      'No stage movement in 5 days',
+      'Feedback response time increasing',
+    ],
+    actionTitle: 'Review candidates now',
+    actionDescription: 'Strengthen pipeline before top candidates drop off.',
+    primaryActionLabel: 'Review Candidates',
+    primaryActionId: 'review-candidates',
+  },
+  {
+    id: 'marketing-lead',
+    title: 'Marketing Lead',
+    department: 'Marketing',
+    employmentType: 'Full-time',
+    location: 'Austin, TX',
+    daysOpen: 17,
+    riskLevel: 'Medium Risk',
+    riskTone: 'orange',
+    icon: 'megaphone',
+    riskTitle: 'Interview process may slow down',
+    reasons: [
+      'Interview panel not assigned',
+      '2 interview slots unscheduled',
+      'No interviews scheduled in 7 days',
+    ],
+    actionTitle: 'Assign interviewers',
+    actionDescription: 'Assign panel members to keep interviews on track.',
+    primaryActionLabel: 'Assign Interviewers',
+    primaryActionId: 'assign-interviewers',
+  },
+  {
+    id: 'product-manager',
+    title: 'Product Manager',
+    department: 'Product',
+    employmentType: 'Full-time',
+    location: 'New York, NY',
+    daysOpen: 12,
+    riskLevel: 'Medium Risk',
+    riskTone: 'violet',
+    icon: 'briefcase',
+    riskTitle: 'Sourcing activity decreasing',
+    reasons: [
+      'Applications dropped 40% this week',
+      'Fewer new candidates in pipeline',
+      'Referral activity below target',
+    ],
+    actionTitle: 'Refresh posting',
+    actionDescription: 'Increase visibility to attract more qualified candidates.',
+    primaryActionLabel: 'Refresh Posting',
+    primaryActionId: 'refresh-posting',
+  },
+  {
+    id: 'finance-analyst',
+    title: 'Finance Analyst',
+    department: 'Finance',
+    employmentType: 'Full-time',
+    location: 'Chicago, IL',
+    daysOpen: 15,
+    riskLevel: 'High Risk',
+    riskTone: 'pink',
+    icon: 'chart-bars',
+    riskTitle: 'Offer decision at risk',
+    reasons: [
+      'Compensation review pending',
+      'Candidate follow-up overdue by 3 days',
+      'Backup candidate already interviewing elsewhere',
+    ],
+    actionTitle: 'Create offer',
+    actionDescription: 'Move quickly before the leading candidate disengages.',
+    primaryActionLabel: 'Create Offer',
+    primaryActionId: 'create-offer',
+  },
+  {
+    id: 'operations-coordinator',
+    title: 'Operations Coordinator',
+    department: 'Operations',
+    employmentType: 'Part-time',
+    location: 'Remote',
+    daysOpen: 10,
+    riskLevel: 'Low Risk',
+    riskTone: 'yellow',
+    icon: 'calendar',
+    riskTitle: 'Follow-up cadence weakening',
+    reasons: [
+      '2 candidates awaiting availability update',
+      'Hiring manager review due tomorrow',
+      'Stage handoff not confirmed yet',
+    ],
+    actionTitle: 'Send reminder',
+    actionDescription: 'A quick follow-up now should keep the process moving.',
+    primaryActionLabel: 'Send Reminder',
+    primaryActionId: 'send-reminder',
+  },
+]
+
+const riskReviewCandidatesScenario = {
+  title: 'Review Candidates',
+  subtitle: 'HR Manager • Candidate pipeline shrinking',
+  headline: 'Only 2 qualified candidates remain.',
+  subheadline: 'No stage movement in 5 days.',
+  impact: 'You could face a 12 day hiring delay if no action is taken.',
+  recommendation: 'To reduce hiring risk, advance at least one candidate within the next 24 hours.',
+  snapshot: [
+    { label: 'Qualified Candidates', value: 2, tone: 'violet' },
+    { label: 'In Assessment/Interview', value: 2, tone: 'orange' },
+    { label: 'Offered', value: 0, tone: 'yellow' },
+    { label: 'Hired', value: 0, tone: 'green' },
+  ],
+  recentActivity: [
+    { title: 'No stage movement in 5 days', note: 'Last movement: Apr 19, 2025', icon: 'calendar', tone: 'violet' },
+    { title: '2 candidates waiting', note: 'For decision or action', icon: 'users', tone: 'orange' },
+  ],
+  impactCards: [
+    { label: 'Hiring Confidence', value: '+8%', tone: 'green', icon: 'trend-up' },
+    { label: 'Pipeline Risk', value: '-35%', tone: 'pink', icon: 'spark' },
+  ],
+  candidates: [
+    {
+      id: 'sarah-johnson-risk',
+      name: 'Sarah Johnson',
+      role: 'Senior HR Generalist',
+      location: 'San Francisco, CA',
+      match: '92% Match',
+      avatarTone: 'rose',
+      stage: 'Interview',
+      lastActivity: '5 days ago',
+      lastActivityDate: 'Apr 19, 2025',
+      status: 'Waiting for decision',
+      statusNote: 'From Hiring Manager',
+      recommendationTitle: 'Move to Offer stage to keep momentum.',
+      primaryActionLabel: 'Move Forward',
+      secondaryActionLabel: 'Schedule Interview',
+      primaryActionId: 'move-forward',
+      secondaryActionId: 'schedule-interview',
+    },
+    {
+      id: 'daniel-brown-risk',
+      name: 'Daniel Brown',
+      role: 'HR Business Partner',
+      location: 'Austin, TX',
+      match: '89% Match',
+      avatarTone: 'brown',
+      stage: 'Assessment Review',
+      lastActivity: '6 days ago',
+      lastActivityDate: 'Apr 18, 2025',
+      status: 'Waiting for recruiter',
+      statusNote: 'Action',
+      recommendationTitle: 'Request feedback to move candidate forward.',
+      primaryActionLabel: 'Move To Hired',
+      secondaryActionLabel: 'Request Feedback',
+      primaryActionId: 'move-hired',
+      secondaryActionId: 'request-feedback',
+    },
+  ],
+}
+
+const moveCandidateForwardStageOptions = [
+  { id: 'final-interview', label: 'Final Interview', icon: 'user-check' },
+  { id: 'offer', label: 'Offer', icon: 'archive', recommended: true },
+  { id: 'hired', label: 'Hired', icon: 'checkCircle' },
+]
+
+const moveCandidateForwardProfiles = {
+  'sarah-johnson-risk': {
+    recommendationTitle: 'Move Sarah Johnson to Offer Stage',
+    recommendationPrefix: 'Move Sarah Johnson to',
+    recommendationHighlight: 'Offer Stage',
+    recommendationBody: 'This is the best next step to reduce pipeline risk and maintain hiring momentum.',
+    aiConfidence: '94%',
+    aiConfidenceLabel: 'Very High',
+    reasons: [
+      'Interview score: 4.7 / 5',
+      'Hiring manager: Strong Hire',
+      'All required feedback completed',
+      'No active blockers',
+      'Top candidate in current pipeline',
+    ],
+    alternativeRecommendation: 'Schedule Final Interview',
+    alternativeConfidence: '68%',
+    expectedImpact: [
+      { label: 'Hiring Confidence', value: '+8%', note: 'Increase', tone: 'green', icon: 'trend-up' },
+      { label: 'Pipeline Risk', value: '-35%', note: 'Reduction', tone: 'pink', icon: 'spark' },
+      { label: 'Estimated hire date', value: 'On Track', note: 'Maintained', tone: 'blue', icon: 'calendar' },
+    ],
+  },
+}
+
 const briefingUpcomingRisks = [
   {
     title: 'HR Manager',
@@ -718,6 +1193,118 @@ const briefingRecentWins = [
   { tag: 'Hired', title: 'Senior Frontend Developer', note: 'Filled in 4 days', age: '2 days ago', owner: 'Tanya Ahmed' },
   { tag: 'Offer Accepted', title: 'Backend Engineer', note: 'Offer accepted by candidate', age: '3 days ago', owner: 'Sarah Parker' },
   { tag: 'Hired', title: 'UI/UX Designer', note: 'Filled in 22 days', age: '1 week ago', owner: 'Maya Lewis' },
+]
+
+const recentWinsFilterOptions = ['All wins', 'Hired', 'Offer accepted', 'Position filled']
+const recentWinsRangeOptions = ['Last 30 days', 'Last 7 days', 'This quarter']
+const contactHiringManagerTimeOptions = ['09:00', '11:00', '14:00', '16:30']
+const contactHiringManagerDurationOptions = ['15 min', '30 min', '45 min', '60 min']
+const contactHiringManagerProfiles = {
+  'store-manager': {
+    name: 'Sarah Johnson',
+    role: 'Retail Hiring Manager',
+    email: 'sarah.johnson@nikecareers.com',
+    initials: 'SJ',
+  },
+  'senior-ux-designer': {
+    name: 'Emma Wilson',
+    role: 'Design Hiring Manager',
+    email: 'emma.wilson@behance.com',
+    initials: 'EW',
+  },
+  'warehouse-lead': {
+    name: 'Michael Torres',
+    role: 'Operations Hiring Manager',
+    email: 'michael.torres@amazon.com',
+    initials: 'MT',
+  },
+}
+const publishJobBoardsPublishedChannels = [
+  { id: 'linkedin', title: 'LinkedIn', status: 'Published', note: 'Live since Jun 18, 2025', icon: 'linkedin', iconType: 'brand' },
+  { id: 'career-site', title: 'Company Career Site', status: 'Published', note: 'Live since Jun 18, 2025', icon: 'building', iconType: 'app' },
+  { id: 'ats-portal', title: 'Your ATS Portal', status: 'Published', note: 'Live since Jun 18, 2025', icon: 'briefcase', iconType: 'app' },
+]
+const publishJobBoardsReadyChannels = [
+  { id: 'indeed', title: 'Indeed', match: 'High match', estimatedApplications: 12, estimatedReach: 18, score: 4, icon: 'indeed', iconType: 'brand' },
+  { id: 'monster', title: 'Monster', match: 'Good match', estimatedApplications: 6, estimatedReach: 14, score: 2, iconLabel: 'M', iconType: 'label' },
+]
+const publishJobBoardsNeedsConfigChannels = [
+  { id: 'glassdoor', title: 'Glassdoor', note: 'Profile verification required', icon: 'glassdoor', iconType: 'brand' },
+  { id: 'stepstone', title: 'StepStone', note: 'Billing details required', iconLabel: 'ST', iconType: 'label' },
+]
+const recentWinsStats = [
+  { label: 'Hires', value: 14, delta: '27%', note: 'vs last 30 days', icon: 'user', tone: 'green' },
+  { label: 'Offers Accepted', value: 11, delta: '22%', note: 'vs last 30 days', icon: 'document', tone: 'blue' },
+  { label: 'Positions Filled', value: 7, delta: '16%', note: 'vs last 30 days', icon: 'briefcase', tone: 'violet' },
+  { label: 'Onboarded', value: 6, delta: '20%', note: 'vs last 30 days', icon: 'userPlus', tone: 'orange' },
+]
+const recentWinsSections = [
+  {
+    label: 'Today',
+    items: [
+      {
+        tag: 'Hired',
+        tagTone: 'green',
+        title: 'Senior Frontend Developer',
+        note: 'Hired by James Wilson',
+        meta: 'Engineering • Full-time • Remote',
+        owner: 'Alex Johnson',
+        ownerNote: 'Offer accepted',
+        age: '2 days ago',
+        markerIcon: 'check',
+        markerTone: 'green',
+      },
+      {
+        tag: 'Offer Accepted',
+        tagTone: 'pink',
+        title: 'Backend Engineer',
+        note: 'Accepted by candidate',
+        meta: 'Engineering • Full-time • Hybrid',
+        owner: 'Sarah Miller',
+        ownerNote: 'Offer accepted',
+        age: '3 days ago',
+        markerIcon: 'check',
+        markerTone: 'green',
+      },
+    ],
+  },
+  {
+    label: 'Yesterday',
+    items: [
+      {
+        tag: 'Position Filled',
+        tagTone: 'violet',
+        title: 'UI/UX Designer',
+        note: 'Filled in 22 days',
+        meta: 'Design • Full-time • Hybrid',
+        owner: 'Emma Davis',
+        ownerNote: 'Hired',
+        age: '1 week ago',
+        markerIcon: 'clock',
+        markerTone: 'violet',
+      },
+      {
+        tag: 'Hired',
+        tagTone: 'green',
+        title: 'Product Manager',
+        note: 'Hired by James Wilson',
+        meta: 'Product • Full-time • Remote',
+        owner: 'Michael Chen',
+        ownerNote: 'Offer accepted',
+        age: '1 week ago',
+        markerIcon: 'check',
+        markerTone: 'green',
+      },
+    ],
+  },
+]
+
+const editClosingDateTimeOptions = ['09:00', '12:00', '17:00', '18:30', '21:00']
+const editClosingDateTimezoneOptions = [
+  'Europe/Stockholm (GMT+2)',
+  'Europe/London (GMT+1)',
+  'Europe/Berlin (GMT+2)',
+  'America/New_York (GMT-4)',
 ]
 
 const briefingWeekProgress = [
@@ -851,6 +1438,259 @@ const jobsAttentionBulkActions = [
   'Extend Selected Jobs',
   'Mark Selected as Reviewed',
 ]
+
+const jobsAttentionModalStats = [
+  { id: 'at-risk', icon: 'alert', value: 2, label: 'At Risk', tone: 'pink' },
+  { id: 'needs-action', icon: 'mail', value: 1, label: 'Needs Action', tone: 'orange' },
+  { id: 'waiting-feedback', icon: 'clock', value: 3, label: 'Waiting on Feedback', tone: 'blue' },
+  { id: 'closing-soon', icon: 'calendar', value: 1, label: 'Closing Soon', tone: 'yellow' },
+]
+
+const jobsAttentionModalRows = [
+  {
+    id: 'product-manager',
+    title: 'Product Manager',
+    department: 'Product',
+    workMode: 'Hybrid',
+    location: 'New York, NY',
+    badge: 'At Risk',
+    tone: 'pink',
+    icon: 'briefcase',
+    metrics: [
+      { label: 'Applied', value: 54 },
+      { label: 'Interviews', value: 9 },
+      { label: 'Offers', value: 0 },
+      { label: 'Hired', value: 0 },
+    ],
+    health: 35,
+    nextAction: 'Refresh posting',
+    issues: ['Applications dropped 35%', 'Expected hire delayed by 8 days'],
+    primaryActionId: 'refresh-posting',
+    primaryActionLabel: 'Refresh Posting',
+  },
+  {
+    id: 'accountant',
+    title: 'Accountant',
+    department: 'Finance',
+    workMode: 'On-site',
+    location: 'Chicago, IL',
+    badge: 'Needs Action',
+    tone: 'orange',
+    icon: 'calendar',
+    metrics: [
+      { label: 'Applied', value: 76 },
+      { label: 'Interviews', value: 11 },
+      { label: 'Offers', value: 2 },
+      { label: 'Hired', value: 0 },
+    ],
+    health: 62,
+    nextAction: 'Review feedback',
+    issues: ['3 candidates waiting', 'Oldest waiting 4 days'],
+    primaryActionId: 'review-feedback',
+    primaryActionLabel: 'Review Feedback',
+  },
+  {
+    id: 'marketing-lead',
+    title: 'Marketing Lead',
+    department: 'Marketing',
+    workMode: 'Hybrid',
+    location: 'Austin, TX',
+    badge: 'At Risk',
+    tone: 'pink',
+    icon: 'megaphone',
+    metrics: [
+      { label: 'Applied', value: 17 },
+      { label: 'Interviews', value: 5 },
+      { label: 'Offers', value: 0 },
+      { label: 'Hired', value: 0 },
+    ],
+    health: 48,
+    nextAction: 'Assign interviewers',
+    issues: ['Interview panel inactive', '7 days without activity'],
+    primaryActionId: 'assign-interviewers',
+    primaryActionLabel: 'Assign Interviewers',
+  },
+  {
+    id: 'hr-manager',
+    title: 'HR Manager',
+    department: 'People',
+    workMode: 'Remote',
+    location: 'Boston, MA',
+    badge: 'Closing Soon',
+    tone: 'yellow',
+    icon: 'calendar',
+    metrics: [
+      { label: 'Applied', value: 18 },
+      { label: 'Interviews', value: 4 },
+      { label: 'Offers', value: 1 },
+      { label: 'Hired', value: 0 },
+    ],
+    health: 58,
+    nextAction: 'Review candidates',
+    issues: ['Closing in 3 days', 'Shortlist needs final review'],
+    primaryActionId: 'review-candidates',
+    primaryActionLabel: 'Review Candidates',
+  },
+]
+
+const jobsAttentionModalBreakdown = [
+  { label: 'Pipeline Issues', value: 2, tone: 'red' },
+  { label: 'Feedback Delays', value: 1, tone: 'orange' },
+  { label: 'Closing Risks', value: 1, tone: 'yellow' },
+]
+
+const boostJobChannels = [
+  {
+    id: 'linkedin',
+    title: 'LinkedIn Jobs',
+    description: 'Reach professional talent',
+    badge: 'in',
+    badgeTone: 'linkedin',
+    status: 'Connected',
+    href: 'https://www.linkedin.com/talent/',
+  },
+  {
+    id: 'indeed',
+    title: 'Indeed',
+    description: 'Get your job in front of millions',
+    badge: 'ID',
+    badgeTone: 'indeed',
+    status: 'Connected',
+    href: 'https://www.indeed.com/hire/',
+  },
+  {
+    id: 'meta-ads',
+    title: 'Meta Ads',
+    description: 'Promote on Facebook & Instagram',
+    badge: 'M',
+    badgeTone: 'meta',
+    status: 'Connected',
+    href: 'https://www.facebook.com/business/ads',
+  },
+]
+
+const refreshPostingProfiles = {
+  'product-manager': {
+    jobId: '87543',
+    summaryTitle: 'Why we\'re recommending this',
+    summaryDescription: 'Applications dropped 35% and response rate is decreasing.',
+    metrics: [
+      { id: 'applications', value: '35%', label: 'Applications Dropped', icon: 'trend-up', tone: 'pink' },
+      { id: 'delay', value: '8 days', label: 'Expected Delay', icon: 'clock', tone: 'pink' },
+      { id: 'visibility', value: 'Lower', label: 'Job Visibility', icon: 'briefcase', tone: 'pink' },
+    ],
+    improvements: [
+      {
+        id: 'title-visibility',
+        step: '1',
+        tone: 'pink',
+        title: 'Improve job title visibility',
+        description: 'A clearer, senior title attracts more qualified candidates.',
+        currentBadge: 'Current: {{jobTitle}}',
+        recommendedBadge: 'Rec: {{recommendedTitle}}',
+        previewLabel: 'Job title',
+        currentValue: '{{jobTitle}}',
+        recommendedValue: '{{recommendedTitle}}',
+        descriptionLabel: 'Job description (preview)',
+        descriptionCurrent: '"We are looking for a {{jobTitle}} to join our team..."',
+        descriptionRecommended: 'We\'re looking for a {{recommendedTitle}} to lead the strategy and execution of our core products. You will own the product lifecycle end-to-end, from discovery to delivery, working cross-functionally with Engineering, Design, and Marketing to drive measurable impact for millions of users.',
+      },
+      {
+        id: 'description-refresh',
+        step: '2',
+        tone: 'blue',
+        title: 'Refresh job description',
+        description: 'Sharper role framing can improve conversion and candidate quality.',
+        currentBadge: 'Current: General opening',
+        recommendedBadge: 'Rec: Outcome-focused pitch',
+        previewLabel: 'Opening pitch',
+        currentValue: 'Generic product role overview',
+        recommendedValue: 'Lead strategy, delivery, and cross-functional execution',
+        descriptionLabel: 'Suggested intro',
+        descriptionCurrent: 'A brief role summary without emphasis on impact or ownership.',
+        descriptionRecommended: 'Position the role around ownership, measurable impact, and collaboration. Highlight the scope, decision-making authority, and product outcomes candidates will influence in the first 12 months.',
+      },
+      {
+        id: 'benefits-strength',
+        step: '3',
+        tone: 'violet',
+        title: 'Strengthen benefits section',
+        description: 'More specific benefits can reduce drop-off from qualified candidates.',
+        currentBadge: 'Current: Limited detail',
+        recommendedBadge: 'Rec: Add clear benefits',
+        previewLabel: 'Benefits section',
+        currentValue: 'Short perks list',
+        recommendedValue: 'Health, equity, learning budget, and hybrid flexibility',
+        descriptionLabel: 'Recommended update',
+        descriptionCurrent: 'Basic benefits mention with limited detail.',
+        descriptionRecommended: 'Add transparent benefits language covering healthcare, flexible work, annual learning budget, paid leave, and growth opportunities to increase trust and conversion.',
+      },
+      {
+        id: 'publishing-expansion',
+        step: '4',
+        tone: 'mint',
+        title: 'Expand publishing channels',
+        description: 'Additional channels can increase visibility with similar candidate profiles.',
+        currentBadge: 'Current: 2 channels active',
+        recommendedBadge: 'Rec: 4 channels active',
+        previewLabel: 'Channel mix',
+        currentValue: 'Career Site, LinkedIn',
+        recommendedValue: 'Career Site, LinkedIn, Indeed, Glassdoor',
+        descriptionLabel: 'Publishing channels',
+        descriptionCurrent: 'Current reach is concentrated in two active sources.',
+        descriptionRecommended: 'Republish to Indeed and Glassdoor while keeping existing channels active to improve discovery, distribution, and application volume from adjacent talent pools.',
+      },
+    ],
+    impact: [
+      { id: 'applications', value: '+42%', label: 'Applications', tone: 'pink' },
+      { id: 'response', value: '+28%', label: 'Response', tone: 'blue' },
+      { id: 'time-to-hire', value: '-8d', label: 'Time To Hire', tone: 'mint' },
+    ],
+    channels: [
+      { id: 'career-site', label: 'Career Site', badge: 'N', tone: 'pink' },
+      { id: 'linkedin', label: 'LinkedIn', badge: 'in', tone: 'blue' },
+      { id: 'indeed', label: 'Indeed', badge: 'i', tone: 'slate' },
+      { id: 'glassdoor', label: 'Glassdoor', badge: 'G', tone: 'green' },
+      { id: 'more', label: '+ 2 more', badge: '', tone: 'plain' },
+    ],
+    successStats: [
+      { id: 'republished', icon: 'refresh', label: 'Republished', note: 'Just now' },
+      { id: 'channels', icon: 'share', label: 'Channels', note: '4 active' },
+      { id: 'visibility', icon: 'trend-up', label: 'Visibility', note: 'Increased' },
+      { id: 'applications', icon: 'users', label: 'Applications', note: 'Forecast improved' },
+    ],
+  },
+}
+
+const refreshPostingActiveImprovement = computed(() => (
+  refreshPostingTarget.value?.improvements.find((item) => item.id === refreshPostingExpandedImprovementId.value)
+  ?? refreshPostingTarget.value?.improvements[0]
+  ?? null
+))
+
+const refreshPostingRecommendedDescription = computed(() => {
+  const description = refreshPostingActiveImprovement.value?.descriptionRecommended ?? ''
+
+  if (refreshPostingDescriptionExpanded.value || description.length <= 185) {
+    return description
+  }
+
+  return `${description.slice(0, 185).trim()}...`
+})
+
+const reviewFeedbackRecipientOptions = computed(() => (
+  reviewFeedbackTarget.value?.reviewerOptions ?? reviewFeedbackRequestProfiles.default.reviewerOptions
+))
+
+const reviewFeedbackPreviewText = computed(() => {
+  if (!reviewFeedbackTarget.value) {
+    return ''
+  }
+
+  const firstName = reviewFeedbackRecipient.value.split(' ')[0] || 'there'
+
+  return `${firstName}, you've been requested to provide feedback for ${reviewFeedbackTarget.value.name} (${reviewFeedbackTarget.value.role}) - ${reviewFeedbackTarget.value.stageLabel} ${reviewFeedbackTarget.value.stageStatus.toLowerCase()}.`
+})
 
 const actionPlanImpactCards = [
   { icon: 'users', value: '+4', label: 'Potential Hires', note: 'Additional hires likely', tone: 'green' },
@@ -1101,6 +1941,58 @@ const reviewFeedbackCandidates = [
     overdue: '6 days overdue',
     overdueTone: 'orange',
   },
+]
+
+const reviewFeedbackRequestProfiles = {
+  'sarah-johnson-risk': {
+    reviewerOptions: ['Priya Singh (Interviewer)', 'Rami Haddad (Hiring Manager)'],
+    defaultRecipient: 'Priya Singh (Interviewer)',
+    feedbackStatus: 'Awaiting feedback from',
+    feedbackName: 'Priya Singh',
+    feedbackRole: 'Interviewer',
+    stageLabel: 'Interview Round 2',
+    stageStatus: 'Completed 2 days ago',
+    message: [
+      'Hi Priya, just a gentle reminder to share your feedback for Sarah\'s interview.',
+      'It helps us keep the process moving forward. Thank you!',
+    ].join('\n'),
+    departmentLabel: 'Engineering',
+  },
+  'daniel-brown-risk': {
+    reviewerOptions: ['Omar Khaled (Recruiter)', 'Nora Salem (Hiring Manager)'],
+    defaultRecipient: 'Omar Khaled (Recruiter)',
+    feedbackStatus: 'Awaiting feedback from',
+    feedbackName: 'Omar Khaled',
+    feedbackRole: 'Recruiter',
+    stageLabel: 'Assessment Review',
+    stageStatus: 'Completed 6 days ago',
+    message: [
+      'Hi Omar, a quick reminder to share your feedback for Daniel Brown.',
+      'We need it to keep this candidate moving forward. Thank you!',
+    ].join('\n'),
+    departmentLabel: 'People',
+  },
+  default: {
+    reviewerOptions: ['Priya Singh (Interviewer)', 'Hiring Manager'],
+    defaultRecipient: 'Priya Singh (Interviewer)',
+    feedbackStatus: 'Awaiting feedback from',
+    feedbackName: 'Priya Singh',
+    feedbackRole: 'Interviewer',
+    stageLabel: 'Interview Round 2',
+    stageStatus: 'Completed 2 days ago',
+    message: [
+      'Hi Priya, just a gentle reminder to share your feedback.',
+      'It helps us keep the process moving forward. Thank you!',
+    ].join('\n'),
+    departmentLabel: 'Engineering',
+  },
+}
+
+const reviewFeedbackReminderOptions = [
+  { id: 'send-now', label: 'Send now' },
+  { id: '24-hours', label: 'In 24 hours' },
+  { id: '2-days', label: 'In 2 days' },
+  { id: 'custom-date', label: 'Custom date', icon: 'calendar' },
 ]
 
 const sharePlatformOptions = [
@@ -1373,6 +2265,26 @@ const closingSoonJobs = [
   },
 ]
 
+const closingSoonMenuSections = [
+  {
+    title: 'Actions',
+    items: [
+      { id: 'extend-job', label: 'Extend Job', icon: 'calendar' },
+      { id: 'edit-closing-date', label: 'Edit Closing Date', icon: 'clock' },
+      { id: 'view-applicants', label: 'View Applicants', icon: 'users' },
+      { id: 'close-job-primary', label: 'Close Job', icon: 'archive' },
+      { id: 'schedule-interviews', label: 'Schedule Interviews', icon: 'calendar' },
+      { id: 'contact-hiring-manager', label: 'Contact Hiring Manager', icon: 'mail' },
+      { id: 'view-pipeline', label: 'View Pipeline', icon: 'git-branch' },
+      { id: 'boost-job-ad', label: 'Boost Job Ad', icon: 'megaphone' },
+      { id: 'publish-more-job-boards', label: 'Publish to More Job Boards', icon: 'share' },
+      { id: 'edit-job', label: 'Edit Job', icon: 'edit' },
+      { id: 'close-job-secondary', label: 'Close Job', icon: 'archive' },
+      { id: 'request-feedback', label: 'Request feedback', icon: 'mail' },
+    ],
+  },
+]
+
 function buildReviewCandidatesPayload(job) {
   const roleTitle = job?.title ?? 'Senior UX Designer'
   const totalCandidates = job?.applicants ?? 15
@@ -1637,6 +2549,120 @@ const shareJobMeta = computed(() => {
   return `${shareJobTarget.value.department} · ${shareJobTarget.value.location}`
 })
 
+const boostJobDescription = computed(() => {
+  if (!boostJobTarget.value) {
+    return 'Promote this job on leading job boards and reach more qualified candidates.'
+  }
+
+  return `Promote ${boostJobTarget.value.title} on leading job boards and reach more qualified candidates.`
+})
+const filteredRecentWinsSections = computed(() => {
+  const activeFilter = recentWinsFilter.value.trim().toLowerCase()
+
+  return recentWinsSections
+    .map((section) => {
+      const items = activeFilter === 'all wins'
+        ? section.items
+        : section.items.filter((item) => item.tag.toLowerCase() === activeFilter)
+
+      return {
+        ...section,
+        items,
+      }
+    })
+    .filter((section) => section.items.length > 0)
+})
+const editClosingDateQuickActions = computed(() => {
+  const currentDate = parseClosingDateLabel(editClosingDateForm.value.currentDate)
+
+  if (!currentDate) {
+    return []
+  }
+
+  return [
+    { id: '7', label: '+ 7 days', note: formatClosingDateUpper(addDaysToDate(currentDate, 7)) },
+    { id: '14', label: '+ 14 days', note: formatClosingDateUpper(addDaysToDate(currentDate, 14)) },
+    { id: '30', label: '+ 30 days', note: formatClosingDateUpper(addDaysToDate(currentDate, 30)) },
+    { id: 'today', label: 'Close today', note: formatClosingDateUpper(currentDate) },
+    { id: 'none', label: 'No closing date', note: 'Open indefinitely' },
+  ]
+})
+const editClosingDatePreviewApplications = computed(() => {
+  if (editClosingDateForm.value.quickAction === '7') {
+    return '+8 to +12'
+  }
+
+  if (editClosingDateForm.value.quickAction === '30') {
+    return '+30 to +42'
+  }
+
+  if (editClosingDateForm.value.quickAction === 'today') {
+    return '+0 to +2'
+  }
+
+  if (editClosingDateForm.value.quickAction === 'none') {
+    return '+40 to +60'
+  }
+
+  return '+18 to +25'
+})
+const editClosingDatePreviewTo = computed(() => {
+  if (editClosingDateForm.value.quickAction === 'none') {
+    return 'No closing date'
+  }
+
+  return `${editClosingDateForm.value.newDate}, ${editClosingDateForm.value.newTime}`
+})
+const editClosingDateReasonCount = computed(() => editClosingDateForm.value.reason.length)
+const editClosingDateDepartment = computed(() => {
+  if (!editClosingDateTarget.value) {
+    return 'Hiring'
+  }
+
+  return normalizeActionJob(editClosingDateTarget.value).department
+})
+const editClosingDateEmploymentType = computed(() => {
+  if (!editClosingDateTarget.value) {
+    return 'Full-time'
+  }
+
+  return getJobEmploymentType(editClosingDateTarget.value) || 'Full-time'
+})
+const contactHiringManagerMessageCount = computed(() => contactHiringManagerForm.value.message.length)
+const contactHiringManagerProfile = computed(() => {
+  const job = contactHiringManagerTarget.value
+
+  if (!job) {
+    return {
+      name: 'Sarah Johnson',
+      role: 'Hiring Manager',
+      email: 'sarah.johnson@acmecorp.com',
+      initials: 'SJ',
+    }
+  }
+
+  const normalizedJob = normalizeActionJob(job)
+  return contactHiringManagerProfiles[job.id] ?? {
+    name: 'Sarah Johnson',
+    role: `${normalizedJob.department} Hiring Manager`,
+    email: `hiring@${normalizedJob.department.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'company'}.com`,
+    initials: 'HM',
+  }
+})
+const publishJobBoardsSelectedChannels = computed(() => (
+  publishJobBoardsReadyChannels.filter((channel) => publishJobBoardsSelectedIds.value.includes(channel.id))
+))
+const publishJobBoardsSelectedCount = computed(() => publishJobBoardsSelectedChannels.value.length)
+const publishJobBoardsEstimatedReachIncrease = computed(() => {
+  const total = publishJobBoardsSelectedChannels.value.reduce((sum, channel) => sum + channel.estimatedReach, 0)
+  return total ? `+${total}%` : '+0%'
+})
+const publishJobBoardsEstimatedApplications = computed(() => {
+  const total = publishJobBoardsSelectedChannels.value.reduce((sum, channel) => sum + channel.estimatedApplications, 0)
+  const upper = total ? total + 7 : 0
+  return total ? `${total} - ${upper}` : '0 - 0'
+})
+
 function openJob(job) {
   emit('open-job', job)
 }
@@ -1741,6 +2767,78 @@ function buildDuplicateJobSuccessData() {
     employmentType: duplicateJobForm.value.employmentType,
     status: duplicateJobPreviewStatus.value,
     form: { ...duplicateJobForm.value },
+  }
+}
+
+function parseClosingDateLabel(value) {
+  if (!value || value === 'No closing date') {
+    return null
+  }
+
+  const parsed = new Date(value)
+
+  if (Number.isNaN(parsed.getTime())) {
+    return null
+  }
+
+  return parsed
+}
+
+function addDaysToDate(date, days) {
+  const nextDate = new Date(date)
+  nextDate.setDate(nextDate.getDate() + days)
+  return nextDate
+}
+
+function formatClosingDate(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return ''
+  }
+
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(date)
+}
+
+function formatClosingDateUpper(date) {
+  return formatClosingDate(date).toUpperCase()
+}
+
+function buildEditClosingDateForm(job) {
+  const normalizedJob = normalizeActionJob(job)
+  const currentDateValue = parseClosingDateLabel(normalizedJob.closingDate) ?? new Date(2025, 5, 15)
+  const newDateValue = addDaysToDate(currentDateValue, 14)
+
+  return {
+    currentDate: formatClosingDate(currentDateValue),
+    currentTime: '17:00',
+    newDate: formatClosingDate(newDateValue),
+    newTime: '17:00',
+    timezone: 'Europe/Stockholm (GMT+2)',
+    reason: 'Extending closing date to increase application volume.',
+    updateJobBoards: true,
+    notifyHiringTeam: true,
+    notifyInterestedApplicants: false,
+    quickAction: '14',
+  }
+}
+
+function buildContactHiringManagerForm(job) {
+  const normalizedJob = normalizeActionJob(job)
+
+  return {
+    message: [
+      `Hi ${contactHiringManagerProfiles[job?.id]?.name?.split(' ')[0] ?? 'there'},`,
+      '',
+      `I'd like to connect with you regarding the ${normalizedJob.title} role.`,
+      'Please let me know a time that works for you.',
+    ].join('\n'),
+    scheduleMeeting: true,
+    date: '24 Jun 2025',
+    time: '14:00',
+    duration: '30 min',
   }
 }
 
@@ -1894,6 +2992,62 @@ function saveReschedulePublication() {
   reschedulePublicationSuccessModalOpen.value = true
 }
 
+function openEditClosingDateModal(job) {
+  editClosingDateTarget.value = job
+  editClosingDateForm.value = buildEditClosingDateForm(job)
+  editClosingDateModalOpen.value = true
+}
+
+function closeEditClosingDateModal() {
+  editClosingDateModalOpen.value = false
+  editClosingDateTarget.value = null
+}
+
+function applyEditClosingDateQuickAction(actionId) {
+  const currentDate = parseClosingDateLabel(editClosingDateForm.value.currentDate)
+
+  if (!currentDate) {
+    return
+  }
+
+  editClosingDateForm.value.quickAction = actionId
+
+  if (actionId === 'none') {
+    editClosingDateForm.value.newDate = 'No closing date'
+    return
+  }
+
+  if (actionId === 'today') {
+    editClosingDateForm.value.newDate = formatClosingDate(currentDate)
+    return
+  }
+
+  const days = Number(actionId)
+
+  if (!Number.isNaN(days)) {
+    editClosingDateForm.value.newDate = formatClosingDate(addDaysToDate(currentDate, days))
+  }
+}
+
+function saveEditClosingDate() {
+  if (editClosingDateTarget.value) {
+    editClosingDateTarget.value.closingDate = editClosingDateForm.value.newDate
+
+    if (editClosingDateForm.value.newDate === 'No closing date') {
+      editClosingDateTarget.value.closingDay = 'Open indefinitely'
+      editClosingDateTarget.value.closingIn = 'No closing date'
+      editClosingDateTarget.value.closingPriority = 'Flexible closing'
+    } else {
+      const parsedDate = parseClosingDateLabel(editClosingDateForm.value.newDate)
+      editClosingDateTarget.value.closingDay = parsedDate
+        ? new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(parsedDate)
+        : editClosingDateTarget.value.closingDay
+    }
+  }
+
+  closeEditClosingDateModal()
+}
+
 function openPauseJobModal(job) {
   pauseJobTarget.value = job
   pauseJobForm.value = buildPauseJobForm()
@@ -1972,6 +3126,23 @@ function openJobsAttentionModal() {
 
 function closeJobsAttentionModal() {
   jobsAttentionModalOpen.value = false
+}
+
+function openReadyForActionModal() {
+  readyForActionSort.value = 'Priority'
+  readyForActionModalOpen.value = true
+}
+
+function closeReadyForActionModal() {
+  readyForActionModalOpen.value = false
+}
+
+function openUpcomingRisksModal() {
+  upcomingRisksModalOpen.value = true
+}
+
+function closeUpcomingRisksModal() {
+  upcomingRisksModalOpen.value = false
 }
 
 function openActionPlanModal() {
@@ -2336,8 +3507,128 @@ async function copyText(value) {
   return copied
 }
 
+function normalizeActionJob(job) {
+  if (!job) {
+    return {
+      id: 'job',
+      title: 'Selected Job',
+      department: 'Hiring',
+      location: 'Remote',
+    }
+  }
+
+  const metaParts = `${job.meta ?? ''}`
+    .split(/•|â€¢/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+
+  return {
+    ...job,
+    id: job.id ?? (job.title ?? 'job').toLowerCase().replace(/\s+/g, '-'),
+    title: job.title ?? 'Selected Job',
+    department: job.department ?? job.brand ?? metaParts[0] ?? 'Hiring',
+    location: job.location ?? metaParts[1] ?? 'Remote',
+  }
+}
+
+function fillRefreshPostingTemplate(value, replacements) {
+  if (typeof value === 'string') {
+    return Object.entries(replacements).reduce(
+      (result, [key, replacement]) => result.replaceAll(`{{${key}}}`, replacement),
+      value,
+    )
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => fillRefreshPostingTemplate(item, replacements))
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, fillRefreshPostingTemplate(entry, replacements)]),
+    )
+  }
+
+  return value
+}
+
+function buildRefreshPostingData(job) {
+  const normalizedJob = normalizeActionJob(job)
+  const profile = refreshPostingProfiles[normalizedJob.id] ?? refreshPostingProfiles['product-manager']
+  const recommendedTitle = normalizedJob.title.startsWith('Senior ')
+    ? normalizedJob.title
+    : `Senior ${normalizedJob.title}`
+
+  return {
+    ...normalizedJob,
+    ...fillRefreshPostingTemplate(profile, {
+      jobTitle: normalizedJob.title,
+      recommendedTitle,
+      department: normalizedJob.department,
+      location: normalizedJob.location,
+    }),
+    currentTitle: normalizedJob.title,
+    recommendedTitle,
+    subtitle: `${normalizedJob.title} • Next recommended action`,
+  }
+}
+
+function buildRefreshPostingSuccessData() {
+  if (!refreshPostingTarget.value) {
+    return null
+  }
+
+  return {
+    job: refreshPostingTarget.value,
+    jobId: refreshPostingTarget.value.jobId,
+    stats: refreshPostingTarget.value.successStats,
+  }
+}
+
+function openRefreshPostingModal(job) {
+  refreshPostingTarget.value = buildRefreshPostingData(job)
+  refreshPostingExpandedImprovementId.value = refreshPostingTarget.value.improvements[0]?.id ?? 'title-visibility'
+  refreshPostingCompareView.value = true
+  refreshPostingDescriptionExpanded.value = false
+  refreshPostingModalOpen.value = true
+}
+
+function closeRefreshPostingModal() {
+  refreshPostingModalOpen.value = false
+  refreshPostingTarget.value = null
+  refreshPostingExpandedImprovementId.value = 'title-visibility'
+  refreshPostingCompareView.value = true
+  refreshPostingDescriptionExpanded.value = false
+}
+
+function openRefreshPostingSuccessModal() {
+  refreshPostingSuccessData.value = buildRefreshPostingSuccessData()
+  closeRefreshPostingModal()
+  nextTick(() => {
+    refreshPostingSuccessModalOpen.value = true
+  })
+}
+
+function closeRefreshPostingSuccessModal() {
+  refreshPostingSuccessModalOpen.value = false
+  refreshPostingSuccessData.value = null
+}
+
+function selectRefreshPostingImprovement(improvementId) {
+  refreshPostingExpandedImprovementId.value = improvementId
+  refreshPostingDescriptionExpanded.value = false
+}
+
+function toggleRefreshPostingCompareView() {
+  refreshPostingCompareView.value = !refreshPostingCompareView.value
+}
+
+function previewRefreshPostingChanges() {
+  refreshPostingCompareView.value = true
+}
+
 function openShareJobModal(job) {
-  shareJobTarget.value = job
+  shareJobTarget.value = normalizeActionJob(job)
   shareJobCopied.value = false
   shareJobModalOpen.value = true
 }
@@ -2346,6 +3637,42 @@ function closeShareJobModal() {
   shareJobModalOpen.value = false
   shareJobTarget.value = null
   shareJobCopied.value = false
+}
+
+function openBoostJobModal(job) {
+  boostJobTarget.value = normalizeActionJob(job)
+  boostJobModalOpen.value = true
+}
+
+function closeBoostJobModal() {
+  boostJobModalOpen.value = false
+  boostJobTarget.value = null
+}
+
+function openPublishJobBoardsModal(job) {
+  publishJobBoardsTarget.value = {
+    ...normalizeActionJob(job),
+    title: 'Senior Frontend Developer',
+    department: 'Engineering',
+    location: 'Remote',
+  }
+  publishJobBoardsSelectedIds.value = publishJobBoardsReadyChannels.map((channel) => channel.id)
+  publishJobBoardsModalOpen.value = true
+}
+
+function closePublishJobBoardsModal() {
+  publishJobBoardsModalOpen.value = false
+  publishJobBoardsTarget.value = null
+}
+
+function openRecentWinsModal() {
+  recentWinsFilter.value = 'All wins'
+  recentWinsRange.value = 'Last 30 days'
+  recentWinsModalOpen.value = true
+}
+
+function closeRecentWinsModal() {
+  recentWinsModalOpen.value = false
 }
 
 async function copyShareJobLink() {
@@ -2363,6 +3690,72 @@ function openExternalShareUrl(url) {
   }
 
   window.open(url, '_blank', 'noopener,noreferrer')
+}
+
+function handleBoostJobChannel(channel) {
+  if (!channel?.href) {
+    return
+  }
+
+  openExternalShareUrl(channel.href)
+  closeBoostJobModal()
+}
+
+function togglePublishJobBoard(channelId) {
+  if (publishJobBoardsSelectedIds.value.includes(channelId)) {
+    publishJobBoardsSelectedIds.value = publishJobBoardsSelectedIds.value.filter((id) => id !== channelId)
+    return
+  }
+
+  publishJobBoardsSelectedIds.value = [...publishJobBoardsSelectedIds.value, channelId]
+}
+
+function publishSelectedJobBoards() {
+  closePublishJobBoardsModal()
+}
+
+function exportRecentWins() {
+  const rows = filteredRecentWinsSections.value.flatMap((section) => (
+    section.items.map((item) => ({
+      period: section.label,
+      tag: item.tag,
+      title: item.title,
+      note: item.note,
+      meta: item.meta,
+      owner: item.owner,
+      ownerNote: item.ownerNote,
+      age: item.age,
+    }))
+  ))
+
+  if (!rows.length || typeof document === 'undefined') {
+    return
+  }
+
+  const header = ['Period', 'Type', 'Role', 'Note', 'Meta', 'Owner', 'Owner Note', 'Age']
+  const csv = [
+    header.join(','),
+    ...rows.map((row) => [
+      row.period,
+      row.tag,
+      row.title,
+      row.note,
+      row.meta,
+      row.owner,
+      row.ownerNote,
+      row.age,
+    ].map((value) => `"${`${value}`.replace(/"/g, '""')}"`).join(',')),
+  ].join('\n')
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'recent-wins.csv'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
 }
 
 async function handleSharePlatform(platformId) {
@@ -2433,12 +3826,47 @@ function downloadShareJobQr() {
   document.body.removeChild(link)
 }
 
-function openReviewFeedbackModal() {
+function openReviewFeedbackModal(candidate = null) {
+  const fallbackCandidate = {
+    id: 'sarah-johnson-risk',
+    name: 'Sarah Johnson',
+    role: 'Frontend Developer',
+    avatarTone: 'rose',
+    stage: 'Interview',
+  }
+  const targetCandidate = candidate ?? fallbackCandidate
+  const profile = reviewFeedbackRequestProfiles[targetCandidate.id] ?? reviewFeedbackRequestProfiles.default
+  const initials = targetCandidate.name
+    .split(' ')
+    .map((part) => part[0] ?? '')
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+
+  reviewFeedbackTarget.value = {
+    id: targetCandidate.id ?? fallbackCandidate.id,
+    name: targetCandidate.name ?? fallbackCandidate.name,
+    role: targetCandidate.role ?? fallbackCandidate.role,
+    initials,
+    avatarTone: targetCandidate.avatarTone ?? 'rose',
+    stageLabel: profile.stageLabel,
+    stageStatus: profile.stageStatus,
+    reviewerOptions: profile.reviewerOptions,
+    feedbackStatus: profile.feedbackStatus,
+    feedbackName: profile.feedbackName,
+    feedbackRole: profile.feedbackRole,
+    departmentLabel: profile.departmentLabel,
+  }
+  reviewFeedbackRecipient.value = profile.defaultRecipient
+  reviewFeedbackMessage.value = profile.message
+  reviewFeedbackReminderTiming.value = 'send-now'
+  reviewFeedbackCustomDate.value = '30 Jun 2026'
   reviewFeedbackModalOpen.value = true
 }
 
 function closeReviewFeedbackModal() {
   reviewFeedbackModalOpen.value = false
+  reviewFeedbackTarget.value = null
 }
 
 function openCompleteFeedbackModal() {
@@ -2467,6 +3895,21 @@ function closeSendReminderModal() {
   sendReminderModalOpen.value = false
 }
 
+function openContactHiringManagerModal(job) {
+  contactHiringManagerTarget.value = job
+  contactHiringManagerForm.value = buildContactHiringManagerForm(job)
+  contactHiringManagerModalOpen.value = true
+}
+
+function closeContactHiringManagerModal() {
+  contactHiringManagerModalOpen.value = false
+  contactHiringManagerTarget.value = null
+}
+
+function submitContactHiringManager() {
+  closeContactHiringManagerModal()
+}
+
 function setCompleteFeedbackRating(key, value) {
   completeFeedbackRatings.value = {
     ...completeFeedbackRatings.value,
@@ -2487,6 +3930,7 @@ function openClosingSoonJobsModal() {
 }
 
 function closeClosingSoonJobsModal() {
+  closeClosingSoonActionMenu()
   closingSoonJobsModalOpen.value = false
 }
 
@@ -2499,6 +3943,91 @@ function openReviewCandidatesModal(job) {
   reviewCandidatesActiveId.value = payload.candidates[0]?.id ?? ''
   closingSoonJobsModalOpen.value = false
   reviewCandidatesModalOpen.value = true
+}
+
+function openRiskReviewCandidatesModal() {
+  riskReviewCandidatesTarget.value = riskReviewCandidatesScenario
+  reviewCandidatesSort.value = 'Last Activity'
+  upcomingRisksModalOpen.value = false
+  riskReviewCandidatesModalOpen.value = true
+}
+
+function closeRiskReviewCandidatesModal() {
+  closeMoveCandidateForwardModal()
+  riskReviewCandidatesModalOpen.value = false
+  riskReviewCandidatesTarget.value = null
+}
+
+function getMoveCandidateForwardProfile(candidate) {
+  return moveCandidateForwardProfiles[candidate?.id] ?? {
+    recommendationTitle: `Move ${candidate?.name ?? 'Candidate'} Forward`,
+    recommendationPrefix: `Move ${candidate?.name ?? 'Candidate'} to`,
+    recommendationHighlight: 'Offer Stage',
+    recommendationBody: 'This is the best next step to reduce pipeline risk and maintain hiring momentum.',
+    aiConfidence: '88%',
+    aiConfidenceLabel: 'High',
+    reasons: [
+      'Strong recent interview feedback',
+      'Candidate is moving through the pipeline well',
+      'No active blockers detected',
+    ],
+    alternativeRecommendation: 'Schedule Final Interview',
+    alternativeConfidence: '64%',
+    expectedImpact: [
+      { label: 'Hiring Confidence', value: '+5%', note: 'Increase', tone: 'green', icon: 'trend-up' },
+      { label: 'Pipeline Risk', value: '-18%', note: 'Reduction', tone: 'pink', icon: 'spark' },
+      { label: 'Estimated hire date', value: 'On Track', note: 'Maintained', tone: 'blue', icon: 'calendar' },
+    ],
+  }
+}
+
+function getMoveCandidateForwardStageLabel(stageId) {
+  return moveCandidateForwardStageOptions.find((option) => option.id === stageId)?.label ?? 'Offer'
+}
+
+function openMoveCandidateForwardModal(candidate) {
+  moveCandidateForwardTarget.value = {
+    ...candidate,
+    ...getMoveCandidateForwardProfile(candidate),
+  }
+  moveCandidateForwardStage.value = 'offer'
+  moveCandidateForwardComment.value = ''
+  moveCandidateForwardNotifyHiringManager.value = true
+  moveCandidateForwardNotifyRecruiter.value = true
+  moveCandidateForwardNotifyTimeline.value = true
+  moveCandidateForwardNotifyCandidate.value = false
+  moveCandidateForwardModalOpen.value = true
+}
+
+function closeMoveCandidateForwardModal() {
+  moveCandidateForwardModalOpen.value = false
+  moveCandidateForwardTarget.value = null
+  moveCandidateForwardStage.value = 'offer'
+  moveCandidateForwardComment.value = ''
+  moveCandidateForwardNotifyHiringManager.value = true
+  moveCandidateForwardNotifyRecruiter.value = true
+  moveCandidateForwardNotifyTimeline.value = true
+  moveCandidateForwardNotifyCandidate.value = false
+}
+
+function toggleMoveCandidateForwardNotification(key) {
+  if (key === 'hiring-manager') {
+    moveCandidateForwardNotifyHiringManager.value = !moveCandidateForwardNotifyHiringManager.value
+    return
+  }
+
+  if (key === 'recruiter') {
+    moveCandidateForwardNotifyRecruiter.value = !moveCandidateForwardNotifyRecruiter.value
+    return
+  }
+
+  if (key === 'timeline') {
+    moveCandidateForwardNotifyTimeline.value = !moveCandidateForwardNotifyTimeline.value
+  }
+}
+
+function submitMoveCandidateForward() {
+  closeMoveCandidateForwardModal()
 }
 
 function closeReviewCandidatesStandaloneModal() {
@@ -2815,6 +4344,402 @@ function handleReviewCandidatesMenuAction(actionId, candidate) {
 function handleClosingSoonAction(job) {
   if (job.actionLabel === 'Review Candidates') {
     openReviewCandidatesModal(job)
+    return
+  }
+
+  if (job.actionLabel === 'Extend Job') {
+    openReschedulePublicationModal(normalizeActionJob(job))
+    return
+  }
+
+  if (job.actionLabel === 'Boost Job Ad') {
+    openBoostJobModal(job)
+  }
+}
+
+function toggleClosingSoonActionMenu(job, event) {
+  if (closingSoonActionMenu.value?.job.id === job.id) {
+    closeClosingSoonActionMenu()
+    return
+  }
+
+  closingSoonActionMenu.value = {
+    job,
+    anchorEl: event.currentTarget,
+    top: 0,
+    left: 0,
+  }
+
+  nextTick(positionClosingSoonActionMenu)
+}
+
+function positionClosingSoonActionMenu() {
+  if (!closingSoonActionMenu.value || !closingSoonActionMenuRef.value) {
+    return
+  }
+
+  const anchorEl = closingSoonActionMenu.value.anchorEl
+
+  if (!(anchorEl instanceof Element) || !document.body.contains(anchorEl)) {
+    closeClosingSoonActionMenu()
+    return
+  }
+
+  const rect = anchorEl.getBoundingClientRect()
+  const margin = 12
+  const menuWidth = closingSoonActionMenuRef.value.offsetWidth
+  const menuHeight = closingSoonActionMenuRef.value.offsetHeight
+  let left = rect.right - menuWidth
+  let top = rect.bottom + 8
+
+  if (left + menuWidth > window.innerWidth - margin) {
+    left = window.innerWidth - menuWidth - margin
+  }
+
+  if (left < margin) {
+    left = margin
+  }
+
+  if (top + menuHeight > window.innerHeight - margin) {
+    top = rect.top - menuHeight - 8
+  }
+
+  if (top < margin) {
+    top = margin
+  }
+
+  closingSoonActionMenu.value = {
+    ...closingSoonActionMenu.value,
+    top,
+    left,
+  }
+}
+
+function closeClosingSoonActionMenu() {
+  if (closingSoonActionMenuRaf) {
+    cancelAnimationFrame(closingSoonActionMenuRaf)
+    closingSoonActionMenuRaf = 0
+  }
+
+  closingSoonActionMenu.value = null
+}
+
+function handleClosingSoonMenuAction(actionId, job) {
+  const normalizedJob = normalizeActionJob(job)
+
+  if (actionId === 'extend-job') {
+    openReschedulePublicationModal(normalizedJob)
+    closeClosingSoonActionMenu()
+    return
+  }
+
+  if (actionId === 'edit-closing-date') {
+    openEditClosingDateModal(job)
+    closeClosingSoonActionMenu()
+    return
+  }
+
+  if (actionId === 'view-applicants') {
+    openReviewCandidatesModal(job)
+    closeClosingSoonActionMenu()
+    return
+  }
+
+  if (actionId === 'close-job-primary' || actionId === 'close-job-secondary') {
+    openCloseJobModal(normalizedJob)
+    closeClosingSoonActionMenu()
+    return
+  }
+
+  if (actionId === 'schedule-interviews') {
+    openScheduleInterviewsModal()
+    closeClosingSoonActionMenu()
+    return
+  }
+
+  if (actionId === 'contact-hiring-manager') {
+    openContactHiringManagerModal(job)
+    closeClosingSoonActionMenu()
+    return
+  }
+
+  if (actionId === 'request-feedback') {
+    openSendReminderModal()
+    closeClosingSoonActionMenu()
+    return
+  }
+
+  if (actionId === 'view-pipeline') {
+    openPipeline(normalizedJob)
+    closeClosingSoonActionMenu()
+    return
+  }
+
+  if (actionId === 'boost-job-ad') {
+    openBoostJobModal(job)
+    closeClosingSoonActionMenu()
+    return
+  }
+
+  if (actionId === 'publish-more-job-boards') {
+    openPublishJobBoardsModal(job)
+    closeClosingSoonActionMenu()
+    return
+  }
+
+  if (actionId === 'edit-job') {
+    openDuplicateJobModal(normalizedJob)
+    closeClosingSoonActionMenu()
+    return
+  }
+
+  closeClosingSoonActionMenu()
+}
+
+function handleJobsAttentionCardAction(actionLabel, job) {
+  if (actionLabel === 'Boost Job') {
+    openBoostJobModal(job)
+    return
+  }
+
+  if (actionLabel === 'Share Job') {
+    openShareJobModal(job)
+    return
+  }
+
+  if (actionLabel === 'Extend Deadline') {
+    openReschedulePublicationModal(normalizeActionJob(job))
+    return
+  }
+
+  if (actionLabel === 'Send Reminder') {
+    openSendReminderModal()
+    return
+  }
+
+  if (actionLabel === 'Approve' || actionLabel === 'View Request') {
+    openActionPlanModal()
+  }
+}
+
+function attentionModalJobPayload(item) {
+  return {
+    id: item.id,
+    title: item.title,
+    department: item.department,
+    location: item.workMode,
+    meta: `${item.department} • ${item.workMode}`,
+  }
+}
+
+function handleJobsAttentionModalAction(actionId, item) {
+  const payload = attentionModalJobPayload(item)
+
+  if (actionId === 'refresh-posting') {
+    openRefreshPostingModal(payload)
+    return
+  }
+
+  if (actionId === 'review-feedback') {
+    openReviewFeedbackModal()
+    return
+  }
+
+  if (actionId === 'assign-interviewers') {
+    openScheduleInterviewsModal()
+    return
+  }
+
+  if (actionId === 'review-candidates') {
+    openReviewCandidatesModal(payload)
+    return
+  }
+
+  if (actionId === 'open-job') {
+    openJob(payload)
+    return
+  }
+
+  if (actionId === 'resolve-highest-priority' && jobsAttentionPriorityJob.value) {
+    handleJobsAttentionModalAction(jobsAttentionPriorityJob.value.primaryActionId, jobsAttentionPriorityJob.value)
+    return
+  }
+
+  if (actionId === 'assign-owners') {
+    openActionPlanModal()
+    return
+  }
+
+  if (actionId === 'close-all-alerts') {
+    closeJobsAttentionModal()
+  }
+}
+
+function readyForActionJobPayload(item) {
+  return {
+    id: item.id,
+    title: item.title,
+    department: item.department,
+    location: item.workMode,
+    meta: `${item.department} • ${item.workMode}`,
+  }
+}
+
+function handleReadyForActionAction(actionId, item) {
+  const payload = item ? readyForActionJobPayload(item) : null
+
+  if (actionId === 'open-job' && payload) {
+    openJob(payload)
+    return
+  }
+
+  if (actionId === 'review-finalists' && payload) {
+    openReviewCandidatesModal(payload)
+    return
+  }
+
+  if ((actionId === 'create-offer' || actionId === 'send-offer') && payload) {
+    openActionPlanModal()
+    return
+  }
+
+  if ((actionId === 'complete-onboarding' || actionId === 'complete-checks') && payload) {
+    openContactHiringManagerModal(payload)
+    return
+  }
+
+  if (actionId === 'schedule-final' && payload) {
+    openScheduleInterviewsModal()
+    return
+  }
+
+  if (actionId === 'complete-highest-impact' && readyForActionAdvisorJob.value) {
+    handleReadyForActionAction(readyForActionAdvisorJob.value.primaryActionId, readyForActionAdvisorJob.value)
+    return
+  }
+
+  if (actionId === 'assign-owners') {
+    openActionPlanModal()
+    return
+  }
+
+  if (actionId === 'close-ready-modal') {
+    closeReadyForActionModal()
+  }
+}
+
+function upcomingRiskJobPayload(item) {
+  return {
+    id: item.id,
+    title: item.title,
+    department: item.department,
+    location: item.location,
+    meta: `${item.department} • ${item.employmentType}`,
+  }
+}
+
+function handleUpcomingRiskAction(actionId, item) {
+  const payload = item ? upcomingRiskJobPayload(item) : null
+
+  if (actionId === 'review-candidates' && payload) {
+    openRiskReviewCandidatesModal()
+    return
+  }
+
+  if (actionId === 'assign-interviewers' && payload) {
+    openScheduleInterviewsModal()
+    return
+  }
+
+  if (actionId === 'refresh-posting' && payload) {
+    openRefreshPostingModal(payload)
+    return
+  }
+
+  if (actionId === 'create-offer' && payload) {
+    openBoostJobModal(payload)
+    return
+  }
+
+  if (actionId === 'send-reminder' && payload) {
+    openSendReminderModal()
+    return
+  }
+
+  if (actionId === 'open-job' && payload) {
+    openJob(payload)
+    return
+  }
+
+  if (actionId === 'resolve-highest-risk' && upcomingRisksAdvisorJob.value) {
+    handleUpcomingRiskAction(upcomingRisksAdvisorJob.value.primaryActionId, upcomingRisksAdvisorJob.value)
+    return
+  }
+
+  if (actionId === 'assign-owners') {
+    openActionPlanModal()
+    return
+  }
+
+  if (actionId === 'close-upcoming-risks') {
+    closeUpcomingRisksModal()
+  }
+}
+
+function handleRiskReviewCandidateAction(actionId, candidate) {
+  if (actionId === 'schedule-interview') {
+    openScheduleInterviewsModal()
+    return
+  }
+
+  if (actionId === 'move-forward' && candidate) {
+    openMoveCandidateForwardModal(candidate)
+    return
+  }
+
+  if (actionId === 'request-feedback') {
+    closeRiskReviewCandidatesModal()
+    nextTick(() => {
+      openReviewFeedbackModal(candidate)
+    })
+    return
+  }
+
+  if (actionId === 'move-hired') {
+    openActionPlanModal()
+    return
+  }
+
+  if (actionId === 'view-risk-details') {
+    closeRiskReviewCandidatesModal()
+    openUpcomingRisksModal()
+    return
+  }
+
+  if (actionId === 'close-risk-review') {
+    closeRiskReviewCandidatesModal()
+  }
+
+  if (actionId === 'advance-selected') {
+    closeRiskReviewCandidatesModal()
+  }
+}
+
+function handleJobsAttentionBulkAction(actionLabel) {
+  const targetJob = filteredJobsAttentionCards.value[0] ?? jobsAttentionActionCards[0]
+
+  if (actionLabel === 'Boost Selected Jobs') {
+    openBoostJobModal(targetJob)
+    return
+  }
+
+  if (actionLabel === 'Extend Selected Jobs') {
+    openReschedulePublicationModal(normalizeActionJob(targetJob))
+    return
+  }
+
+  if (actionLabel === 'Send All Reminders') {
+    openSendReminderModal()
   }
 }
 
@@ -3066,6 +4991,12 @@ function handleDocumentPointerDown(event) {
     }
   }
 
+  if (!event.target.closest('.closing-soon-row__more')) {
+    if (!closingSoonActionMenuRef.value || !closingSoonActionMenuRef.value.contains(event.target)) {
+      closeClosingSoonActionMenu()
+    }
+  }
+
   if (!event.target.closest('.review-candidates-row__more')) {
     if (!reviewCandidatesActionMenuRef.value || !reviewCandidatesActionMenuRef.value.contains(event.target)) {
       closeReviewCandidatesActionMenu()
@@ -3076,13 +5007,19 @@ function handleDocumentPointerDown(event) {
 function handleEscape(event) {
   if (event.key === 'Escape') {
     closeRowMenu()
+    closeClosingSoonActionMenu()
     closeReviewCandidatesActionMenu()
+    closeMoveCandidateForwardModal()
+    closeRiskReviewCandidatesModal()
     closeReviewCandidatesEmailTemplateModal()
     closeReviewCandidatesEmailModal()
     closeReviewCandidatesNoteModal()
     closeReviewCandidatesTalentPoolModal()
     closeReviewCandidatesTalentPoolSuccessModal()
+    closeContactHiringManagerModal()
+    closePublishJobBoardsModal()
     closeFilterModal()
+    closeEditClosingDateModal()
     closeReviewFeedbackModal()
     closeSendReminderModal()
     closeDuplicateJobModal()
@@ -3090,6 +5027,8 @@ function handleEscape(event) {
     closeShareJobModal()
     closeScheduleInterviewsModal()
     closeClosingSoonJobsModal()
+    closeReadyForActionModal()
+    closeUpcomingRisksModal()
     closeReschedulePublicationModal()
     closeReschedulePublicationSuccessModal()
     closePauseJobModal()
@@ -3112,6 +5051,17 @@ function syncRowMenuPosition() {
     actionMenuRaf = requestAnimationFrame(() => {
       actionMenuRaf = 0
       positionRowMenu()
+    })
+  }
+
+  if (closingSoonActionMenu.value) {
+    if (closingSoonActionMenuRaf) {
+      cancelAnimationFrame(closingSoonActionMenuRaf)
+    }
+
+    closingSoonActionMenuRaf = requestAnimationFrame(() => {
+      closingSoonActionMenuRaf = 0
+      positionClosingSoonActionMenu()
     })
   }
 
@@ -3350,7 +5300,7 @@ onBeforeUnmount(() => {
                 <h3>Needs Attention</h3>
                 <p>Jobs that need your immediate focus</p>
               </div>
-              <button type="button">View all (4)</button>
+              <button type="button" @click="openJobsAttentionModal">View all ({{ jobsAttentionModalRows.length }})</button>
             </div>
 
             <div class="briefing-highlight-grid">
@@ -3416,7 +5366,7 @@ onBeforeUnmount(() => {
                 <h3>Ready For Action</h3>
                 <p>Jobs with momentum that need your next step</p>
               </div>
-              <button type="button">View all (6)</button>
+              <button type="button" @click="openReadyForActionModal">View all ({{ readyForActionModalRows.length }})</button>
             </div>
 
             <div class="briefing-highlight-grid">
@@ -3480,7 +5430,7 @@ onBeforeUnmount(() => {
                 <h3>Upcoming Risks</h3>
                 <p>Jobs that may become problematic soon</p>
               </div>
-              <button type="button">View all (5)</button>
+              <button type="button" @click="openUpcomingRisksModal">View all ({{ upcomingRisksModalRows.length }})</button>
             </div>
 
             <div class="briefing-risk-grid">
@@ -3717,11 +5667,11 @@ onBeforeUnmount(() => {
 
       <aside class="jobs-page__side">
         <template v-if="activeView === 'brief'">
-          <section class="side-panel panel">
-            <div class="side-panel__head">
-              <h3>Recent Wins</h3>
-              <button type="button">View all</button>
-            </div>
+            <section class="side-panel panel">
+              <div class="side-panel__head">
+                <h3>Recent Wins</h3>
+                <button type="button" @click="openRecentWinsModal">View all</button>
+              </div>
 
             <article v-for="item in briefingRecentWins" :key="item.title" class="win-card">
               <div class="win-card__avatar">{{ ownerInitials(item.owner) }}</div>
@@ -3864,173 +5814,1256 @@ onBeforeUnmount(() => {
     </Teleport>
 
     <Teleport to="body">
-      <div v-if="jobsAttentionModalOpen" class="attention-overview-layer" @click="closeJobsAttentionModal">
-        <div class="attention-overview-modal" @click.stop>
-          <div class="attention-overview-modal__head">
-            <div class="attention-overview-modal__title-wrap">
-              <div class="attention-overview-modal__title-icon">
-                <AppIcon name="alert" :size="20" />
+      <div
+        v-if="closingSoonActionMenu"
+        ref="closingSoonActionMenuRef"
+        class="closing-soon-action-menu"
+        :style="{ top: `${closingSoonActionMenu.top}px`, left: `${closingSoonActionMenu.left}px` }"
+        @click.stop
+      >
+        <section v-for="section in closingSoonMenuSections" :key="section.title" class="closing-soon-action-menu__section">
+          <strong class="closing-soon-action-menu__title">{{ section.title }}</strong>
+          <button
+            v-for="item in section.items"
+            :key="item.id"
+            class="closing-soon-action-menu__item"
+            type="button"
+            @click="handleClosingSoonMenuAction(item.id, closingSoonActionMenu.job)"
+          >
+            <AppIcon :name="item.icon" :size="16" class="closing-soon-action-menu__icon" />
+            <span>{{ item.label }}</span>
+          </button>
+        </section>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="recentWinsModalOpen" class="recent-wins-layer" @click="closeRecentWinsModal">
+        <div class="recent-wins-modal" @click.stop>
+          <div class="recent-wins-modal__head">
+            <div class="recent-wins-modal__title-wrap">
+              <div class="recent-wins-modal__title-icon">
+                <AppIcon name="checkCircle" :size="18" />
               </div>
               <div>
-                <div class="attention-overview-modal__title-row">
-                  <h2>Jobs Requiring Attention</h2>
-                  <span class="attention-overview-modal__count">14</span>
-                </div>
-                <p>These jobs need your attention to keep your pipeline healthy and moving forward.</p>
+                <h2>Recent Wins</h2>
+                <p>A quick look at your team's hiring success.</p>
               </div>
             </div>
 
-            <div class="attention-overview-modal__head-actions">
-              <button class="attention-overview-modal__primary" type="button">
-                <AppIcon name="sparkles" :size="15" />
-                <span>AI Prioritize</span>
-              </button>
-              <button class="attention-overview-modal__secondary" type="button">Mark All Reviewed</button>
-              <button class="attention-overview-modal__close" type="button" @click="closeJobsAttentionModal">
-                <AppIcon name="close" :size="18" />
-              </button>
+            <button class="recent-wins-modal__close" type="button" @click="closeRecentWinsModal">
+              <AppIcon name="close" :size="18" />
+            </button>
+          </div>
+
+          <section class="recent-wins-stats">
+            <article v-for="item in recentWinsStats" :key="item.label" class="recent-wins-stat">
+              <span class="recent-wins-stat__icon" :class="`tone-${item.tone}`">
+                <AppIcon :name="item.icon" :size="18" />
+              </span>
+              <div class="recent-wins-stat__copy">
+                <div class="recent-wins-stat__value-row">
+                  <strong>{{ item.value }}</strong>
+                  <small>{{ item.delta }}</small>
+                </div>
+                <span>{{ item.label }}</span>
+                <em>{{ item.note }}</em>
+              </div>
+            </article>
+          </section>
+
+          <div class="recent-wins-toolbar">
+            <div class="recent-wins-toolbar__group">
+              <AppSelect v-model="recentWinsFilter" :options="recentWinsFilterOptions" />
+            </div>
+            <div class="recent-wins-toolbar__group recent-wins-toolbar__group--right">
+              <AppSelect v-model="recentWinsRange" :options="recentWinsRangeOptions" />
             </div>
           </div>
 
-          <div class="attention-overview-modal__body">
-            <section class="attention-overview-stats">
-              <article
-                v-for="item in jobsAttentionOverviewStats"
-                :key="item.id"
-                class="attention-overview-stat"
-              >
-                <span class="attention-overview-stat__icon" :class="`tone-${item.tone}`">
-                  <AppIcon :name="item.icon" :size="16" />
+          <div class="recent-wins-modal__body">
+            <section v-for="section in filteredRecentWinsSections" :key="section.label" class="recent-wins-section">
+              <h3>{{ section.label }}</h3>
+
+              <article v-for="item in section.items" :key="`${section.label}-${item.title}`" class="recent-wins-row">
+                <span class="recent-wins-row__marker" :class="`tone-${item.markerTone}`">
+                  <AppIcon :name="item.markerIcon" :size="16" />
                 </span>
-                <strong>{{ item.value }}</strong>
-                <span>{{ item.label }}</span>
-                <small :class="`tone-${item.tone}`">{{ item.delta }}</small>
+
+                <div class="recent-wins-row__main">
+                  <span class="recent-wins-row__tag" :class="`is-${item.tagTone}`">{{ item.tag }}</span>
+                  <strong>{{ item.title }}</strong>
+                  <small>{{ item.note }}</small>
+                </div>
+
+                <div class="recent-wins-row__meta">
+                  <span class="recent-wins-row__meta-icon">
+                    <AppIcon name="briefcase" :size="14" />
+                  </span>
+                  <span>{{ item.meta }}</span>
+                </div>
+
+                <div class="recent-wins-row__owner">
+                  <span class="recent-wins-row__avatar">{{ ownerInitials(item.owner) }}</span>
+                  <div>
+                    <strong>{{ item.owner }}</strong>
+                    <small>{{ item.ownerNote }}</small>
+                  </div>
+                </div>
+
+                <span class="recent-wins-row__age">{{ item.age }}</span>
               </article>
             </section>
 
-            <section class="attention-overview-filters">
-              <button
-                v-for="item in jobsAttentionFilters"
+            <div v-if="!filteredRecentWinsSections.length" class="recent-wins-empty">
+              <AppIcon name="info" :size="18" />
+              <span>No wins match the selected filter.</span>
+            </div>
+          </div>
+
+          <div class="recent-wins-modal__footer">
+            <button class="recent-wins-modal__ghost" type="button" @click="exportRecentWins">
+              <AppIcon name="external-link" :size="15" />
+              Export
+            </button>
+            <button class="recent-wins-modal__primary" type="button" @click="closeRecentWinsModal">Close</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="jobsAttentionModalOpen" class="attention-overview-layer" @click="closeJobsAttentionModal">
+        <div class="attention-focus-modal" @click.stop>
+          <div class="attention-focus-modal__head">
+            <div class="attention-focus-modal__title-wrap">
+              <div class="attention-focus-modal__title-icon">
+                <AppIcon name="alert" :size="22" />
+              </div>
+              <div>
+                <h2>Needs Attention ({{ jobsAttentionModalRows.length }})</h2>
+                <p>Jobs requiring immediate action to avoid hiring delays.</p>
+              </div>
+            </div>
+
+            <button class="attention-focus-modal__close" type="button" @click="closeJobsAttentionModal">
+              <AppIcon name="close" :size="18" />
+            </button>
+          </div>
+
+          <div class="attention-focus-modal__body">
+            <section class="attention-focus-stats">
+              <article
+                v-for="item in jobsAttentionModalStats"
                 :key="item.id"
-                class="attention-overview-filter"
-                :class="{ 'is-active': attentionActiveFilter === item.id }"
-                type="button"
-                @click="attentionActiveFilter = item.id"
+                class="attention-focus-stat"
               >
-                {{ item.label }} ({{ item.count }})
-              </button>
+                <span class="attention-focus-stat__icon" :class="`tone-${item.tone}`">
+                  <AppIcon :name="item.icon" :size="18" />
+                </span>
+                <div class="attention-focus-stat__copy">
+                  <strong>{{ item.value }}</strong>
+                  <span :class="`tone-${item.tone}`">{{ item.label }}</span>
+                </div>
+              </article>
             </section>
 
-            <div class="attention-overview-content">
-              <section class="attention-overview-cards">
+            <div class="attention-focus-content">
+              <section class="attention-focus-list">
                 <article
-                  v-for="item in filteredJobsAttentionCards"
+                  v-for="item in jobsAttentionModalRows"
                   :key="item.id"
-                  class="attention-overview-card"
+                  class="attention-focus-row"
                 >
-                  <div class="attention-overview-card__top">
-                    <div class="attention-overview-card__tone" :class="`tone-${item.tone}`">
-                      <AppIcon :name="item.tone === 'orange' ? 'mail' : item.tone === 'violet' ? 'calendar' : item.tone === 'blue' ? 'clipboard-check' : item.tone === 'yellow' ? 'clock' : item.tone === 'green' ? 'check' : 'chart-bars'" :size="14" />
-                      <span>{{ item.toneLabel }}</span>
+                  <button class="attention-focus-row__more" type="button" aria-label="More actions">
+                    <AppIcon name="more" :size="16" />
+                  </button>
+
+                  <section class="attention-focus-row__job">
+                    <span class="attention-focus-row__icon" :class="`tone-${item.tone}`">
+                      <AppIcon :name="item.icon" :size="18" />
+                    </span>
+                    <div class="attention-focus-row__job-copy">
+                      <span class="attention-focus-row__badge" :class="`tone-${item.tone}`">{{ item.badge }}</span>
+                      <h3>{{ item.title }}</h3>
+                      <p>{{ item.department }} • {{ item.workMode }}</p>
+                      <small><AppIcon name="mapPin" :size="12" /> {{ item.location }}</small>
                     </div>
-                    <span class="attention-overview-card__severity" :class="`tone-${item.tone}`">{{ item.severity }}</span>
-                  </div>
+                  </section>
 
-                  <div class="attention-overview-card__copy">
-                    <h3>{{ item.title }}</h3>
-                    <p>{{ item.meta }}</p>
-                  </div>
-
-                  <div class="attention-overview-card__stats">
-                    <div v-for="stat in item.stats" :key="stat.label">
-                      <span>{{ stat.label }}</span>
-                      <strong>{{ stat.value }} <small v-if="stat.subvalue">{{ stat.subvalue }}</small></strong>
+                  <section class="attention-focus-row__metrics">
+                    <div class="attention-focus-row__metric" v-for="metric in item.metrics" :key="metric.label">
+                      <strong>{{ metric.value }}</strong>
+                      <span>{{ metric.label }}</span>
                     </div>
-                  </div>
 
-                  <div class="attention-overview-card__insight">
-                    <strong>AI Insight</strong>
-                    <p>{{ item.insight }}</p>
-                  </div>
+                    <div class="attention-focus-row__health">
+                      <div class="attention-focus-row__health-label">
+                        <span>Hiring Health</span>
+                        <strong>{{ item.health }}%</strong>
+                      </div>
+                      <div class="attention-focus-row__health-track">
+                        <i :class="`tone-${item.tone}`" :style="{ width: `${item.health}%` }"></i>
+                      </div>
+                    </div>
+                  </section>
 
-                  <div class="attention-overview-card__actions">
-                    <button class="attention-overview-card__primary" type="button">{{ item.actions[0] }}</button>
-                    <button class="attention-overview-card__secondary" type="button">{{ item.actions[1] }}</button>
-                    <button class="attention-overview-card__more" type="button" aria-label="More actions">
-                      <AppIcon name="more" :size="16" />
-                    </button>
-                  </div>
+                  <section class="attention-focus-row__action">
+                    <span class="attention-focus-row__eyebrow" :class="`tone-${item.tone}`">
+                      <i></i>
+                      Next Recommended Action
+                    </span>
+                    <h4>{{ item.nextAction }}</h4>
+                    <ul>
+                      <li v-for="issue in item.issues" :key="issue">{{ issue }}</li>
+                    </ul>
+                    <div class="attention-focus-row__buttons">
+                      <button
+                        class="attention-focus-row__primary"
+                        :class="`tone-${item.tone}`"
+                        type="button"
+                        @click="handleJobsAttentionModalAction(item.primaryActionId, item)"
+                      >
+                        {{ item.primaryActionLabel }}
+                      </button>
+                      <button
+                        class="attention-focus-row__secondary"
+                        type="button"
+                        @click="handleJobsAttentionModalAction('open-job', item)"
+                      >
+                        Open Job
+                      </button>
+                    </div>
+                  </section>
                 </article>
-
-                <div class="attention-overview-cards__footer">
-                  <span>Showing 1 to 6 of 86 jobs</span>
-                  <div class="attention-overview-pagination">
-                    <button type="button">
-                      <AppIcon name="chevronLeft" :size="14" />
-                    </button>
-                    <button class="is-active" type="button">1</button>
-                    <button type="button">2</button>
-                    <button type="button">3</button>
-                    <button type="button">4</button>
-                    <button type="button">5</button>
-                    <button type="button">
-                      <AppIcon name="chevronRight" :size="14" />
-                    </button>
-                  </div>
-                </div>
               </section>
 
-              <aside class="attention-overview-sidebar">
-                <section class="attention-overview-sidecard">
-                  <div class="attention-overview-sidecard__head">
-                    <h3>AI Attention Summary</h3>
-                    <AppIcon name="sparkles" :size="14" />
+              <aside class="attention-focus-sidebar">
+                <section class="attention-focus-sidecard attention-focus-sidecard--advisor">
+                  <div class="attention-focus-sidecard__head tone-pink">
+                    <AppIcon name="sparkles" :size="16" />
+                    <span>AI Action Advisor</span>
                   </div>
-                  <span class="attention-overview-sidecard__label">Most Critical</span>
-                  <div class="attention-overview-sidecard__job">
-                    <strong>Graphic Designer</strong>
-                    <span>High Risk</span>
-                  </div>
-                  <div class="attention-overview-sidecard__list">
-                    <div><span>Risk:</span><strong>Time-to-fill delay</strong></div>
-                    <div><span>Impact:</span><strong>+12 days</strong></div>
-                  </div>
-                  <div class="attention-overview-sidecard__recommend">
-                    <span>Recommended:</span>
-                    <div>
-                      <button type="button">Boost Job</button>
-                      <button type="button">Refresh Description</button>
-                    </div>
-                  </div>
-                  <button class="attention-overview-sidecard__apply" type="button">Apply Recommendation</button>
-                </section>
 
-                <section class="attention-overview-sidecard">
-                  <h3>Hiring Impact</h3>
-                  <div class="attention-overview-impact-list">
-                    <div><span>Potential Delayed Hires</span><strong>6</strong></div>
-                    <div><span>Blocked Candidates</span><strong>14</strong></div>
-                    <div><span>Pending Feedback</span><strong>16</strong></div>
-                    <div><span>Expected Recovery</span><strong>4 Actions</strong></div>
-                  </div>
-                  <button class="attention-overview-sidecard__outline" type="button" @click="openActionPlanModal">View Action Plan</button>
-                </section>
+                  <div v-if="jobsAttentionPriorityJob" class="attention-focus-sidecard__advisor-body">
+                    <label>Most Urgent Issue</label>
+                    <h3>{{ jobsAttentionPriorityJob.title }}</h3>
+                    <span class="attention-focus-sidecard__badge tone-pink">{{ jobsAttentionPriorityJob.badge }}</span>
+                    <p>Applications decreased 35%</p>
 
-                <section class="attention-overview-sidecard">
-                  <h3>Bulk Actions</h3>
-                  <div class="attention-overview-bulk">
-                    <button v-for="item in jobsAttentionBulkActions" :key="item" type="button">
-                      <span>{{ item }}</span>
-                      <AppIcon name="chevronRight" :size="14" />
+                    <label>Expected Delay</label>
+                    <strong class="attention-focus-sidecard__delay">8 days</strong>
+
+                    <label>Recommended Action</label>
+                    <p class="attention-focus-sidecard__recommendation">Refresh the job posting to increase visibility.</p>
+
+                    <button
+                      class="attention-focus-sidecard__primary"
+                      type="button"
+                      @click="handleJobsAttentionModalAction('resolve-highest-priority', jobsAttentionPriorityJob)"
+                    >
+                      Resolve Highest Priority
+                      <AppIcon name="spark" :size="14" />
                     </button>
+                  </div>
+                </section>
+
+                <section class="attention-focus-sidecard">
+                  <h3>Attention Breakdown</h3>
+                  <div class="attention-focus-breakdown">
+                    <div class="attention-focus-breakdown__ring">
+                      <strong>{{ jobsAttentionModalRows.length }}</strong>
+                      <span>Jobs</span>
+                    </div>
+
+                    <div class="attention-focus-breakdown__list">
+                      <div v-for="item in jobsAttentionModalBreakdown" :key="item.label">
+                        <span><i :class="`tone-${item.tone}`"></i>{{ item.label }}</span>
+                        <strong>{{ item.value }}</strong>
+                      </div>
+                    </div>
                   </div>
                 </section>
               </aside>
             </div>
           </div>
 
-          <div class="attention-overview-modal__footer">
-            <button class="attention-overview-modal__secondary" type="button" @click="closeJobsAttentionModal">Close</button>
+          <div class="attention-focus-modal__footer">
+            <button class="attention-focus-modal__secondary" type="button" @click="handleJobsAttentionModalAction('assign-owners')">
+              Assign Owners
+            </button>
+            <button class="attention-focus-modal__ghost" type="button" @click="handleJobsAttentionModalAction('close-all-alerts')">
+              Close All Alerts
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="readyForActionModalOpen" class="ready-action-layer" @click="closeReadyForActionModal">
+        <div class="ready-action-modal" @click.stop>
+          <div class="ready-action-modal__head">
+            <div class="ready-action-modal__title-wrap">
+              <div class="ready-action-modal__title-icon">
+                <AppIcon name="checkCircle" :size="22" />
+              </div>
+              <div>
+                <h2>Ready For Action ({{ readyForActionModalRows.length }})</h2>
+                <p>Jobs with momentum that need your next step.</p>
+              </div>
+            </div>
+
+            <div class="ready-action-modal__toolbar">
+              <button class="ready-action-modal__filter" type="button">
+                <AppIcon name="filter" :size="15" />
+                Filter
+              </button>
+
+              <div class="ready-action-modal__sort">
+                <span>Sort by:</span>
+                <AppSelect v-model="readyForActionSort" :options="readyForActionSortOptions" />
+              </div>
+
+              <button class="ready-action-modal__close" type="button" @click="closeReadyForActionModal">
+                <AppIcon name="close" :size="18" />
+              </button>
+            </div>
+          </div>
+
+          <div class="ready-action-modal__body">
+            <div class="ready-action-modal__content">
+              <section class="ready-action-main">
+                <section class="ready-action-stats">
+                  <article v-for="item in readyForActionModalStats" :key="item.id" class="ready-action-stat">
+                    <span class="ready-action-stat__icon" :class="`tone-${item.tone}`">
+                      <AppIcon :name="item.icon" :size="18" />
+                    </span>
+                    <div class="ready-action-stat__copy">
+                      <strong>{{ item.value }}</strong>
+                      <span>{{ item.label }}</span>
+                    </div>
+                  </article>
+                </section>
+
+                <section class="ready-action-list">
+                  <article v-for="item in readyForActionRows" :key="item.id" class="ready-action-card">
+                    <div class="ready-action-card__summary">
+                      <section class="ready-action-card__job">
+                        <span class="ready-action-card__job-icon">
+                          <AppIcon :name="item.icon" :size="18" />
+                        </span>
+                        <div class="ready-action-card__job-copy">
+                          <span class="ready-action-card__status">{{ item.status }}</span>
+                          <h3>{{ item.title }}</h3>
+                          <p>{{ item.department }} • {{ item.workMode }}</p>
+                          <small>
+                            <span><AppIcon name="mapPin" :size="12" /> {{ item.location }}</span>
+                            <span><AppIcon name="calendar" :size="12" /> Open {{ item.daysOpen }} days</span>
+                          </small>
+                        </div>
+                      </section>
+
+                      <section class="ready-action-card__metrics">
+                        <div v-for="metric in item.metrics" :key="`${item.id}-${metric.label}`" class="ready-action-card__metric">
+                          <strong>{{ metric.value }}</strong>
+                          <span>{{ metric.label }}</span>
+                        </div>
+                      </section>
+
+                      <section class="ready-action-card__health">
+                        <div class="ready-action-card__health-head">
+                          <span>Hiring Health</span>
+                          <strong>{{ item.health }}%</strong>
+                        </div>
+                        <div class="ready-action-card__health-track">
+                          <i :style="{ width: `${item.health}%` }"></i>
+                        </div>
+                      </section>
+                    </div>
+
+                    <div class="ready-action-card__action-box">
+                      <div class="ready-action-card__action-copy">
+                        <span class="ready-action-card__eyebrow">
+                          <AppIcon name="spark" :size="13" />
+                          Next Recommended Action
+                        </span>
+                        <h4>{{ item.nextAction }}</h4>
+                        <p>{{ item.actionDescription }}</p>
+                        <div class="ready-action-card__checks">
+                          <span v-for="note in item.actionNotes" :key="note">
+                            <AppIcon name="checkCircle" :size="12" />
+                            {{ note }}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="ready-action-card__action-side">
+                        <span class="ready-action-card__pill">{{ item.actionPill }}</span>
+                        <div class="ready-action-card__buttons">
+                          <button class="ready-action-card__primary" type="button" @click="handleReadyForActionAction(item.primaryActionId, item)">
+                            {{ item.primaryActionLabel }}
+                          </button>
+                          <button class="ready-action-card__secondary" type="button" @click="handleReadyForActionAction('open-job', item)">
+                            Open Job
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                </section>
+              </section>
+
+              <aside class="ready-action-sidebar">
+                <section class="ready-action-sidecard ready-action-sidecard--advisor">
+                  <div class="ready-action-sidecard__head">
+                    <div>
+                      <h3>AI Action Advisor</h3>
+                      <label>Most Valuable Next Action</label>
+                    </div>
+                    <AppIcon name="star" :size="16" />
+                  </div>
+
+                  <div v-if="readyForActionAdvisorJob" class="ready-action-sidecard__advisor-body">
+                    <strong>Create offer for {{ readyForActionAdvisorJob.title }}</strong>
+                    <label>Expected Impact</label>
+                    <p>Reduce time-to-hire by <mark>5 days</mark></p>
+                    <button class="ready-action-sidecard__primary" type="button" @click="handleReadyForActionAction('complete-highest-impact', readyForActionAdvisorJob)">
+                      Complete Highest Impact Action
+                      <AppIcon name="star" :size="14" />
+                    </button>
+                  </div>
+                </section>
+
+                <section class="ready-action-sidecard">
+                  <h3>Momentum Overview</h3>
+                  <div class="ready-action-overview">
+                    <div class="ready-action-overview__ring">
+                      <div>
+                        <strong>{{ readyForActionMomentumTotal }}</strong>
+                      </div>
+                    </div>
+
+                    <div class="ready-action-overview__legend">
+                      <div v-for="item in readyForActionMomentumBreakdown" :key="item.label">
+                        <span><i :class="`tone-${item.tone}`"></i>{{ item.label }}</span>
+                        <strong>{{ item.value }}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="ready-action-sidecard">
+                  <label>Estimated Time Saved</label>
+                  <strong class="ready-action-sidecard__hours">12-18 Hours</strong>
+                  <p>This week by:</p>
+                  <div class="ready-action-sidecard__checklist">
+                    <span v-for="item in readyForActionTimeSavedItems" :key="item">
+                      <AppIcon name="checkCircle" :size="13" />
+                      {{ item }}
+                    </span>
+                  </div>
+                </section>
+              </aside>
+            </div>
+          </div>
+
+          <div class="ready-action-modal__footer">
+            <button class="ready-action-modal__secondary" type="button" @click="handleReadyForActionAction('assign-owners')">
+              Assign Owners
+            </button>
+            <button class="ready-action-modal__ghost" type="button" @click="handleReadyForActionAction('close-ready-modal')">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="upcomingRisksModalOpen" class="upcoming-risks-layer" @click="closeUpcomingRisksModal">
+        <div class="upcoming-risks-modal" @click.stop>
+          <div class="upcoming-risks-modal__head">
+            <div class="upcoming-risks-modal__title-wrap">
+              <div class="upcoming-risks-modal__title-icon">
+                <AppIcon name="alert" :size="22" />
+              </div>
+              <div>
+                <h2>Upcoming Risks ({{ upcomingRisksModalRows.length }})</h2>
+                <p>Jobs that may require attention soon.</p>
+              </div>
+            </div>
+
+            <button class="upcoming-risks-modal__close" type="button" @click="closeUpcomingRisksModal">
+              <AppIcon name="close" :size="18" />
+            </button>
+          </div>
+
+          <div class="upcoming-risks-modal__body">
+            <div class="upcoming-risks-modal__content">
+              <section class="upcoming-risks-main">
+                <section class="upcoming-risks-stats">
+                  <article v-for="item in upcomingRisksModalStats" :key="item.id" class="upcoming-risks-stat">
+                    <span class="upcoming-risks-stat__icon" :class="`tone-${item.tone}`">
+                      <AppIcon :name="item.icon" :size="18" />
+                    </span>
+                    <div class="upcoming-risks-stat__copy">
+                      <strong>{{ item.value }}</strong>
+                      <span>{{ item.label }}</span>
+                    </div>
+                  </article>
+                </section>
+
+                <section class="upcoming-risks-list">
+                  <article v-for="item in upcomingRisksModalRows" :key="item.id" class="upcoming-risks-card">
+                    <button class="upcoming-risks-card__more" type="button" aria-label="More actions">
+                      <AppIcon name="more" :size="16" />
+                    </button>
+
+                    <section class="upcoming-risks-card__job">
+                      <span class="upcoming-risks-card__badge" :class="`tone-${item.riskTone}`">{{ item.riskLevel }}</span>
+                      <div class="upcoming-risks-card__job-row">
+                        <span class="upcoming-risks-card__job-icon" :class="`tone-${item.riskTone}`">
+                          <AppIcon :name="item.icon" :size="18" />
+                        </span>
+
+                        <div class="upcoming-risks-card__job-copy">
+                          <h3>{{ item.title }}</h3>
+                          <p>{{ item.department }} • {{ item.employmentType }}</p>
+                          <small>
+                            <span><AppIcon name="mapPin" :size="12" /> {{ item.location }}</span>
+                            <span><AppIcon name="calendar" :size="12" /> Open {{ item.daysOpen }} days</span>
+                          </small>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section class="upcoming-risks-card__risk">
+                      <span class="upcoming-risks-card__eyebrow">Risk</span>
+                      <h4>{{ item.riskTitle }}</h4>
+                      <span class="upcoming-risks-card__why">Why AI flagged this</span>
+                      <ul>
+                        <li v-for="reason in item.reasons" :key="reason">{{ reason }}</li>
+                      </ul>
+                    </section>
+
+                    <section class="upcoming-risks-card__action">
+                      <span class="upcoming-risks-card__eyebrow">Recommended Action</span>
+                      <h4>{{ item.actionTitle }}</h4>
+                      <p>{{ item.actionDescription }}</p>
+                      <button class="upcoming-risks-card__primary" :class="`tone-${item.riskTone}`" type="button" @click="handleUpcomingRiskAction(item.primaryActionId, item)">
+                        {{ item.primaryActionLabel }}
+                      </button>
+                      <button class="upcoming-risks-card__secondary" type="button" @click="handleUpcomingRiskAction('open-job', item)">
+                        Open Job
+                      </button>
+                    </section>
+                  </article>
+                </section>
+              </section>
+
+              <aside class="upcoming-risks-sidebar">
+                <section class="upcoming-risks-sidecard upcoming-risks-sidecard--advisor">
+                  <div class="upcoming-risks-sidecard__head">
+                    <div>
+                      <h3>AI Risk Advisor</h3>
+                      <label>Most Urgent Risk</label>
+                    </div>
+                    <AppIcon name="star" :size="16" />
+                  </div>
+
+                  <div v-if="upcomingRisksAdvisorJob" class="upcoming-risks-sidecard__advisor-body">
+                    <strong>{{ upcomingRisksAdvisorJob.title }}</strong>
+                    <span class="upcoming-risks-sidecard__badge tone-pink">High Risk</span>
+
+                    <label>Reason</label>
+                    <p>{{ upcomingRisksAdvisorJob.riskTitle }}</p>
+
+                    <label>Why It Matters</label>
+                    <p>You could face a 12 day hiring delay if no action is taken.</p>
+
+                    <label>Recommended Action</label>
+                    <p>Review candidates now to strengthen your pipeline.</p>
+
+                    <button class="upcoming-risks-sidecard__primary" type="button" @click="handleUpcomingRiskAction('resolve-highest-risk', upcomingRisksAdvisorJob)">
+                      <AppIcon name="shield" :size="14" />
+                      Resolve Highest Risk
+                    </button>
+                  </div>
+                </section>
+
+                <section class="upcoming-risks-sidecard">
+                  <h3>Risk Overview</h3>
+                  <div class="upcoming-risks-overview">
+                    <div class="upcoming-risks-overview__total">
+                      <strong>{{ upcomingRisksModalRows.length }}</strong>
+                      <span>Jobs</span>
+                    </div>
+
+                    <div class="upcoming-risks-overview__legend">
+                      <div v-for="item in upcomingRisksOverview" :key="item.label">
+                        <span><i :class="`tone-${item.tone}`"></i>{{ item.label }}</span>
+                        <strong>{{ item.value }}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="upcoming-risks-overview__note">
+                    <AppIcon name="clock" :size="18" />
+                    <p>Risks are based on AI analysis of pipelines, activity, and response times.</p>
+                  </div>
+                </section>
+              </aside>
+            </div>
+          </div>
+
+          <div class="upcoming-risks-modal__footer">
+            <button class="upcoming-risks-modal__secondary" type="button" @click="handleUpcomingRiskAction('assign-owners')">
+              Assign Owners
+            </button>
+            <button class="upcoming-risks-modal__ghost" type="button" @click="handleUpcomingRiskAction('close-upcoming-risks')">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="refreshPostingModalOpen" class="refresh-posting-layer" @click="closeRefreshPostingModal">
+        <div v-if="refreshPostingTarget" class="refresh-posting-modal" @click.stop>
+          <div class="refresh-posting-modal__head">
+            <div class="refresh-posting-modal__title-wrap">
+              <div class="refresh-posting-modal__title-icon">
+                <AppIcon name="refresh" :size="18" />
+              </div>
+              <div>
+                <h2>Refresh Job Posting</h2>
+                <p>{{ refreshPostingTarget.subtitle }}</p>
+              </div>
+            </div>
+
+            <button class="refresh-posting-modal__close" type="button" @click="closeRefreshPostingModal">
+              <AppIcon name="close" :size="18" />
+            </button>
+          </div>
+
+          <div class="refresh-posting-modal__body">
+            <section class="refresh-posting-summary">
+              <div class="refresh-posting-summary__reason">
+                <span class="refresh-posting-summary__icon">
+                  <AppIcon name="trend-up" :size="16" />
+                </span>
+                <div>
+                  <strong>{{ refreshPostingTarget.summaryTitle }}</strong>
+                  <p>{{ refreshPostingTarget.summaryDescription }}</p>
+                </div>
+              </div>
+
+              <article v-for="item in refreshPostingTarget.metrics" :key="item.id" class="refresh-posting-summary__metric">
+                <strong :class="`tone-${item.tone}`">
+                  <AppIcon :name="item.icon" :size="14" />
+                  {{ item.value }}
+                </strong>
+                <span>{{ item.label }}</span>
+              </article>
+            </section>
+
+            <div class="refresh-posting-content">
+              <section class="refresh-posting-improvements">
+                <div class="refresh-posting-section__head">
+                  <h3>Recommended Improvements ✨</h3>
+                </div>
+
+                <div class="refresh-posting-improvements__list">
+                  <article
+                    v-for="item in refreshPostingTarget.improvements"
+                    :key="item.id"
+                    class="refresh-posting-improvement"
+                    :class="{ 'is-active': refreshPostingExpandedImprovementId === item.id }"
+                  >
+                    <button class="refresh-posting-improvement__button" type="button" @click="selectRefreshPostingImprovement(item.id)">
+                      <span class="refresh-posting-improvement__step" :class="`tone-${item.tone}`">{{ item.step }}</span>
+
+                      <span class="refresh-posting-improvement__copy">
+                        <strong>{{ item.title }}</strong>
+                        <small>{{ item.description }}</small>
+                      </span>
+
+                      <AppIcon :name="refreshPostingExpandedImprovementId === item.id ? 'chevronUp' : 'chevronDown'" :size="16" />
+                    </button>
+
+                    <div v-if="refreshPostingExpandedImprovementId === item.id" class="refresh-posting-improvement__body">
+                      <div class="refresh-posting-improvement__badges">
+                        <span class="is-current">{{ item.currentBadge }}</span>
+                        <span class="is-recommended">{{ item.recommendedBadge }}</span>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+
+                <section class="refresh-posting-impact">
+                  <div class="refresh-posting-impact__head">
+                    <AppIcon name="sparkles" :size="14" />
+                    <h4>AI Predicted Impact</h4>
+                  </div>
+
+                  <div class="refresh-posting-impact__grid">
+                    <article v-for="item in refreshPostingTarget.impact" :key="item.id" class="refresh-posting-impact__card" :class="`tone-${item.tone}`">
+                      <strong>{{ item.value }}</strong>
+                      <span>{{ item.label }}</span>
+                    </article>
+                  </div>
+                </section>
+              </section>
+
+              <section class="refresh-posting-preview">
+                <div class="refresh-posting-section__head refresh-posting-section__head--preview">
+                  <h3>AI Preview (Recommended Changes)</h3>
+                  <button
+                    class="refresh-posting-compare"
+                    :class="{ 'is-active': refreshPostingCompareView }"
+                    type="button"
+                    @click="toggleRefreshPostingCompareView"
+                  >
+                    <AppIcon name="compare" :size="13" />
+                    Compare view
+                  </button>
+                </div>
+
+                <div v-if="refreshPostingActiveImprovement" class="refresh-posting-preview__panel">
+                  <section class="refresh-posting-preview__group">
+                    <h4>{{ refreshPostingActiveImprovement.previewLabel }}</h4>
+
+                    <div class="refresh-posting-preview__rows">
+                      <div v-if="refreshPostingCompareView" class="refresh-posting-preview__row">
+                        <label>Current</label>
+                        <div class="refresh-posting-preview__box is-current">{{ refreshPostingActiveImprovement.currentValue }}</div>
+                      </div>
+
+                      <div class="refresh-posting-preview__row">
+                        <label>Recommended</label>
+                        <div class="refresh-posting-preview__box is-recommended">{{ refreshPostingActiveImprovement.recommendedValue }}</div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="refresh-posting-preview__group">
+                    <h4>{{ refreshPostingActiveImprovement.descriptionLabel }}</h4>
+
+                    <div class="refresh-posting-preview__rows">
+                      <div v-if="refreshPostingCompareView" class="refresh-posting-preview__row">
+                        <label>Current</label>
+                        <div class="refresh-posting-preview__box is-current is-multiline">{{ refreshPostingActiveImprovement.descriptionCurrent }}</div>
+                      </div>
+
+                      <div class="refresh-posting-preview__row">
+                        <label>Recommended</label>
+                        <div class="refresh-posting-preview__box is-recommended is-multiline">
+                          <p>{{ refreshPostingRecommendedDescription }}</p>
+                          <button
+                            v-if="refreshPostingActiveImprovement.descriptionRecommended.length > 185"
+                            class="refresh-posting-preview__more"
+                            type="button"
+                            @click="refreshPostingDescriptionExpanded = !refreshPostingDescriptionExpanded"
+                          >
+                            {{ refreshPostingDescriptionExpanded ? 'Show less' : 'Show more' }}
+                            <AppIcon :name="refreshPostingDescriptionExpanded ? 'chevronUp' : 'chevronDown'" :size="13" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="refresh-posting-preview__group">
+                    <h4>Publishing channels (recommended)</h4>
+
+                    <div class="refresh-posting-channels">
+                      <span
+                        v-for="channel in refreshPostingTarget.channels"
+                        :key="channel.id"
+                        class="refresh-posting-channel"
+                        :class="`tone-${channel.tone}`"
+                      >
+                        <i v-if="channel.badge">{{ channel.badge }}</i>
+                        <span>{{ channel.label }}</span>
+                        <AppIcon v-if="channel.id !== 'more'" name="checkCircle" :size="14" />
+                      </span>
+                    </div>
+                  </section>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div class="refresh-posting-modal__footer">
+            <div class="refresh-posting-modal__note">
+              <AppIcon name="info" :size="14" />
+              <span>You can review all changes before publishing.</span>
+            </div>
+
+            <div class="refresh-posting-modal__actions">
+              <button class="refresh-posting-modal__secondary" type="button" @click="closeRefreshPostingModal">Cancel</button>
+              <button class="refresh-posting-modal__ghost" type="button" @click="previewRefreshPostingChanges">Preview Changes</button>
+              <button class="refresh-posting-modal__primary" type="button" @click="openRefreshPostingSuccessModal">
+                <AppIcon name="refresh" :size="14" />
+                Refresh Posting
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="refreshPostingSuccessModalOpen" class="refresh-posting-success-layer" @click="closeRefreshPostingSuccessModal">
+        <div v-if="refreshPostingSuccessData" class="refresh-posting-success-modal" @click.stop>
+          <div class="refresh-posting-success-modal__head">
+            <div class="refresh-posting-success-modal__title-wrap">
+              <div class="refresh-posting-success-modal__title-icon">
+                <AppIcon name="checkCircle" :size="22" />
+              </div>
+              <div>
+                <h2>Posting Refreshed Successfully!</h2>
+                <p>{{ refreshPostingSuccessData.job.title }} • Job ID: {{ refreshPostingSuccessData.jobId }}</p>
+              </div>
+            </div>
+
+            <button class="refresh-posting-success-modal__close" type="button" @click="closeRefreshPostingSuccessModal">
+              <AppIcon name="close" :size="18" />
+            </button>
+          </div>
+
+          <div class="refresh-posting-success-modal__body">
+            <section class="refresh-posting-success-hero">
+              <span class="refresh-posting-success-hero__spark is-one">✦</span>
+              <span class="refresh-posting-success-hero__spark is-two">◆</span>
+              <span class="refresh-posting-success-hero__spark is-three">✦</span>
+              <span class="refresh-posting-success-hero__spark is-four">•</span>
+              <span class="refresh-posting-success-hero__spark is-five">✦</span>
+
+              <div class="refresh-posting-success-hero__icon">
+                <AppIcon name="checkCircle" :size="36" />
+              </div>
+
+              <h3>Your job posting has been refreshed.</h3>
+              <p>The updated posting is now live on all selected channels.</p>
+            </section>
+
+            <section class="refresh-posting-success-stats">
+              <article v-for="item in refreshPostingSuccessData.stats" :key="item.id" class="refresh-posting-success-stat">
+                <span class="refresh-posting-success-stat__icon">
+                  <AppIcon :name="item.icon" :size="18" />
+                </span>
+                <strong>{{ item.label }}</strong>
+                <small>{{ item.note }}</small>
+              </article>
+            </section>
+
+            <div class="refresh-posting-success-sync">
+              <i></i>
+              <span>Synchronizing with Nitro AI global recruitment dashboard...</span>
+            </div>
+          </div>
+
+          <div class="refresh-posting-success-modal__footer">
+            <button class="refresh-posting-success-modal__primary" type="button" @click="closeRefreshPostingSuccessModal">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="riskReviewCandidatesModalOpen && riskReviewCandidatesTarget" class="risk-review-layer" @click="closeRiskReviewCandidatesModal">
+        <div class="risk-review-modal" @click.stop>
+          <div class="risk-review-modal__head">
+            <div class="risk-review-modal__title-wrap">
+              <div class="risk-review-modal__title-icon">
+                <AppIcon name="users" :size="20" />
+              </div>
+              <div>
+                <h2>{{ riskReviewCandidatesTarget.title }}</h2>
+                <p>{{ riskReviewCandidatesTarget.subtitle }}</p>
+              </div>
+            </div>
+
+            <button class="risk-review-modal__close" type="button" @click="closeRiskReviewCandidatesModal">
+              <AppIcon name="close" :size="18" />
+            </button>
+          </div>
+
+          <div class="risk-review-modal__body">
+            <section class="risk-review-alert">
+              <div class="risk-review-alert__main">
+                <span class="risk-review-alert__icon">
+                  <AppIcon name="alert" :size="18" />
+                </span>
+                <div>
+                  <label>High Risk</label>
+                  <strong>{{ riskReviewCandidatesTarget.headline }}</strong>
+                  <p>{{ riskReviewCandidatesTarget.subheadline }}</p>
+                </div>
+              </div>
+
+              <div class="risk-review-alert__impact">
+                <label>Why It Matters</label>
+                <p>{{ riskReviewCandidatesTarget.impact }}</p>
+              </div>
+
+              <button class="risk-review-alert__button" type="button" @click="handleRiskReviewCandidateAction('view-risk-details')">
+                View Risk Details
+              </button>
+            </section>
+
+            <div class="risk-review-layout">
+              <section class="risk-review-main">
+                <div class="risk-review-toolbar">
+                  <h3>Candidates Requiring Attention ({{ riskReviewCandidatesTarget.candidates.length }})</h3>
+
+                  <div class="risk-review-toolbar__actions">
+                    <div class="risk-review-toolbar__sort">
+                      <span>Sort:</span>
+                      <AppSelect v-model="reviewCandidatesSort" :options="['Last Activity', 'Highest Match', 'Newest']" />
+                    </div>
+                    <button class="risk-review-toolbar__filter" type="button">
+                      <AppIcon name="filter" :size="14" />
+                      Filter
+                    </button>
+                  </div>
+                </div>
+
+                <div class="risk-review-cards">
+                  <article v-for="candidate in riskReviewCandidatesTarget.candidates" :key="candidate.id" class="risk-review-card">
+                    <button class="risk-review-card__more" type="button" aria-label="More actions">
+                      <AppIcon name="more" :size="16" />
+                    </button>
+
+                    <div class="risk-review-card__profile">
+                      <span class="risk-review-card__avatar" :class="`tone-${candidate.avatarTone}`">
+                        {{ ownerInitials(candidate.name) }}
+                      </span>
+                      <div>
+                        <div class="risk-review-card__name-row">
+                          <strong>{{ candidate.name }}</strong>
+                          <span>{{ candidate.match }}</span>
+                        </div>
+                        <p>{{ candidate.role }}</p>
+                        <small><AppIcon name="mapPin" :size="12" /> {{ candidate.location }}</small>
+                      </div>
+                    </div>
+
+                    <div class="risk-review-card__meta">
+                      <div>
+                        <label>Current Stage</label>
+                        <strong>{{ candidate.stage }}</strong>
+                      </div>
+                      <div>
+                        <label>Last Activity</label>
+                        <strong>{{ candidate.lastActivity }}</strong>
+                        <small>{{ candidate.lastActivityDate }}</small>
+                      </div>
+                      <div>
+                        <label>Status</label>
+                        <strong>{{ candidate.status }}</strong>
+                        <small>{{ candidate.statusNote }}</small>
+                      </div>
+                    </div>
+
+                    <div class="risk-review-card__recommendation">
+                      <div class="risk-review-card__recommendation-copy">
+                        <span><AppIcon name="sparkles" :size="14" /> Recommended Next Step</span>
+                        <strong>{{ candidate.recommendationTitle }}</strong>
+                      </div>
+
+                      <div class="risk-review-card__actions">
+                        <button class="risk-review-card__primary" type="button" @click="handleRiskReviewCandidateAction(candidate.primaryActionId, candidate)">
+                          {{ candidate.primaryActionLabel }}
+                        </button>
+                        <button class="risk-review-card__secondary" type="button" @click="handleRiskReviewCandidateAction(candidate.secondaryActionId, candidate)">
+                          {{ candidate.secondaryActionLabel }}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button class="risk-review-card__link" type="button">View Full Profile</button>
+                  </article>
+                </div>
+              </section>
+
+              <aside class="risk-review-sidebar">
+                <section class="risk-review-sidecard risk-review-sidecard--recommendation">
+                  <h3><AppIcon name="sparkles" :size="14" /> NITRO RECOMMENDATION</h3>
+                  <p>{{ riskReviewCandidatesTarget.recommendation }}</p>
+
+                  <div class="risk-review-impact">
+                    <label>Expected Impact</label>
+                    <div v-for="item in riskReviewCandidatesTarget.impactCards" :key="item.label" class="risk-review-impact__item">
+                      <span class="risk-review-impact__icon" :class="`tone-${item.tone}`">
+                        <AppIcon :name="item.icon" :size="14" />
+                      </span>
+                      <span>{{ item.label }}</span>
+                      <strong :class="`tone-${item.tone}`">{{ item.value }}</strong>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="risk-review-sidecard">
+                  <h3>Pipeline Snapshot</h3>
+                  <div class="risk-review-snapshot">
+                    <div v-for="item in riskReviewCandidatesTarget.snapshot" :key="item.label">
+                      <span><i :class="`tone-${item.tone}`"></i>{{ item.label }}</span>
+                      <strong>{{ item.value }}</strong>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="risk-review-sidecard">
+                  <h3>Recent Activity</h3>
+                  <div class="risk-review-activity">
+                    <div v-for="item in riskReviewCandidatesTarget.recentActivity" :key="item.title" class="risk-review-activity__item">
+                      <span class="risk-review-activity__icon" :class="`tone-${item.tone}`">
+                        <AppIcon :name="item.icon" :size="14" />
+                      </span>
+                      <div>
+                        <strong>{{ item.title }}</strong>
+                        <small>{{ item.note }}</small>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </aside>
+            </div>
+          </div>
+
+          <div class="risk-review-modal__footer">
+            <div class="risk-review-modal__note">
+              <AppIcon name="info" :size="14" />
+              <span>Taking action now will help you maintain hiring momentum and avoid delays.</span>
+            </div>
+
+            <div class="risk-review-modal__footer-actions">
+              <button class="risk-review-modal__secondary" type="button" @click="handleRiskReviewCandidateAction('close-risk-review')">
+                Close
+              </button>
+              <button class="risk-review-modal__primary" type="button" @click="handleRiskReviewCandidateAction('advance-selected')">
+                Advance Selected Candidates
+                <AppIcon name="chevronRight" :size="14" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="moveCandidateForwardModalOpen && moveCandidateForwardTarget" class="move-candidate-layer" @click="closeMoveCandidateForwardModal">
+        <div class="move-candidate-modal" @click.stop>
+          <div class="move-candidate-modal__head">
+            <div class="move-candidate-modal__title-wrap">
+              <div class="move-candidate-modal__title-icon">
+                <AppIcon name="trend-up" :size="18" />
+              </div>
+              <h2>Move Candidate Forward</h2>
+            </div>
+
+            <button class="move-candidate-modal__close" type="button" @click="closeMoveCandidateForwardModal">
+              <AppIcon name="close" :size="18" />
+            </button>
+          </div>
+
+          <div class="move-candidate-modal__body">
+            <section class="move-candidate-profile">
+              <span class="move-candidate-profile__avatar" :class="`tone-${moveCandidateForwardTarget.avatarTone}`">
+                {{ ownerInitials(moveCandidateForwardTarget.name) }}
+              </span>
+
+              <div class="move-candidate-profile__copy">
+                <div class="move-candidate-profile__name-row">
+                  <strong>{{ moveCandidateForwardTarget.name }}</strong>
+                  <span>{{ moveCandidateForwardTarget.match }}</span>
+                </div>
+                <p>{{ moveCandidateForwardTarget.role }}</p>
+                <small><AppIcon name="mapPin" :size="12" /> {{ moveCandidateForwardTarget.location }}</small>
+              </div>
+            </section>
+
+            <section class="move-candidate-recommendation">
+              <div class="move-candidate-recommendation__copy">
+                <span class="move-candidate-recommendation__icon">
+                  <AppIcon name="sparkles" :size="16" />
+                </span>
+                <div>
+                  <label>NITRO RECOMMENDATION</label>
+                  <strong>
+                    {{ moveCandidateForwardTarget.recommendationPrefix }}
+                    <span>{{ moveCandidateForwardTarget.recommendationHighlight }}</span>
+                  </strong>
+                  <p>{{ moveCandidateForwardTarget.recommendationBody }}</p>
+                </div>
+              </div>
+
+              <div class="move-candidate-recommendation__confidence">
+                <label>AI CONFIDENCE</label>
+                <div class="move-candidate-recommendation__score">{{ moveCandidateForwardTarget.aiConfidence }}</div>
+                <strong>{{ moveCandidateForwardTarget.aiConfidenceLabel }}</strong>
+              </div>
+            </section>
+
+            <div class="move-candidate-grid">
+              <section class="move-candidate-card">
+                <div class="move-candidate-card__heading">
+                  <span class="move-candidate-card__icon">
+                    <AppIcon name="spark" :size="15" />
+                  </span>
+                  <h3>Why Nitro Recommends This</h3>
+                </div>
+
+                <ul class="move-candidate-reasons">
+                  <li v-for="reason in moveCandidateForwardTarget.reasons" :key="reason">
+                    <AppIcon name="checkCircle" :size="14" />
+                    <span>{{ reason }}</span>
+                  </li>
+                </ul>
+
+                <div class="move-candidate-alternative">
+                  <div class="move-candidate-alternative__heading">
+                    <span class="move-candidate-alternative__icon">
+                      <AppIcon name="refresh" :size="14" />
+                    </span>
+                    <strong>Alternative Recommendation</strong>
+                  </div>
+                  <div class="move-candidate-alternative__content">
+                    <span>{{ moveCandidateForwardTarget.alternativeRecommendation }}</span>
+                    <small>Confidence: {{ moveCandidateForwardTarget.alternativeConfidence }}</small>
+                  </div>
+                </div>
+              </section>
+
+              <section class="move-candidate-panel">
+                <h3>Select Next Stage</h3>
+
+                <div class="move-candidate-stages">
+                  <button
+                    v-for="option in moveCandidateForwardStageOptions"
+                    :key="option.id"
+                    class="move-candidate-stage"
+                    :class="{ 'is-active': moveCandidateForwardStage === option.id }"
+                    type="button"
+                    @click="moveCandidateForwardStage = option.id"
+                  >
+                    <span class="move-candidate-stage__radio"></span>
+                    <div class="move-candidate-stage__copy">
+                      <strong>{{ option.label }}</strong>
+                      <small v-if="option.recommended">AI Recommended</small>
+                    </div>
+                    <AppIcon :name="option.icon" :size="16" />
+                  </button>
+                </div>
+
+                <div class="move-candidate-impact-card">
+                  <div class="move-candidate-impact-card__heading">
+                    <AppIcon name="spark" :size="15" />
+                    <h3>Expected Impact</h3>
+                  </div>
+
+                  <div class="move-candidate-impact-list">
+                    <div v-for="item in moveCandidateForwardTarget.expectedImpact" :key="item.label" class="move-candidate-impact-item">
+                      <span class="move-candidate-impact-item__icon" :class="`tone-${item.tone}`">
+                        <AppIcon :name="item.icon" :size="15" />
+                      </span>
+                      <div>
+                        <strong :class="`tone-${item.tone}`">{{ item.value }}</strong>
+                        <span>{{ item.label }}</span>
+                        <small>{{ item.note }}</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <section class="move-candidate-comment">
+              <div class="move-candidate-comment__field">
+                <AppIcon name="mail" :size="16" />
+                <div class="move-candidate-comment__content">
+                  <textarea
+                    v-model="moveCandidateForwardComment"
+                    maxlength="250"
+                    rows="2"
+                    placeholder="Add internal comment (optional)..."
+                  ></textarea>
+                  <small>{{ moveCandidateForwardComment.length }}/250</small>
+                </div>
+              </div>
+            </section>
+
+            <section class="move-candidate-notify">
+              <h3>Notify Team</h3>
+
+              <div class="move-candidate-notify__list">
+                <button
+                  class="move-candidate-notify__pill"
+                  :class="{ 'is-active': moveCandidateForwardNotifyHiringManager }"
+                  type="button"
+                  @click="toggleMoveCandidateForwardNotification('hiring-manager')"
+                >
+                  <span class="move-candidate-notify__check">
+                    <AppIcon v-if="moveCandidateForwardNotifyHiringManager" name="check" :size="12" />
+                  </span>
+                  Notify Hiring Manager
+                </button>
+
+                <button
+                  class="move-candidate-notify__pill"
+                  :class="{ 'is-active': moveCandidateForwardNotifyRecruiter }"
+                  type="button"
+                  @click="toggleMoveCandidateForwardNotification('recruiter')"
+                >
+                  <span class="move-candidate-notify__check">
+                    <AppIcon v-if="moveCandidateForwardNotifyRecruiter" name="check" :size="12" />
+                  </span>
+                  Notify Recruiter
+                </button>
+
+                <button
+                  class="move-candidate-notify__pill"
+                  :class="{ 'is-active': moveCandidateForwardNotifyTimeline }"
+                  type="button"
+                  @click="toggleMoveCandidateForwardNotification('timeline')"
+                >
+                  <span class="move-candidate-notify__check">
+                    <AppIcon v-if="moveCandidateForwardNotifyTimeline" name="check" :size="12" />
+                  </span>
+                  Update Candidate Timeline
+                </button>
+
+                <button class="move-candidate-notify__pill is-disabled" type="button" disabled>
+                  <span class="move-candidate-notify__check">
+                    <AppIcon v-if="moveCandidateForwardNotifyCandidate" name="check" :size="12" />
+                  </span>
+                  Send stage update to candidate
+                </button>
+              </div>
+            </section>
+          </div>
+
+          <div class="move-candidate-modal__footer">
+            <div class="move-candidate-modal__footer-actions">
+              <button class="move-candidate-modal__secondary" type="button" @click="closeMoveCandidateForwardModal">
+                Cancel
+              </button>
+              <button class="move-candidate-modal__primary" type="button" @click="submitMoveCandidateForward">
+                Move to {{ getMoveCandidateForwardStageLabel(moveCandidateForwardStage) }}
+                <AppIcon name="chevronRight" :size="14" />
+              </button>
+            </div>
+
+            <div class="move-candidate-modal__note">
+              <AppIcon name="lock" :size="12" />
+              <span>This action will be recorded in the candidate timeline and visible to your team.</span>
+            </div>
           </div>
         </div>
       </div>
@@ -5434,6 +8467,224 @@ onBeforeUnmount(() => {
     </Teleport>
 
     <Teleport to="body">
+      <div v-if="publishJobBoardsModalOpen" class="publish-boards-layer" @click="closePublishJobBoardsModal">
+        <div v-if="publishJobBoardsTarget" class="publish-boards-modal" @click.stop>
+          <div class="publish-boards-modal__head">
+            <div class="publish-boards-modal__title-wrap">
+              <div class="publish-boards-modal__title-icon">
+                <AppIcon name="megaphone" :size="18" />
+              </div>
+              <div>
+                <h2>Publish to More Job Boards</h2>
+                <p>Reach more qualified candidates by publishing this job to additional channels.</p>
+              </div>
+            </div>
+
+            <button class="publish-boards-modal__close" type="button" @click="closePublishJobBoardsModal">
+              <AppIcon name="close" :size="18" />
+            </button>
+          </div>
+
+          <div class="publish-boards-modal__body">
+            <section class="publish-boards-overview">
+              <div class="publish-boards-overview__intro">
+                <span class="publish-boards-overview__icon">
+                  <AppIcon name="trend-up" :size="18" />
+                </span>
+                <div>
+                  <strong>Increase your reach</strong>
+                  <small>Get this job in front of more candidates on leading job boards.</small>
+                </div>
+              </div>
+
+              <div class="publish-boards-overview__metric">
+                <label>Estimated reach increase</label>
+                <strong>{{ publishJobBoardsEstimatedReachIncrease }}</strong>
+              </div>
+
+              <div class="publish-boards-overview__metric">
+                <label>Estimated additional applications</label>
+                <strong>{{ publishJobBoardsEstimatedApplications }}</strong>
+              </div>
+            </section>
+
+            <section class="publish-boards-job">
+              <div class="publish-boards-job__icon">
+                <AppIcon name="briefcase" :size="18" />
+              </div>
+              <div class="publish-boards-job__copy">
+                <strong>{{ publishJobBoardsTarget.title }}</strong>
+                <small>Currently live on {{ publishJobBoardsPublishedChannels.length }} channels</small>
+              </div>
+              <button class="publish-boards-job__button" type="button" @click="openJob(publishJobBoardsTarget)">View job <AppIcon name="external-link" :size="14" /></button>
+            </section>
+
+            <section class="publish-boards-section">
+              <h3><AppIcon name="checkCircle" :size="16" /> Published <span>({{ publishJobBoardsPublishedChannels.length }})</span></h3>
+              <div class="publish-boards-grid publish-boards-grid--published">
+                <article v-for="channel in publishJobBoardsPublishedChannels" :key="channel.id" class="publish-boards-card publish-boards-card--published">
+                  <div class="publish-boards-card__head">
+                    <span class="publish-boards-card__badge" :class="{ 'is-brand': channel.iconType === 'brand' }">
+                      <AppIcon v-if="channel.iconType === 'brand' || channel.iconType === 'app'" :name="channel.icon" :size="20" />
+                      <span v-else>{{ channel.iconLabel }}</span>
+                    </span>
+                    <AppIcon name="checkCircle" :size="18" class="publish-boards-card__status-icon" />
+                  </div>
+                  <strong>{{ channel.title }}</strong>
+                  <span class="publish-boards-card__status">{{ channel.status }}</span>
+                  <small>{{ channel.note }}</small>
+                </article>
+              </div>
+            </section>
+
+            <section class="publish-boards-section">
+              <h3><AppIcon name="spark" :size="16" /> Ready to Publish <span>({{ publishJobBoardsReadyChannels.length }})</span></h3>
+              <div class="publish-boards-grid">
+                <article
+                  v-for="channel in publishJobBoardsReadyChannels"
+                  :key="channel.id"
+                  class="publish-boards-card publish-boards-card--ready"
+                  :class="{ 'is-selected': publishJobBoardsSelectedIds.includes(channel.id) }"
+                >
+                  <div class="publish-boards-card__channel">
+                    <span class="publish-boards-card__badge" :class="{ 'is-brand': channel.iconType === 'brand' }">
+                      <AppIcon v-if="channel.iconType === 'brand'" :name="channel.icon" :size="20" />
+                      <span v-else>{{ channel.iconLabel }}</span>
+                    </span>
+                    <div>
+                      <strong>{{ channel.title }}</strong>
+                      <label>{{ channel.match }}</label>
+                    </div>
+                  </div>
+
+                  <div class="publish-boards-card__stats">
+                    <div>
+                      <span>Estimated reach</span>
+                      <i>
+                        <b v-for="dot in 4" :key="dot" :class="{ 'is-active': dot <= channel.score }"></b>
+                      </i>
+                    </div>
+                    <div>
+                      <span>Estimated add. apps</span>
+                      <strong>+{{ channel.estimatedApplications }}</strong>
+                    </div>
+                  </div>
+
+                  <button class="publish-boards-card__action" type="button" @click="togglePublishJobBoard(channel.id)">
+                    {{ publishJobBoardsSelectedIds.includes(channel.id) ? 'Selected' : 'Publish' }}
+                  </button>
+                </article>
+              </div>
+            </section>
+
+            <section class="publish-boards-section">
+              <h3><AppIcon name="settings" :size="16" /> Needs Configuration <span>({{ publishJobBoardsNeedsConfigChannels.length }})</span></h3>
+              <div class="publish-boards-grid">
+                <article v-for="channel in publishJobBoardsNeedsConfigChannels" :key="channel.id" class="publish-boards-card publish-boards-card--config">
+                  <div class="publish-boards-card__channel">
+                    <span class="publish-boards-card__badge" :class="{ 'is-brand': channel.iconType === 'brand' }">
+                      <AppIcon v-if="channel.iconType === 'brand'" :name="channel.icon" :size="20" />
+                      <span v-else>{{ channel.iconLabel }}</span>
+                    </span>
+                    <div>
+                      <strong>{{ channel.title }}</strong>
+                      <small>{{ channel.note }}</small>
+                    </div>
+                  </div>
+                  <button class="publish-boards-card__config" type="button">Configure</button>
+                </article>
+              </div>
+            </section>
+          </div>
+
+          <div class="publish-boards-modal__footer">
+            <button class="publish-boards-modal__secondary" type="button" @click="closePublishJobBoardsModal">Cancel</button>
+
+            <div class="publish-boards-modal__summary">
+              <div>
+                <label>Selected channels</label>
+                <strong>{{ publishJobBoardsSelectedCount }}</strong>
+              </div>
+              <div>
+                <label>Estimated reach increase</label>
+                <strong>{{ publishJobBoardsEstimatedReachIncrease }}</strong>
+              </div>
+              <div>
+                <label>Estimated additional applications</label>
+                <strong>{{ publishJobBoardsEstimatedApplications }}</strong>
+              </div>
+            </div>
+
+            <button class="publish-boards-modal__primary" type="button" :disabled="!publishJobBoardsSelectedCount" @click="publishSelectedJobBoards">
+              <AppIcon name="share" :size="15" />
+              Publish to {{ publishJobBoardsSelectedCount }} Channels
+            </button>
+          </div>
+
+          <div class="publish-boards-modal__note">
+            <AppIcon name="lock" :size="14" />
+            <span>Your job details remain the same across all channels.</span>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="boostJobModalOpen" class="boost-job-layer" @click="closeBoostJobModal">
+        <div class="boost-job-modal" @click.stop>
+          <div class="boost-job-modal__head">
+            <div class="boost-job-modal__title-wrap">
+              <div class="boost-job-modal__title-icon">
+                <AppIcon name="megaphone" :size="18" />
+              </div>
+              <div>
+                <h2>Boost Job</h2>
+                <p>{{ boostJobDescription }}</p>
+              </div>
+            </div>
+
+            <button class="boost-job-modal__close" type="button" @click="closeBoostJobModal">
+              <AppIcon name="close" :size="18" />
+            </button>
+          </div>
+
+          <div class="boost-job-modal__body">
+            <section class="boost-job-section">
+              <h3>Choose a channel</h3>
+
+              <div class="boost-job-channels">
+                <button
+                  v-for="channel in boostJobChannels"
+                  :key="channel.id"
+                  class="boost-job-channel"
+                  type="button"
+                  @click="handleBoostJobChannel(channel)"
+                >
+                  <span class="boost-job-channel__badge" :class="`is-${channel.badgeTone}`">{{ channel.badge }}</span>
+                  <span class="boost-job-channel__copy">
+                    <strong>{{ channel.title }}</strong>
+                    <small>{{ channel.description }}</small>
+                  </span>
+                  <span class="boost-job-channel__status">{{ channel.status }}</span>
+                  <AppIcon name="chevronRight" :size="18" />
+                </button>
+              </div>
+            </section>
+
+            <div class="boost-job-note">
+              <AppIcon name="info" :size="16" />
+              <span>You'll be taken to the selected platform to complete the campaign setup and payment.</span>
+            </div>
+          </div>
+
+          <div class="boost-job-modal__footer">
+            <button class="boost-job-modal__secondary" type="button" @click="closeBoostJobModal">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
       <div v-if="duplicateJobSuccessModalOpen" class="duplicate-success-layer" @click="closeDuplicateJobSuccessModal">
         <div v-if="duplicateJobSuccessData" class="duplicate-success-modal" @click.stop>
           <button class="duplicate-success-modal__close" type="button" @click="closeDuplicateJobSuccessModal">
@@ -5509,6 +8760,188 @@ onBeforeUnmount(() => {
           </div>
 
           <button class="duplicate-success-modal__dismiss" type="button" @click="closeDuplicateJobSuccessModal">Close</button>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="editClosingDateModalOpen" class="edit-closing-date-layer" @click="closeEditClosingDateModal">
+        <div v-if="editClosingDateTarget" class="edit-closing-date-modal" @click.stop>
+          <div class="edit-closing-date-modal__head">
+            <div class="edit-closing-date-modal__title-wrap">
+              <div class="edit-closing-date-modal__title-icon">
+                <AppIcon name="calendar" :size="18" />
+              </div>
+              <div>
+                <h2>Edit Closing Date</h2>
+                <p>Update when this job will no longer accept new applications.</p>
+              </div>
+            </div>
+
+            <button class="edit-closing-date-modal__close" type="button" @click="closeEditClosingDateModal">
+              <AppIcon name="close" :size="18" />
+            </button>
+          </div>
+
+          <div class="edit-closing-date-modal__body">
+            <section class="edit-closing-date-summary">
+              <div class="edit-closing-date-summary__icon">
+                <AppIcon name="calendar" :size="18" />
+              </div>
+
+              <div class="edit-closing-date-summary__copy">
+                <strong>{{ editClosingDateTarget.title }}</strong>
+                <small>
+                  <span>{{ editClosingDateDepartment }}</span>
+                  <span>{{ editClosingDateTarget.location }}</span>
+                  <span>{{ editClosingDateEmploymentType }}</span>
+                </small>
+              </div>
+            </section>
+
+            <div class="edit-closing-date-grid">
+              <section class="edit-closing-date-block">
+                <h3>Current Closing Date &amp; Time</h3>
+                <div class="edit-closing-date-row">
+                  <label class="edit-closing-date-input">
+                    <span class="edit-closing-date-input__icon"><AppIcon name="calendar" :size="15" /></span>
+                    <input :value="editClosingDateForm.currentDate" readonly type="text">
+                  </label>
+                  <label class="edit-closing-date-input">
+                    <span class="edit-closing-date-input__icon"><AppIcon name="clock" :size="15" /></span>
+                    <input :value="editClosingDateForm.currentTime" readonly type="text">
+                  </label>
+                </div>
+              </section>
+
+              <section class="edit-closing-date-block">
+                <h3>New Closing Date &amp; Time <em>*</em></h3>
+                <div class="edit-closing-date-row">
+                  <label class="edit-closing-date-input is-active">
+                    <span class="edit-closing-date-input__icon"><AppIcon name="calendar" :size="15" /></span>
+                    <input v-model="editClosingDateForm.newDate" type="text">
+                  </label>
+                  <div class="edit-closing-date-select">
+                    <AppSelect v-model="editClosingDateForm.newTime" :options="editClosingDateTimeOptions" />
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <section class="edit-closing-date-block">
+              <h3>Quick Actions</h3>
+              <div class="edit-closing-date-quick-actions">
+                <button
+                  v-for="item in editClosingDateQuickActions"
+                  :key="item.id"
+                  class="edit-closing-date-quick-action"
+                  :class="{ 'is-active': editClosingDateForm.quickAction === item.id }"
+                  type="button"
+                  @click="applyEditClosingDateQuickAction(item.id)"
+                >
+                  <strong>{{ item.label }}</strong>
+                  <small>{{ item.note }}</small>
+                </button>
+              </div>
+            </section>
+
+            <section class="edit-closing-date-preview">
+              <div class="edit-closing-date-preview__head">
+                <span class="edit-closing-date-preview__eye">
+                  <AppIcon name="eye" :size="18" />
+                </span>
+                <div>
+                  <strong>Change Preview</strong>
+                  <small>Closing date will change</small>
+                </div>
+              </div>
+
+              <div class="edit-closing-date-preview__content">
+                <div class="edit-closing-date-preview__timeline">
+                  <div class="edit-closing-date-preview__point">
+                    <label>From</label>
+                    <strong>{{ editClosingDateForm.currentDate }}, {{ editClosingDateForm.currentTime }}</strong>
+                    <small>Based on current job settings.</small>
+                  </div>
+
+                  <span class="edit-closing-date-preview__arrow">
+                    <AppIcon name="chevronRight" :size="18" />
+                  </span>
+
+                  <div class="edit-closing-date-preview__point">
+                    <label>To</label>
+                    <strong>{{ editClosingDatePreviewTo }}</strong>
+                  </div>
+                </div>
+
+                <div class="edit-closing-date-preview__impact">
+                  <label>Estimated additional applications</label>
+                  <strong>{{ editClosingDatePreviewApplications }}</strong>
+                </div>
+              </div>
+            </section>
+
+            <section class="edit-closing-date-block">
+              <h3>Timezone</h3>
+              <div class="edit-closing-date-select edit-closing-date-select--wide">
+                <AppSelect v-model="editClosingDateForm.timezone" :options="editClosingDateTimezoneOptions" />
+              </div>
+              <p>All times are shown in this timezone.</p>
+            </section>
+
+            <section class="edit-closing-date-block">
+              <h3>Reason <span>(Optional)</span></h3>
+              <label class="edit-closing-date-textarea">
+                <textarea v-model="editClosingDateForm.reason" maxlength="200"></textarea>
+                <small>{{ editClosingDateReasonCount }}/200</small>
+              </label>
+            </section>
+
+            <section class="edit-closing-date-block">
+              <h3>Update Options</h3>
+              <div class="edit-closing-date-options">
+                <label class="edit-closing-date-option">
+                  <input v-model="editClosingDateForm.updateJobBoards" type="checkbox">
+                  <span><AppIcon name="check" :size="14" /></span>
+                  <div>
+                    <strong>Update closing date on job boards</strong>
+                    <small>The new date will be reflected on all connected job boards.</small>
+                  </div>
+                </label>
+
+                <label class="edit-closing-date-option">
+                  <input v-model="editClosingDateForm.notifyHiringTeam" type="checkbox">
+                  <span><AppIcon name="check" :size="14" /></span>
+                  <div>
+                    <strong>Notify hiring team about the change</strong>
+                    <small>Send an email to hiring team members.</small>
+                  </div>
+                </label>
+
+                <label class="edit-closing-date-option">
+                  <input v-model="editClosingDateForm.notifyInterestedApplicants" type="checkbox">
+                  <span><AppIcon name="check" :size="14" /></span>
+                  <div>
+                    <strong>Notify interested applicants <em>(optional)</em></strong>
+                    <small>Send a notification to candidates who have shown interest.</small>
+                  </div>
+                </label>
+              </div>
+            </section>
+
+            <div class="edit-closing-date-note">
+              <AppIcon name="edit" :size="14" />
+              <span>Changes will be logged in the activity feed.</span>
+            </div>
+          </div>
+
+          <div class="edit-closing-date-modal__footer">
+            <button class="edit-closing-date-modal__secondary" type="button" @click="closeEditClosingDateModal">Cancel</button>
+            <button class="edit-closing-date-modal__primary" type="button" @click="saveEditClosingDate">
+              Save Changes
+              <AppIcon name="check" :size="14" />
+            </button>
+          </div>
         </div>
       </div>
     </Teleport>
@@ -6669,16 +10102,16 @@ onBeforeUnmount(() => {
     </Teleport>
 
     <Teleport to="body">
-      <div v-if="reviewFeedbackModalOpen" class="review-modal-layer" @click="closeReviewFeedbackModal">
+      <div v-if="reviewFeedbackModalOpen && reviewFeedbackTarget" class="review-modal-layer" @click="closeReviewFeedbackModal">
         <div class="review-modal" @click.stop>
           <div class="review-modal__head">
             <div class="review-modal__title-wrap">
               <div class="review-modal__title-icon">
-                <AppIcon name="share" :size="17" />
+                <AppIcon name="mail" :size="17" />
               </div>
               <div>
-                <h2>Review feedback</h2>
-                <p>5 candidates are waiting for feedback</p>
+                <h2>Request Feedback</h2>
+                <p>Send a reminder to request feedback</p>
               </div>
             </div>
 
@@ -6687,67 +10120,94 @@ onBeforeUnmount(() => {
             </button>
           </div>
 
-          <section class="review-summary">
-            <article v-for="item in reviewFeedbackSummary" :key="item.label" class="review-summary__card">
-              <div class="review-summary__icon" :class="`tone-${item.tone}`">
-                <AppIcon :name="item.icon" :size="16" />
+          <section class="review-feedback-card">
+            <div class="review-feedback-card__candidate">
+              <div class="review-feedback-card__avatar" :class="`tone-${reviewFeedbackTarget.avatarTone}`">
+                {{ reviewFeedbackTarget.initials }}
               </div>
-              <div class="review-summary__copy">
-                <strong>{{ item.value }}</strong>
-                <span>{{ item.label }}</span>
-              </div>
-            </article>
-          </section>
 
-          <section class="review-list">
-            <article v-for="candidate in reviewFeedbackCandidates" :key="candidate.name" class="review-row">
-              <div class="review-row__candidate">
-                <div class="review-row__avatar" :class="`tone-${candidate.departmentTone}`">
-                  {{ candidate.initials }}
-                </div>
-                <div class="review-row__copy">
-                  <strong>{{ candidate.name }}</strong>
-                  <span>{{ candidate.role }}</span>
-                  <small :class="`is-${candidate.departmentTone}`">
-                    <AppIcon name="briefcase" :size="11" />
-                    {{ candidate.department.toUpperCase() }}
+              <div class="review-feedback-card__copy">
+                <strong>{{ reviewFeedbackTarget.name }}</strong>
+                <span>{{ reviewFeedbackTarget.role }}</span>
+
+                <div class="review-feedback-card__meta">
+                  <small>
+                    <AppIcon name="briefcase" :size="12" />
+                    {{ reviewFeedbackTarget.departmentLabel.toUpperCase() }}
+                  </small>
+                  <small>
+                    <AppIcon name="calendar" :size="12" />
+                    {{ reviewFeedbackTarget.stageLabel }} {{ reviewFeedbackTarget.stageStatus }}
                   </small>
                 </div>
               </div>
+            </div>
 
-              <div class="review-row__missing">
-                <span>Missing feedback from</span>
-                <strong>{{ candidate.missingFrom }}</strong>
-                <small>{{ candidate.missingRole }}</small>
-              </div>
+            <div class="review-feedback-card__status">
+              <label>{{ reviewFeedbackTarget.feedbackStatus }}</label>
+              <strong>{{ reviewFeedbackTarget.feedbackName }}</strong>
+              <span>{{ reviewFeedbackTarget.feedbackRole }}</span>
+            </div>
+          </section>
 
-              <div class="review-row__actions">
-                <span class="review-row__badge" :class="`review-row__badge--${candidate.overdueTone}`">{{ candidate.overdue }}</span>
-                <button class="review-row__button" type="button" @click="openSendReminderModal">
-                  <AppIcon name="share" :size="12" />
-                  Send reminder
-                </button>
-              </div>
-            </article>
+          <section class="review-feedback-section">
+            <h3>Who do you want to request feedback from?</h3>
+
+            <label class="review-feedback-select">
+              <AppIcon name="user" :size="16" />
+              <select v-model="reviewFeedbackRecipient">
+                <option v-for="option in reviewFeedbackRecipientOptions" :key="option" :value="option">{{ option }}</option>
+              </select>
+              <AppIcon name="chevronDown" :size="16" />
+            </label>
+          </section>
+
+          <section class="review-feedback-section">
+            <h3>Add a personal message <span>(optional)</span></h3>
+
+            <div class="review-feedback-message">
+              <textarea v-model="reviewFeedbackMessage" maxlength="500"></textarea>
+              <small>{{ reviewFeedbackMessage.length }}/500</small>
+            </div>
+          </section>
+
+          <section class="review-feedback-section">
+            <h3>Reminder settings</h3>
+
+            <div class="review-feedback-timings">
+              <button
+                v-for="option in reviewFeedbackReminderOptions"
+                :key="option.id"
+                class="review-feedback-timing"
+                :class="{ 'is-active': reviewFeedbackReminderTiming === option.id }"
+                type="button"
+                @click="reviewFeedbackReminderTiming = option.id"
+              >
+                <span class="review-feedback-timing__dot"></span>
+                <span>{{ option.id === 'custom-date' ? reviewFeedbackCustomDate : option.label }}</span>
+                <AppIcon v-if="option.icon" :name="option.icon" :size="14" />
+              </button>
+            </div>
+          </section>
+
+          <section class="review-feedback-preview">
+            <div class="review-feedback-preview__icon">
+              <AppIcon name="mail" :size="16" />
+            </div>
+
+            <div class="review-feedback-preview__copy">
+              <strong>Preview of reminder</strong>
+              <p>{{ reviewFeedbackPreviewText }}</p>
+              <small>This is a friendly reminder to help keep the hiring process on track.</small>
+            </div>
           </section>
 
           <div class="review-modal__footer">
-            <button class="review-modal__ghost" type="button">
-              <AppIcon name="document" :size="14" />
-              Export list
+            <button class="review-modal__secondary" type="button" @click="closeReviewFeedbackModal">Cancel</button>
+            <button class="review-modal__primary" type="button" @click="closeReviewFeedbackModal">
+              <AppIcon name="mail" :size="14" />
+              Send Request
             </button>
-
-            <div class="review-modal__footer-actions">
-              <button class="review-modal__ghost review-modal__ghost--accent" type="button" @click="openSendReminderModal">
-                <AppIcon name="share" :size="14" />
-                Send reminders (3)
-              </button>
-
-              <button class="review-modal__primary" type="button" @click="openCompleteFeedbackModal">
-                <AppIcon name="edit" :size="14" />
-                Complete my feedback (2)
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -7964,6 +11424,92 @@ onBeforeUnmount(() => {
     </Teleport>
 
     <Teleport to="body">
+      <div v-if="contactHiringManagerModalOpen" class="contact-manager-layer" @click="closeContactHiringManagerModal">
+        <div v-if="contactHiringManagerTarget" class="contact-manager-modal" @click.stop>
+          <div class="contact-manager-modal__head">
+            <div class="contact-manager-modal__title-wrap">
+              <div class="contact-manager-modal__title-icon">
+                <AppIcon name="calendar" :size="18" />
+              </div>
+              <div>
+                <h2>Contact Hiring Manager</h2>
+                <p>Send a message or schedule a meeting.</p>
+              </div>
+            </div>
+
+            <button class="contact-manager-modal__close" type="button" @click="closeContactHiringManagerModal">
+              <AppIcon name="close" :size="18" />
+            </button>
+          </div>
+
+          <div class="contact-manager-modal__body">
+            <section class="contact-manager-summary">
+              <div class="contact-manager-summary__avatar">
+                {{ contactHiringManagerProfile.initials }}
+              </div>
+
+              <div class="contact-manager-summary__copy">
+                <strong>{{ contactHiringManagerProfile.name }}</strong>
+                <span>{{ contactHiringManagerProfile.role }}</span>
+                <small>
+                  <AppIcon name="mail" :size="14" />
+                  {{ contactHiringManagerProfile.email }}
+                </small>
+              </div>
+            </section>
+
+            <section class="contact-manager-field">
+              <h3>Message</h3>
+              <label class="contact-manager-textarea">
+                <textarea v-model="contactHiringManagerForm.message" maxlength="500"></textarea>
+                <small>{{ contactHiringManagerMessageCount }}/500</small>
+              </label>
+            </section>
+
+            <label class="contact-manager-toggle">
+              <input v-model="contactHiringManagerForm.scheduleMeeting" type="checkbox">
+              <span><AppIcon name="check" :size="14" /></span>
+              <strong>Schedule meeting</strong>
+            </label>
+
+            <section v-if="contactHiringManagerForm.scheduleMeeting" class="contact-manager-schedule">
+              <div class="contact-manager-schedule__grid">
+                <label class="contact-manager-select contact-manager-select--date">
+                  <span>Date</span>
+                  <div class="contact-manager-select__field">
+                    <AppIcon name="calendar" :size="15" />
+                    <input v-model="contactHiringManagerForm.date" type="text">
+                    <AppIcon name="chevronDown" :size="16" />
+                  </div>
+                </label>
+
+                <label class="contact-manager-select contact-manager-select--compact">
+                  <span>Time</span>
+                  <AppSelect v-model="contactHiringManagerForm.time" :options="contactHiringManagerTimeOptions" />
+                </label>
+
+                <label class="contact-manager-select contact-manager-select--compact">
+                  <span>Duration</span>
+                  <AppSelect v-model="contactHiringManagerForm.duration" :options="contactHiringManagerDurationOptions" />
+                </label>
+              </div>
+
+              <small class="contact-manager-schedule__note">The hiring manager will receive a calendar invitation.</small>
+            </section>
+          </div>
+
+          <div class="contact-manager-modal__footer">
+            <button class="contact-manager-modal__secondary" type="button" @click="closeContactHiringManagerModal">Cancel</button>
+            <button class="contact-manager-modal__primary" type="button" @click="submitContactHiringManager">
+              <AppIcon name="share" :size="14" />
+              Send Message
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
       <div v-if="sendReminderModalOpen" class="send-reminder-layer" @click="closeSendReminderModal">
         <div class="send-reminder-modal" @click.stop>
           <div class="send-reminder-modal__head">
@@ -8263,7 +11809,7 @@ onBeforeUnmount(() => {
                   <AppIcon :name="job.actionTone === 'blue' ? 'megaphone' : job.actionTone === 'orange' ? 'users' : 'calendar'" :size="14" />
                   {{ job.actionLabel }}
                 </button>
-                <button class="closing-soon-row__more" type="button" aria-label="More actions">
+                <button class="closing-soon-row__more" type="button" aria-label="More actions" @click="toggleClosingSoonActionMenu(job, $event)">
                   <AppIcon name="more" :size="16" />
                 </button>
               </div>
@@ -9422,6 +12968,475 @@ onBeforeUnmount(() => {
   line-height: 1.45;
 }
 
+.recent-wins-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 94;
+  padding: 24px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(6px);
+}
+
+.recent-wins-modal {
+  width: min(980px, 100%);
+  max-height: calc(100vh - 40px);
+  border: 1px solid #edf1f8;
+  border-radius: 26px;
+  background: #fff;
+  box-shadow: 0 36px 90px rgba(15, 23, 42, 0.16);
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.recent-wins-modal__head,
+.recent-wins-modal__footer,
+.recent-wins-modal__title-wrap,
+.recent-wins-toolbar,
+.recent-wins-row,
+.recent-wins-row__main,
+.recent-wins-row__meta,
+.recent-wins-row__owner,
+.recent-wins-stat,
+.recent-wins-stat__value-row,
+.recent-wins-empty {
+  display: flex;
+  align-items: center;
+}
+
+.recent-wins-modal__head,
+.recent-wins-modal__footer,
+.recent-wins-toolbar,
+.recent-wins-row {
+  justify-content: space-between;
+}
+
+.recent-wins-modal__head,
+.recent-wins-stats,
+.recent-wins-toolbar,
+.recent-wins-modal__body,
+.recent-wins-modal__footer {
+  padding-left: 30px;
+  padding-right: 30px;
+}
+
+.recent-wins-modal__head {
+  gap: 18px;
+  padding-top: 30px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #edf1f8;
+}
+
+.recent-wins-modal__title-wrap {
+  gap: 14px;
+}
+
+.recent-wins-modal__title-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #8b5cf6;
+  background: #f4edff;
+  flex-shrink: 0;
+}
+
+.recent-wins-modal__title-wrap h2 {
+  margin: 0 0 4px;
+  color: #1b2647;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.recent-wins-modal__title-wrap p {
+  margin: 0;
+  color: #66758e;
+  font-size: 14px;
+}
+
+.recent-wins-modal__close {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #dde6f2;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  background: #fff;
+}
+
+.recent-wins-stats {
+  padding-top: 22px;
+  padding-bottom: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.recent-wins-stat {
+  gap: 16px;
+  justify-content: flex-start;
+  padding: 18px 16px;
+  border: 1px solid #edf1f8;
+  border-radius: 18px;
+}
+
+.recent-wins-stat__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.recent-wins-stat__icon.tone-green {
+  color: #16a34a;
+  background: #ecfbf3;
+}
+
+.recent-wins-stat__icon.tone-blue {
+  color: #3b82f6;
+  background: #eef5ff;
+}
+
+.recent-wins-stat__icon.tone-violet {
+  color: #8b5cf6;
+  background: #f4edff;
+}
+
+.recent-wins-stat__icon.tone-orange {
+  color: #f97316;
+  background: #fff3e8;
+}
+
+.recent-wins-stat__copy {
+  display: grid;
+  gap: 4px;
+}
+
+.recent-wins-stat__value-row {
+  gap: 8px;
+}
+
+.recent-wins-stat__value-row strong {
+  color: #1b2647;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.recent-wins-stat__value-row small {
+  color: #ff6aa8;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.recent-wins-stat__copy span {
+  color: #42506a;
+  font-size: 14px;
+}
+
+.recent-wins-stat__copy em {
+  color: #94a3b8;
+  font-size: 12px;
+  font-style: normal;
+}
+
+.recent-wins-toolbar {
+  gap: 14px;
+  padding-top: 6px;
+  padding-bottom: 18px;
+}
+
+.recent-wins-toolbar__group {
+  width: 156px;
+}
+
+.recent-wins-toolbar__group--right {
+  margin-left: auto;
+}
+
+.recent-wins-modal__body {
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 12px;
+  overflow-y: auto;
+  display: grid;
+  gap: 18px;
+}
+
+.recent-wins-section {
+  display: grid;
+  gap: 2px;
+}
+
+.recent-wins-section h3 {
+  margin: 0;
+  padding: 4px 0 8px;
+  color: #1f2b45;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.recent-wins-row {
+  gap: 18px;
+  min-height: 104px;
+  padding: 18px 0;
+  border-top: 1px solid #edf1f8;
+}
+
+.recent-wins-row__marker {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.recent-wins-row__marker.tone-green {
+  background: #22c55e;
+}
+
+.recent-wins-row__marker.tone-violet {
+  background: #a855f7;
+}
+
+.recent-wins-row__main {
+  min-width: 0;
+  flex: 1.4 1 0;
+  align-items: flex-start;
+  gap: 6px;
+  flex-direction: column;
+}
+
+.recent-wins-row__tag {
+  min-height: 20px;
+  padding: 0 9px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.recent-wins-row__tag.is-green {
+  color: #16a34a;
+  background: #ecfbf3;
+}
+
+.recent-wins-row__tag.is-pink {
+  color: #ef5da8;
+  background: #fff0f7;
+}
+
+.recent-wins-row__tag.is-violet {
+  color: #8b5cf6;
+  background: #f4edff;
+}
+
+.recent-wins-row__main strong {
+  color: #1b2647;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.recent-wins-row__main small,
+.recent-wins-row__meta span,
+.recent-wins-row__owner small,
+.recent-wins-row__age {
+  color: #8d99af;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.recent-wins-row__meta {
+  min-width: 0;
+  flex: 1.2 1 0;
+  gap: 10px;
+  color: #5f6e86;
+}
+
+.recent-wins-row__meta-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #94a3b8;
+  background: #f8fafc;
+}
+
+.recent-wins-row__owner {
+  min-width: 0;
+  flex: 0.95 1 0;
+  gap: 10px;
+}
+
+.recent-wins-row__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(145deg, #0f172a, #2680eb);
+  font-size: 10px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.recent-wins-row__owner div {
+  display: grid;
+  gap: 2px;
+}
+
+.recent-wins-row__owner strong {
+  color: #1f2b45;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.recent-wins-row__age {
+  min-width: 84px;
+  text-align: right;
+}
+
+.recent-wins-empty {
+  gap: 10px;
+  justify-content: center;
+  min-height: 180px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.recent-wins-modal__footer {
+  padding-top: 20px;
+  padding-bottom: 24px;
+  border-top: 1px solid #edf1f8;
+}
+
+.recent-wins-modal__ghost,
+.recent-wins-modal__primary {
+  min-width: 102px;
+  min-height: 46px;
+  padding: 0 20px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.recent-wins-modal__ghost {
+  border: 1px solid #dde6f2;
+  color: #475569;
+  background: #fff;
+}
+
+.recent-wins-modal__primary {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(90deg, #f95ba8 0%, #ef69c2 100%);
+  box-shadow: 0 14px 28px rgba(241, 88, 173, 0.22);
+}
+
+@media (max-width: 1260px) {
+  .recent-wins-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .recent-wins-row {
+    grid-template-columns: auto minmax(0, 1.2fr) minmax(0, 1fr);
+    display: grid;
+    align-items: start;
+  }
+
+  .recent-wins-row__age {
+    min-width: 0;
+    text-align: left;
+  }
+}
+
+@media (max-width: 920px) {
+  .recent-wins-layer {
+    padding: 10px;
+  }
+
+  .recent-wins-modal {
+    width: min(100%, calc(100vw - 8px));
+    max-height: calc(100vh - 8px);
+    border-radius: 22px;
+  }
+
+  .recent-wins-modal__head,
+  .recent-wins-stats,
+  .recent-wins-toolbar,
+  .recent-wins-modal__body,
+  .recent-wins-modal__footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .recent-wins-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .recent-wins-toolbar,
+  .recent-wins-modal__footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .recent-wins-toolbar__group,
+  .recent-wins-toolbar__group--right {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .recent-wins-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .recent-wins-row__meta,
+  .recent-wins-row__owner,
+  .recent-wins-row__age {
+    grid-column: 2;
+  }
+
+  .recent-wins-row__owner,
+  .recent-wins-row__meta {
+    min-width: 0;
+  }
+
+  .recent-wins-row__age {
+    text-align: left;
+  }
+
+  .recent-wins-modal__ghost,
+  .recent-wins-modal__primary {
+    width: 100%;
+  }
+}
+
 .briefing-progress-list,
 .briefing-actions {
   display: grid;
@@ -10286,6 +14301,58 @@ onBeforeUnmount(() => {
 
 .row-menu__icon.is-pink {
   color: #f24193;
+}
+
+.closing-soon-action-menu {
+  position: fixed;
+  z-index: 108;
+  width: 268px;
+  max-height: calc(100vh - 24px);
+  padding: 10px 0;
+  border: 1px solid #edf1f8;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.14);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #d5ddeb transparent;
+}
+
+.closing-soon-action-menu__section {
+  padding: 8px 0;
+}
+
+.closing-soon-action-menu__title {
+  display: block;
+  padding: 0 18px 8px;
+  color: #6f7d94;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.closing-soon-action-menu__item {
+  width: 100%;
+  padding: 9px 18px;
+  border: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #253354;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.closing-soon-action-menu__item:hover {
+  background: #f8fbff;
+}
+
+.closing-soon-action-menu__icon {
+  color: #63728d;
+  flex-shrink: 0;
 }
 
 .review-candidates-action-menu {
@@ -12323,56 +16390,54 @@ onBeforeUnmount(() => {
 .review-modal-layer {
   position: fixed;
   inset: 0;
-  z-index: 88;
-  padding: 32px 20px;
+  z-index: 101;
+  padding: 24px 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(242, 245, 251, 0.88);
-  backdrop-filter: blur(4px);
+  background: rgba(242, 245, 251, 0.86);
+  backdrop-filter: blur(6px);
 }
 
 .review-modal {
-  width: min(900px, 100%);
-  max-height: calc(100vh - 64px);
-  padding: 28px 32px 30px;
+  width: min(760px, 100%);
+  max-height: calc(100vh - 48px);
   border: 1px solid #edf1f8;
   border-radius: 28px;
   background: #fff;
-  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 26px 72px rgba(15, 23, 42, 0.16);
   display: grid;
-  gap: 22px;
+  gap: 18px;
   overflow-y: auto;
 }
 
 .review-modal__head,
-.review-modal__footer,
-.review-modal__footer-actions,
-.review-row,
-.review-row__candidate,
-.review-row__actions,
 .review-modal__title-wrap,
-.review-summary__card {
+.review-feedback-card,
+.review-feedback-card__candidate,
+.review-feedback-card__meta,
+.review-feedback-select,
+.review-feedback-timing,
+.review-feedback-preview,
+.review-modal__footer {
   display: flex;
   align-items: center;
 }
 
 .review-modal__head,
-.review-modal__footer,
-.review-row {
+.review-modal__footer {
   justify-content: space-between;
   gap: 18px;
 }
 
-.review-modal__title-wrap,
-.review-row__candidate,
-.review-summary__card {
-  gap: 14px;
+.review-modal__head,
+.review-modal__footer {
+  padding: 22px 24px;
 }
 
-.review-modal__footer-actions {
-  gap: 12px;
-  margin-left: auto;
+.review-modal__title-wrap,
+.review-feedback-card__candidate {
+  gap: 14px;
 }
 
 .review-modal__title-icon {
@@ -12388,8 +16453,8 @@ onBeforeUnmount(() => {
 
 .review-modal__title-wrap h2 {
   margin: 0 0 4px;
-  color: #1b2647;
-  font-size: 22px;
+  color: #1f2b45;
+  font-size: 18px;
   font-weight: 800;
 }
 
@@ -12400,9 +16465,9 @@ onBeforeUnmount(() => {
 }
 
 .review-modal__close {
-  width: 36px;
-  height: 36px;
-  border: 0;
+  width: 40px;
+  height: 40px;
+  border: 1px solid transparent;
   border-radius: 12px;
   display: inline-flex;
   align-items: center;
@@ -12411,145 +16476,265 @@ onBeforeUnmount(() => {
   background: transparent;
 }
 
-.review-summary,
-.review-list {
+.review-modal__head {
+  border-bottom: 1px solid #edf1f8;
+}
+
+.review-feedback-card,
+.review-feedback-section,
+.review-feedback-preview {
+  margin-left: 24px;
+  margin-right: 24px;
+}
+
+.review-feedback-card {
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
   border: 1px solid #edf1f8;
-  border-radius: 22px;
+  border-radius: 18px;
   background: #fff;
-  overflow: hidden;
 }
 
-.review-summary {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.review-summary__card {
-  min-width: 0;
-  padding: 24px 20px;
-}
-
-.review-summary__card + .review-summary__card {
-  border-left: 1px solid #edf1f8;
-}
-
-.review-summary__icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.review-summary__copy {
-  display: grid;
-  gap: 4px;
-}
-
-.review-summary__copy strong {
-  color: #1b2647;
-  font-size: 20px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.review-summary__copy span {
-  color: #6f7d94;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.review-row {
-  padding: 22px 20px;
-}
-
-.review-row + .review-row {
-  border-top: 1px solid #edf1f8;
-}
-
-.review-row__avatar {
-  width: 50px;
-  height: 50px;
+.review-feedback-card__avatar {
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  color: #ef5da8;
+  background: #fff1f7;
+  font-size: 30px;
   font-weight: 800;
   flex-shrink: 0;
 }
 
-.review-row__copy,
-.review-row__missing {
+.review-feedback-card__avatar.tone-brown {
+  color: #fff;
+  background: linear-gradient(135deg, #6d4c3d 0%, #9b7353 100%);
+}
+
+.review-feedback-card__avatar.tone-rose {
+  color: #ef5da8;
+  background: #fff1f7;
+}
+
+.review-feedback-card__copy {
+  min-width: 0;
   display: grid;
   gap: 4px;
 }
 
-.review-row__copy strong,
-.review-row__missing strong {
-  color: #1b2647;
-  font-size: 14px;
+.review-feedback-card__copy strong {
+  color: #1f2b45;
+  font-size: 16px;
   font-weight: 800;
-  line-height: 1.3;
 }
 
-.review-row__copy span,
-.review-row__missing span,
-.review-row__copy small,
-.review-row__missing small {
-  color: #8a97ac;
-  font-size: 12px;
-  line-height: 1.4;
+.review-feedback-card__copy > span {
+  color: #627189;
+  font-size: 14px;
 }
 
-.review-row__copy small {
+.review-feedback-card__meta {
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.review-feedback-card__meta small {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  color: #8391a9;
+  font-size: 12px;
   font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
-.review-row__missing {
-  min-width: 200px;
+.review-feedback-card__status {
+  min-width: 176px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #fff6ec;
+  display: grid;
+  gap: 4px;
 }
 
-.review-row__actions {
-  flex-direction: column;
-  align-items: flex-end;
+.review-feedback-card__status label {
+  color: #ff6a00;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.review-feedback-card__status strong {
+  color: #1f2b45;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.review-feedback-card__status span {
+  color: #7f8ba0;
+  font-size: 13px;
+}
+
+.review-feedback-section {
+  display: grid;
   gap: 12px;
 }
 
-.review-row__badge {
-  min-height: 28px;
-  padding: 0 12px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  font-size: 12px;
+.review-feedback-section h3 {
+  margin: 0;
+  color: #1f2b45;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.review-feedback-section h3 span {
+  color: #9aa7bc;
   font-weight: 700;
 }
 
-.review-row__badge--orange {
-  color: #ef7d23;
-  background: #fff4ea;
+.review-feedback-select {
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid #dce5f1;
+  border-radius: 14px;
+  gap: 10px;
+  color: #8d9bb0;
+  background: #fff;
 }
 
-.review-row__badge--violet {
-  color: #8b52ff;
-  background: #f5efff;
+.review-feedback-select select {
+  min-width: 0;
+  flex: 1 1 auto;
+  border: 0;
+  outline: none;
+  color: #1f2b45;
+  font: inherit;
+  background: transparent;
+  appearance: none;
 }
 
-.review-row__badge--green {
-  color: #18b863;
-  background: #ebfaef;
+.review-feedback-message {
+  position: relative;
 }
 
-.review-row__button,
-.review-modal__ghost,
+.review-feedback-message textarea {
+  width: 100%;
+  min-height: 112px;
+  padding: 14px 16px 32px;
+  border: 1px solid #dce5f1;
+  border-radius: 14px;
+  resize: none;
+  outline: none;
+  color: #1f2b45;
+  font: inherit;
+  line-height: 1.6;
+  background: #fff;
+}
+
+.review-feedback-message textarea::placeholder {
+  color: #9aa7bc;
+}
+
+.review-feedback-message small {
+  position: absolute;
+  right: 16px;
+  bottom: 12px;
+  color: #97a3b6;
+  font-size: 12px;
+}
+
+.review-feedback-timings {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.review-feedback-timing {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #dce5f1;
+  border-radius: 14px;
+  justify-content: flex-start;
+  gap: 10px;
+  color: #627189;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.review-feedback-timing.is-active {
+  border-color: #ff72b4;
+  background: #fff7fb;
+  color: #1f2b45;
+}
+
+.review-feedback-timing__dot {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #c7d3e4;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.review-feedback-timing.is-active .review-feedback-timing__dot {
+  border-color: #ff72b4;
+  box-shadow: inset 0 0 0 4px #ff72b4;
+}
+
+.review-feedback-preview {
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: #f7f9fc;
+}
+
+.review-feedback-preview__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ef5da8;
+  background: #fff0f7;
+  flex-shrink: 0;
+}
+
+.review-feedback-preview__copy {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.review-feedback-preview__copy strong {
+  color: #1f2b45;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.review-feedback-preview__copy p,
+.review-feedback-preview__copy small {
+  margin: 0;
+  color: #627189;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.review-modal__footer {
+  padding-top: 18px;
+  border-top: 1px solid #edf1f8;
+}
+
+.review-modal__secondary,
 .review-modal__primary {
-  height: 40px;
+  min-height: 42px;
   padding: 0 18px;
   border-radius: 12px;
   display: inline-flex;
@@ -12560,24 +16745,14 @@ onBeforeUnmount(() => {
   font-weight: 700;
 }
 
-.review-row__button,
-.review-modal__ghost {
+.review-modal__secondary {
   border: 1px solid #e3eaf5;
   color: #34425e;
   background: #fff;
 }
 
-.review-modal__ghost--accent {
-  border-color: #ffc7df;
-  color: #f24193;
-}
-
-.review-row__button {
-  color: #f24193;
-}
-
 .review-modal__primary {
-  min-width: 180px;
+  min-width: 160px;
   border: 0;
   color: #fff;
   background: linear-gradient(90deg, #f95ba8 0%, #ef69c2 100%);
@@ -13769,6 +17944,349 @@ onBeforeUnmount(() => {
   }
 }
 
+.contact-manager-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  padding: 24px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(8px);
+}
+
+.contact-manager-modal {
+  width: min(700px, 100%);
+  max-height: calc(100vh - 32px);
+  border: 1px solid #e7edf6;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 32px 72px rgba(15, 23, 42, 0.28);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.contact-manager-modal__head,
+.contact-manager-modal__title-wrap,
+.contact-manager-modal__footer,
+.contact-manager-summary,
+.contact-manager-summary__copy small,
+.contact-manager-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.contact-manager-modal__head,
+.contact-manager-modal__footer {
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px;
+}
+
+.contact-manager-modal__head {
+  border-bottom: 1px solid #edf1f8;
+}
+
+.contact-manager-modal__title-wrap {
+  gap: 14px;
+}
+
+.contact-manager-modal__title-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: inline-grid;
+  place-items: center;
+  color: #ef5da8;
+  background: #fff1f7;
+}
+
+.contact-manager-modal__title-wrap h2 {
+  margin: 0 0 4px;
+  color: #1f2b45;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.contact-manager-modal__title-wrap p {
+  margin: 0;
+  color: #6f7d94;
+  font-size: 14px;
+}
+
+.contact-manager-modal__close {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 12px;
+  display: inline-grid;
+  place-items: center;
+  color: #94a3b8;
+  background: transparent;
+}
+
+.contact-manager-modal__body {
+  min-height: 0;
+  padding: 24px;
+  overflow-y: auto;
+  display: grid;
+  gap: 20px;
+}
+
+.contact-manager-summary {
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid #e8edf8;
+  border-radius: 16px;
+  background: #f8fbff;
+}
+
+.contact-manager-summary__avatar {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(145deg, #475569, #8b5cf6);
+  font-size: 18px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.contact-manager-summary__copy {
+  display: grid;
+  gap: 5px;
+}
+
+.contact-manager-summary__copy strong {
+  color: #1f2b45;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.contact-manager-summary__copy span {
+  color: #55657d;
+  font-size: 14px;
+}
+
+.contact-manager-summary__copy small {
+  gap: 8px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.contact-manager-field {
+  display: grid;
+  gap: 10px;
+}
+
+.contact-manager-field h3 {
+  margin: 0;
+  color: #1f2b45;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.contact-manager-textarea {
+  border: 1px solid #dbe3ef;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.contact-manager-textarea textarea {
+  width: 100%;
+  min-height: 132px;
+  padding: 16px;
+  border: 0;
+  color: #334155;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.7;
+  resize: vertical;
+  outline: none;
+}
+
+.contact-manager-textarea small {
+  display: block;
+  padding: 0 14px 10px;
+  color: #a0abc0;
+  font-size: 12px;
+  text-align: right;
+}
+
+.contact-manager-toggle {
+  gap: 12px;
+  color: #1f2b45;
+}
+
+.contact-manager-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.contact-manager-toggle > span {
+  width: 22px;
+  height: 22px;
+  border: 1px solid #d7deea;
+  border-radius: 7px;
+  display: inline-grid;
+  place-items: center;
+  color: transparent;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.contact-manager-toggle input:checked + span {
+  border-color: #ef5da8;
+  color: #fff;
+  background: #ef5da8;
+}
+
+.contact-manager-toggle strong {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.contact-manager-schedule {
+  padding: 18px 20px 20px;
+  border-radius: 18px;
+  border: 1px solid #e7ecff;
+  background: linear-gradient(180deg, #f7f8ff 0%, #f2f5ff 100%);
+  display: grid;
+  gap: 18px;
+}
+
+.contact-manager-schedule__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.contact-manager-select {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  width: 100%;
+}
+
+.contact-manager-select > span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.contact-manager-select__field,
+.contact-manager-select :deep(.app-select-trigger) {
+  width: 100%;
+  min-height: 64px;
+  border: 1px solid #d9e2f0;
+  border-radius: 18px;
+  background: #fff;
+  font-size: 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
+}
+
+.contact-manager-select__field {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #94a3b8;
+  overflow: hidden;
+}
+
+.contact-manager-select :deep(.app-select) {
+  width: 100%;
+  min-width: 0;
+}
+
+.contact-manager-select__field input {
+  width: 0;
+  min-width: 0;
+  flex: 1 1 0;
+  border: 0;
+  color: #334155;
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  outline: 0;
+}
+
+.contact-manager-select__field :deep(svg):last-child {
+  margin-left: auto;
+}
+
+.contact-manager-select :deep(.app-select-trigger) {
+  padding: 0 18px;
+  color: #334155;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.contact-manager-select :deep(.app-select-trigger span) {
+  color: #334155;
+}
+
+.contact-manager-select :deep(.app-select-trigger svg) {
+  color: #94a3b8;
+}
+
+.contact-manager-select--date,
+.contact-manager-select--compact {
+  min-width: 0;
+}
+
+.contact-manager-schedule__note {
+  color: #7c879b;
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.contact-manager-modal__footer {
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid #edf1f8;
+}
+
+.contact-manager-modal__secondary,
+.contact-manager-modal__primary {
+  min-height: 42px;
+  padding: 0 22px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.contact-manager-modal__secondary {
+  border: 1px solid #dfe7f3;
+  color: #34425e;
+  background: #fff;
+}
+
+.contact-manager-modal__primary {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(90deg, #f95ba8 0%, #ef69c2 100%);
+}
+
 .send-reminder-layer {
   position: fixed;
   inset: 0;
@@ -14775,6 +19293,503 @@ onBeforeUnmount(() => {
   background: transparent;
   font-size: 14px;
   font-weight: 600;
+}
+
+.edit-closing-date-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  padding: 24px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(8px);
+}
+
+.edit-closing-date-modal {
+  width: min(960px, 100%);
+  max-height: calc(100vh - 32px);
+  border: 1px solid #edf1f8;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 32px 72px rgba(15, 23, 42, 0.22);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.edit-closing-date-modal__head,
+.edit-closing-date-modal__footer,
+.edit-closing-date-modal__title-wrap,
+.edit-closing-date-summary,
+.edit-closing-date-row,
+.edit-closing-date-preview__head,
+.edit-closing-date-preview__timeline,
+.edit-closing-date-note,
+.edit-closing-date-option {
+  display: flex;
+  align-items: center;
+}
+
+.edit-closing-date-modal__head,
+.edit-closing-date-modal__footer,
+.edit-closing-date-summary,
+.edit-closing-date-preview__timeline {
+  justify-content: space-between;
+}
+
+.edit-closing-date-modal__head,
+.edit-closing-date-modal__body,
+.edit-closing-date-modal__footer {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.edit-closing-date-modal__head {
+  padding-top: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #edf1f8;
+}
+
+.edit-closing-date-modal__body {
+  min-height: 0;
+  padding-top: 22px;
+  padding-bottom: 22px;
+  display: grid;
+  gap: 18px;
+  overflow-y: auto;
+}
+
+.edit-closing-date-modal__footer {
+  padding-top: 18px;
+  padding-bottom: 18px;
+  border-top: 1px solid #edf1f8;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.edit-closing-date-modal__title-wrap {
+  gap: 14px;
+}
+
+.edit-closing-date-modal__title-icon,
+.edit-closing-date-summary__icon,
+.edit-closing-date-preview__eye {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.edit-closing-date-modal__title-icon {
+  color: #ff4d9d;
+  background: #fff0f7;
+}
+
+.edit-closing-date-summary__icon {
+  color: #5b5cf0;
+  background: #eaf0ff;
+}
+
+.edit-closing-date-preview__eye {
+  color: #4f46e5;
+  background: #fff;
+}
+
+.edit-closing-date-modal__title-wrap h2 {
+  margin: 0 0 4px;
+  color: #1b2647;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.edit-closing-date-modal__title-wrap p,
+.edit-closing-date-block p,
+.edit-closing-date-note span {
+  margin: 0;
+  color: #6f7d94;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.edit-closing-date-modal__close {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  background: transparent;
+}
+
+.edit-closing-date-summary {
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #edf1f8;
+  border-radius: 16px;
+  background: #fbfcff;
+  justify-content: flex-start;
+}
+
+.edit-closing-date-summary__copy {
+  display: grid;
+  gap: 4px;
+}
+
+.edit-closing-date-summary__copy strong {
+  color: #1b2647;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.edit-closing-date-summary__copy small {
+  color: #8a97ac;
+  font-size: 12px;
+}
+
+.edit-closing-date-summary__copy small span + span::before {
+  content: '\2022';
+  margin: 0 8px;
+  color: #c2cad8;
+}
+
+.edit-closing-date-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.edit-closing-date-block {
+  display: grid;
+  gap: 10px;
+}
+
+.edit-closing-date-block h3 {
+  margin: 0;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.edit-closing-date-block h3 em {
+  color: #ef5da8;
+  font-style: normal;
+}
+
+.edit-closing-date-block h3 span,
+.edit-closing-date-option div strong em {
+  color: #94a3b8;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.edit-closing-date-row {
+  gap: 12px;
+}
+
+.edit-closing-date-input,
+.edit-closing-date-select :deep(.app-select-trigger) {
+  min-height: 46px;
+  border: 1px solid #dde6f2;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.edit-closing-date-input {
+  flex: 1;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.edit-closing-date-input.is-active {
+  border-color: #ff6fb0;
+  box-shadow: 0 0 0 1px rgba(255, 111, 176, 0.18);
+}
+
+.edit-closing-date-input__icon {
+  color: #94a3b8;
+  display: inline-flex;
+  align-items: center;
+}
+
+.edit-closing-date-input input {
+  width: 100%;
+  border: 0;
+  color: #334155;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.edit-closing-date-select {
+  flex: 0 0 128px;
+}
+
+.edit-closing-date-select--wide {
+  width: 100%;
+}
+
+.edit-closing-date-select--wide :deep(.app-select) {
+  width: 100%;
+}
+
+.edit-closing-date-select :deep(.app-select-trigger) {
+  min-height: 46px;
+  font-size: 14px;
+}
+
+.edit-closing-date-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.edit-closing-date-quick-action {
+  min-height: 62px;
+  padding: 10px 12px;
+  border: 1px solid #dde6f2;
+  border-radius: 14px;
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  background: #fff;
+  text-align: center;
+}
+
+.edit-closing-date-quick-action.is-active {
+  border-color: #ff6fb0;
+  box-shadow: 0 0 0 1px rgba(255, 111, 176, 0.18);
+}
+
+.edit-closing-date-quick-action strong {
+  color: #334155;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.edit-closing-date-quick-action small {
+  color: #a0abc0;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.edit-closing-date-preview {
+  padding: 16px 18px 18px;
+  border: 1px solid #dbe2ff;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #eef2ff 0%, #e9efff 100%);
+  display: grid;
+  gap: 18px;
+}
+
+.edit-closing-date-preview__head {
+  gap: 12px;
+  justify-content: flex-start;
+}
+
+.edit-closing-date-preview__head strong,
+.edit-closing-date-preview__point strong,
+.edit-closing-date-preview__impact strong {
+  color: #1f2b45;
+  font-weight: 800;
+}
+
+.edit-closing-date-preview__head strong {
+  display: block;
+  color: #4f46e5;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.edit-closing-date-preview__head small,
+.edit-closing-date-preview__point label,
+.edit-closing-date-preview__impact label {
+  color: #9aa6bb;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.edit-closing-date-preview__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(240px, 0.9fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.edit-closing-date-preview__timeline {
+  min-width: 0;
+  padding-right: 18px;
+  border-right: 1px solid rgba(99, 102, 241, 0.12);
+  gap: 18px;
+  justify-content: flex-start;
+}
+
+.edit-closing-date-preview__point {
+  display: grid;
+  gap: 7px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.edit-closing-date-preview__point strong {
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+.edit-closing-date-preview__point small {
+  color: #6f7d94;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.edit-closing-date-preview__arrow {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #4f46e5;
+  background: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 8px 18px rgba(99, 102, 241, 0.12);
+}
+
+.edit-closing-date-preview__impact {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  justify-items: end;
+  gap: 10px;
+  text-align: right;
+}
+
+.edit-closing-date-preview__impact strong {
+  display: block;
+  color: #4f46e5;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.edit-closing-date-textarea {
+  border: 1px solid #dde6f2;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.edit-closing-date-textarea textarea {
+  width: 100%;
+  min-height: 76px;
+  padding: 14px 16px;
+  border: 0;
+  color: #334155;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.65;
+  resize: vertical;
+  outline: none;
+}
+
+.edit-closing-date-textarea small {
+  display: block;
+  padding: 0 14px 10px;
+  color: #a0abc0;
+  font-size: 12px;
+  text-align: right;
+}
+
+.edit-closing-date-options {
+  display: grid;
+  gap: 14px;
+}
+
+.edit-closing-date-option {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.edit-closing-date-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.edit-closing-date-option > span {
+  width: 22px;
+  height: 22px;
+  border: 1px solid #d7deea;
+  border-radius: 7px;
+  display: inline-grid;
+  place-items: center;
+  color: transparent;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.edit-closing-date-option input:checked + span {
+  border-color: #ef5da8;
+  color: #fff;
+  background: #ef5da8;
+}
+
+.edit-closing-date-option div {
+  display: grid;
+  gap: 4px;
+}
+
+.edit-closing-date-option div strong {
+  color: #1f2b45;
+  font-size: 14px;
+}
+
+.edit-closing-date-option div small {
+  color: #6f7d94;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.edit-closing-date-note {
+  gap: 8px;
+  color: #9aa6bb;
+  font-size: 12px;
+}
+
+.edit-closing-date-modal__secondary,
+.edit-closing-date-modal__primary {
+  min-height: 42px;
+  padding: 0 22px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.edit-closing-date-modal__secondary {
+  border: 1px solid #dde6f2;
+  color: #34425e;
+  background: #fff;
+}
+
+.edit-closing-date-modal__primary {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(90deg, #f95ba8 0%, #ef69c2 100%);
 }
 
 .reschedule-publication-layer {
@@ -17702,6 +22717,3799 @@ onBeforeUnmount(() => {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
+}
+
+.attention-focus-modal {
+  width: min(1580px, 100%);
+  max-height: calc(100vh - 36px);
+  border: 1px solid #edf1f8;
+  border-radius: 30px;
+  background: #fff;
+  box-shadow: 0 34px 90px rgba(15, 23, 42, 0.24);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.attention-focus-modal__head,
+.attention-focus-modal__title-wrap,
+.attention-focus-stat,
+.attention-focus-stat__copy,
+.attention-focus-row__job,
+.attention-focus-row__job-copy,
+.attention-focus-row__health-label,
+.attention-focus-row__buttons,
+.attention-focus-sidecard__head,
+.attention-focus-breakdown__list div,
+.attention-focus-modal__footer {
+  display: flex;
+  align-items: center;
+}
+
+.attention-focus-modal__head,
+.attention-focus-modal__footer,
+.attention-focus-row__health-label,
+.attention-focus-breakdown__list div {
+  justify-content: space-between;
+}
+
+.attention-focus-modal__head,
+.attention-focus-modal__body,
+.attention-focus-modal__footer {
+  padding-left: 30px;
+  padding-right: 30px;
+}
+
+.attention-focus-modal__head {
+  padding-top: 28px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #edf1f8;
+}
+
+.attention-focus-modal__title-wrap {
+  gap: 18px;
+}
+
+.attention-focus-modal__title-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #ff566f;
+  background: #fff0f1;
+}
+
+.attention-focus-modal__title-wrap h2 {
+  margin: 0 0 4px;
+  color: #1f2b45;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.attention-focus-modal__title-wrap p {
+  margin: 0;
+  color: #6f7d94;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.attention-focus-modal__close,
+.attention-focus-modal__secondary,
+.attention-focus-modal__ghost,
+.attention-focus-row__primary,
+.attention-focus-row__secondary {
+  min-height: 42px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.attention-focus-modal__close {
+  width: 42px;
+  border: 0;
+  color: #94a3b8;
+  background: transparent;
+}
+
+.attention-focus-modal__body {
+  min-height: 0;
+  padding-top: 14px;
+  padding-bottom: 22px;
+  overflow-y: auto;
+  display: grid;
+  gap: 24px;
+}
+
+.attention-focus-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.attention-focus-stat {
+  gap: 14px;
+  padding: 22px 16px;
+  border: 1px solid #edf1f8;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.attention-focus-stat__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.attention-focus-stat__copy {
+  gap: 10px;
+}
+
+.attention-focus-stat__copy strong {
+  color: #1f2b45;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.attention-focus-stat__copy span {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.attention-focus-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) 320px;
+  gap: 24px;
+  align-items: start;
+}
+
+.attention-focus-list {
+  display: grid;
+  gap: 16px;
+}
+
+.attention-focus-row {
+  position: relative;
+  padding: 20px 22px 22px;
+  border: 1px solid #edf1f8;
+  border-radius: 18px;
+  background: #fff;
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(260px, 0.72fr) minmax(420px, 1.18fr);
+  overflow: hidden;
+}
+
+.attention-focus-row__job,
+.attention-focus-row__metrics,
+.attention-focus-row__action {
+  min-width: 0;
+}
+
+.attention-focus-row__job,
+.attention-focus-row__metrics {
+  padding-right: 18px;
+  border-right: 1px solid #edf1f8;
+}
+
+.attention-focus-row__metrics,
+.attention-focus-row__action {
+  padding-left: 18px;
+}
+
+.attention-focus-row__job {
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.attention-focus-row__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.attention-focus-row__job-copy {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.attention-focus-row__badge,
+.attention-focus-sidecard__badge {
+  min-height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.attention-focus-row__job-copy h3,
+.attention-focus-sidecard h3 {
+  margin: 0;
+  color: #1f2b45;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.attention-focus-row__job-copy p,
+.attention-focus-row__job-copy small,
+.attention-focus-row__action li,
+.attention-focus-sidecard p,
+.attention-focus-breakdown__list span {
+  margin: 0;
+  color: #6f7d94;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.attention-focus-row__job-copy small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.attention-focus-row__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-content: start;
+}
+
+.attention-focus-row__metric {
+  display: grid;
+  gap: 4px;
+}
+
+.attention-focus-row__metric strong {
+  color: #1f2b45;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.attention-focus-row__metric span,
+.attention-focus-row__health-label span,
+.attention-focus-row__eyebrow,
+.attention-focus-sidecard label {
+  color: #9aa6bb;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.attention-focus-row__health {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.attention-focus-row__health-label strong {
+  color: #1f2b45;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.attention-focus-row__health-track {
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #edf1f8;
+}
+
+.attention-focus-row__health-track i {
+  height: 100%;
+  border-radius: inherit;
+  display: block;
+}
+
+.attention-focus-row__action {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.attention-focus-row__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.attention-focus-row__eyebrow i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  display: inline-block;
+  background: currentColor;
+}
+
+.attention-focus-row__action h4 {
+  margin: 0;
+  color: #1f2b45;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.attention-focus-row__action ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.attention-focus-row__action li {
+  position: relative;
+  padding-left: 14px;
+}
+
+.attention-focus-row__action li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.attention-focus-row__buttons {
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.attention-focus-row__primary,
+.attention-focus-row__secondary,
+.attention-focus-modal__secondary,
+.attention-focus-modal__ghost,
+.attention-focus-sidecard__primary {
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.attention-focus-row__primary,
+.attention-focus-sidecard__primary {
+  border: 0;
+  color: #fff;
+}
+
+.attention-focus-row__secondary,
+.attention-focus-modal__secondary,
+.attention-focus-modal__ghost {
+  border: 1px solid #dde6f2;
+  color: #34425e;
+  background: #fff;
+}
+
+.attention-focus-row__secondary {
+  min-width: 148px;
+}
+
+.attention-focus-row__more {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 10px;
+  display: inline-grid;
+  place-items: center;
+  color: #94a3b8;
+  background: transparent;
+}
+
+.attention-focus-sidebar {
+  display: grid;
+  gap: 16px;
+}
+
+.attention-focus-sidecard {
+  position: relative;
+  padding: 26px 22px;
+  border: 1px solid #edf1f8;
+  border-radius: 20px;
+  background: #fff;
+  display: grid;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.attention-focus-sidecard--advisor {
+  border-color: #fde3ee;
+  background: linear-gradient(180deg, #fffafb 0%, #ffffff 100%);
+}
+
+.attention-focus-sidecard--advisor::after {
+  content: '';
+  position: absolute;
+  right: -26px;
+  bottom: -40px;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: rgba(248, 208, 226, 0.32);
+}
+
+.attention-focus-sidecard__head {
+  gap: 8px;
+  justify-content: flex-start;
+  color: #f062ad;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.attention-focus-sidecard__advisor-body {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+}
+
+.attention-focus-sidecard__advisor-body > p,
+.attention-focus-sidecard__recommendation {
+  color: #4c5b72;
+  font-size: 15px;
+}
+
+.attention-focus-sidecard__delay {
+  color: #f1468f;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.attention-focus-sidecard__primary {
+  min-height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #f55ca6 0%, #ea68b8 100%);
+  box-shadow: 0 16px 30px rgba(241, 88, 173, 0.18);
+}
+
+.attention-focus-breakdown {
+  display: grid;
+  gap: 20px;
+  justify-items: center;
+}
+
+.attention-focus-breakdown__ring {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  border: 12px solid #f54949;
+  display: grid;
+  place-items: center;
+  color: #1f2b45;
+}
+
+.attention-focus-breakdown__ring strong {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.attention-focus-breakdown__ring span {
+  color: #6f7d94;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.attention-focus-breakdown__list {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+}
+
+.attention-focus-breakdown__list span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.attention-focus-breakdown__list strong {
+  color: #1f2b45;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.attention-focus-breakdown__list i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.attention-focus-modal__footer {
+  padding-top: 18px;
+  padding-bottom: 22px;
+  border-top: 1px solid #edf1f8;
+}
+
+.attention-focus-modal__secondary,
+.attention-focus-modal__ghost {
+  min-width: 154px;
+  background: #fff;
+}
+
+.attention-focus-row__icon.tone-pink,
+.attention-focus-stat__icon.tone-pink {
+  color: #f55093;
+  background: #fff1f6;
+}
+
+.attention-focus-row__badge.tone-pink,
+.attention-focus-sidecard__badge.tone-pink {
+  color: #f55093;
+  background: #fff1f6;
+}
+
+.attention-focus-stat__copy .tone-pink,
+.attention-focus-row__eyebrow.tone-pink {
+  color: #f55093;
+}
+
+.attention-focus-row__primary.tone-pink {
+  background: linear-gradient(90deg, #f55ca6 0%, #ea68b8 100%);
+}
+
+.attention-focus-row__health-track i.tone-pink {
+  background: #f55093;
+}
+
+.attention-focus-row__icon.tone-orange,
+.attention-focus-stat__icon.tone-orange {
+  color: #ff6d11;
+  background: #fff5ec;
+}
+
+.attention-focus-row__badge.tone-orange {
+  color: #ff6d11;
+  background: #fff5ec;
+}
+
+.attention-focus-stat__copy .tone-orange,
+.attention-focus-row__eyebrow.tone-orange {
+  color: #ff6d11;
+}
+
+.attention-focus-row__primary.tone-orange {
+  background: linear-gradient(90deg, #ff7a12 0%, #ff6a00 100%);
+}
+
+.attention-focus-row__health-track i.tone-orange,
+.attention-focus-breakdown__list i.tone-orange {
+  background: #ff6d11;
+}
+
+.attention-focus-stat__icon.tone-blue {
+  color: #3e7bff;
+  background: #eff5ff;
+}
+
+.attention-focus-stat__copy .tone-blue {
+  color: #3e7bff;
+}
+
+.attention-focus-row__icon.tone-yellow,
+.attention-focus-stat__icon.tone-yellow {
+  color: #d89b00;
+  background: #fff8dd;
+}
+
+.attention-focus-row__badge.tone-yellow {
+  color: #d89b00;
+  background: #fff8dd;
+}
+
+.attention-focus-stat__copy .tone-yellow,
+.attention-focus-row__eyebrow.tone-yellow {
+  color: #d89b00;
+}
+
+.attention-focus-row__primary.tone-yellow {
+  background: linear-gradient(90deg, #e7a800 0%, #d79400 100%);
+}
+
+.attention-focus-row__health-track i.tone-yellow,
+.attention-focus-breakdown__list i.tone-yellow {
+  background: #d89b00;
+}
+
+.attention-focus-breakdown__list i.tone-red {
+  background: #f54949;
+}
+
+.ready-action-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(8px);
+}
+
+.ready-action-modal {
+  width: min(1280px, 100%);
+  max-height: calc(100vh - 36px);
+  border: 1px solid #edf1f8;
+  border-radius: 30px;
+  background: #fff;
+  box-shadow: 0 34px 90px rgba(15, 23, 42, 0.24);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.ready-action-modal__head,
+.ready-action-modal__title-wrap,
+.ready-action-modal__toolbar,
+.ready-action-stat,
+.ready-action-card__summary,
+.ready-action-card__job,
+.ready-action-card__job-copy small,
+.ready-action-card__health-head,
+.ready-action-card__buttons,
+.ready-action-card__checks,
+.ready-action-sidecard__head,
+.ready-action-overview,
+.ready-action-overview__legend div,
+.ready-action-modal__footer {
+  display: flex;
+  align-items: center;
+}
+
+.ready-action-modal__head,
+.ready-action-card__health-head,
+.ready-action-overview__legend div,
+.ready-action-modal__footer {
+  justify-content: space-between;
+}
+
+.ready-action-modal__head,
+.ready-action-modal__body,
+.ready-action-modal__footer {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.ready-action-modal__head {
+  padding-top: 24px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #edf1f8;
+}
+
+.ready-action-modal__title-wrap {
+  gap: 16px;
+}
+
+.ready-action-modal__title-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(180deg, #f65da9 0%, #ea73c1 100%);
+  flex-shrink: 0;
+}
+
+.ready-action-modal__title-wrap h2 {
+  margin: 0 0 4px;
+  color: #1f2b45;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.ready-action-modal__title-wrap p {
+  margin: 0;
+  color: #6f7d94;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.ready-action-modal__toolbar {
+  gap: 12px;
+}
+
+.ready-action-modal__filter,
+.ready-action-modal__close,
+.ready-action-modal__secondary,
+.ready-action-modal__ghost,
+.ready-action-card__primary,
+.ready-action-card__secondary,
+.ready-action-sidecard__primary {
+  min-height: 42px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ready-action-modal__filter,
+.ready-action-modal__secondary,
+.ready-action-modal__ghost,
+.ready-action-card__secondary {
+  border: 1px solid #dde6f2;
+  color: #34425e;
+  background: #fff;
+}
+
+.ready-action-modal__filter {
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ready-action-modal__sort {
+  min-width: 180px;
+  padding: 0 14px;
+  border: 1px solid #dde6f2;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6f7d94;
+  background: #fff;
+}
+
+.ready-action-modal__sort > span {
+  color: #6f7d94;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ready-action-modal__sort :deep(.app-select) {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.ready-action-modal__sort :deep(.app-select-trigger) {
+  min-height: 40px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ready-action-modal__close {
+  width: 42px;
+  border: 0;
+  color: #94a3b8;
+  background: transparent;
+}
+
+.ready-action-modal__body {
+  min-height: 0;
+  padding-top: 18px;
+  padding-bottom: 18px;
+  overflow-y: auto;
+}
+
+.ready-action-modal__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 342px;
+  gap: 24px;
+}
+
+.ready-action-main {
+  min-width: 0;
+  padding-right: 24px;
+  border-right: 1px solid #edf1f8;
+  display: grid;
+  gap: 18px;
+}
+
+.ready-action-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.ready-action-stat {
+  gap: 12px;
+  min-height: 92px;
+  padding: 16px 14px;
+  border: 1px solid #edf1f8;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.ready-action-stat__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ready-action-stat__copy {
+  display: grid;
+  gap: 4px;
+}
+
+.ready-action-stat__copy strong {
+  color: #111827;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.ready-action-stat__copy span {
+  color: #7c8798;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.ready-action-stat__icon.tone-pink {
+  color: #f35ca8;
+  background: #fff1f7;
+}
+
+.ready-action-stat__icon.tone-green {
+  color: #22c55e;
+  background: #ebfbf1;
+}
+
+.ready-action-stat__icon.tone-blue {
+  color: #5875ff;
+  background: #eef2ff;
+}
+
+.ready-action-stat__icon.tone-orange {
+  color: #f48a2c;
+  background: #fff4e8;
+}
+
+.ready-action-list {
+  display: grid;
+  gap: 18px;
+}
+
+.ready-action-card {
+  padding: 22px;
+  border: 1px solid #edf1f8;
+  border-radius: 22px;
+  background: #fff;
+  display: grid;
+  gap: 18px;
+}
+
+.ready-action-card__summary {
+  gap: 18px;
+}
+
+.ready-action-card__job {
+  min-width: 0;
+  flex: 1 1 32%;
+  gap: 14px;
+}
+
+.ready-action-card__job-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #f35ca8;
+  background: #fff1f7;
+  flex-shrink: 0;
+}
+
+.ready-action-card__job-copy {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.ready-action-card__status {
+  width: fit-content;
+  min-height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  color: #18a957;
+  background: #eafbf0;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.ready-action-card__job-copy h3,
+.ready-action-sidecard h3 {
+  margin: 0;
+  color: #1f2b45;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.ready-action-card__job-copy p,
+.ready-action-card__action-copy p,
+.ready-action-sidecard p {
+  margin: 0;
+  color: #6f7d94;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.ready-action-card__job-copy small {
+  gap: 12px;
+  color: #8e99ab;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.ready-action-card__job-copy small span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ready-action-card__metrics {
+  flex: 1 1 34%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding-left: 18px;
+  border-left: 1px solid #edf1f8;
+}
+
+.ready-action-card__metric {
+  display: grid;
+  gap: 4px;
+}
+
+.ready-action-card__metric strong {
+  color: #111827;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.ready-action-card__metric span,
+.ready-action-card__health-head span,
+.ready-action-card__eyebrow,
+.ready-action-sidecard label {
+  color: #9aa6bb;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ready-action-card__health {
+  flex: 0 0 160px;
+  display: grid;
+  gap: 8px;
+}
+
+.ready-action-card__health-head strong {
+  color: #1f2b45;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ready-action-card__health-track {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #edf1f8;
+}
+
+.ready-action-card__health-track i {
+  height: 100%;
+  border-radius: inherit;
+  display: block;
+  background: linear-gradient(90deg, #f55ca6 0%, #e96fc0 100%);
+}
+
+.ready-action-card__action-box {
+  padding: 18px;
+  border: 1px solid #edf1f8;
+  border-radius: 18px;
+  background: #fbfcff;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+}
+
+.ready-action-card__action-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.ready-action-card__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #f35ca8;
+}
+
+.ready-action-card__action-copy h4 {
+  margin: 0;
+  color: #1f2b45;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.ready-action-card__checks {
+  gap: 16px;
+  flex-wrap: wrap;
+  color: #8d98aa;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ready-action-card__checks span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ready-action-card__checks :deep(svg) {
+  color: #f35ca8;
+  flex-shrink: 0;
+}
+
+.ready-action-card__action-side {
+  min-width: 292px;
+  display: grid;
+  align-content: center;
+  gap: 14px;
+}
+
+.ready-action-card__pill {
+  justify-self: end;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  color: #ef6aac;
+  background: #fff2f8;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ready-action-card__buttons {
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.ready-action-card__primary,
+.ready-action-sidecard__primary {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(90deg, #f55ca6 0%, #ea6dbd 100%);
+  box-shadow: 0 14px 28px rgba(241, 88, 173, 0.18);
+}
+
+.ready-action-card__primary,
+.ready-action-card__secondary {
+  min-width: 122px;
+  padding: 0 18px;
+}
+
+.ready-action-sidebar {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 18px;
+}
+
+.ready-action-sidecard {
+  padding: 18px 20px;
+  border: 1px solid #edf1f8;
+  border-radius: 20px;
+  background: #fff;
+  display: grid;
+  gap: 16px;
+}
+
+.ready-action-sidecard--advisor {
+  border-color: #fde3ee;
+  background: linear-gradient(180deg, #fffafb 0%, #ffffff 100%);
+}
+
+.ready-action-sidecard__head {
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.ready-action-sidecard__head h3 {
+  margin-bottom: 6px;
+}
+
+.ready-action-sidecard__head :deep(svg) {
+  flex-shrink: 0;
+}
+
+.ready-action-sidecard__advisor-body {
+  display: grid;
+  gap: 14px;
+}
+
+.ready-action-sidecard__advisor-body > strong {
+  color: #1f2b45;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.ready-action-sidecard__advisor-body p {
+  color: #1f2b45;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.ready-action-sidecard__advisor-body mark {
+  color: #f35ca8;
+  background: transparent;
+}
+
+.ready-action-sidecard__primary {
+  min-height: 54px;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.ready-action-overview {
+  align-items: center;
+  gap: 20px;
+}
+
+.ready-action-overview__ring {
+  width: 106px;
+  height: 106px;
+  padding: 9px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(#5f61f4 0 51.43%, #f48a2c 51.43% 80%, #6672ff 80% 94.29%, #3d82f6 94.29% 100%);
+  flex-shrink: 0;
+}
+
+.ready-action-overview__ring > div {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #fff;
+}
+
+.ready-action-overview__ring strong {
+  color: #1f2b45;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.ready-action-overview__legend {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: grid;
+  gap: 10px;
+}
+
+.ready-action-overview__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #5f6d84;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ready-action-overview__legend strong {
+  color: #1f2b45;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.ready-action-overview__legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.ready-action-overview__legend i.tone-pink {
+  background: #f35ca8;
+}
+
+.ready-action-overview__legend i.tone-orange {
+  background: #f48a2c;
+}
+
+.ready-action-overview__legend i.tone-violet {
+  background: #6672ff;
+}
+
+.ready-action-overview__legend i.tone-blue {
+  background: #3d82f6;
+}
+
+.ready-action-sidecard__hours {
+  color: #111827;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.ready-action-sidecard__checklist {
+  display: grid;
+  gap: 10px;
+}
+
+.ready-action-sidecard__checklist span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #5f6d84;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ready-action-sidecard__checklist :deep(svg) {
+  color: #22c55e;
+  flex-shrink: 0;
+}
+
+.ready-action-modal__footer {
+  padding-top: 16px;
+  padding-bottom: 18px;
+  border-top: 1px solid #edf1f8;
+}
+
+.ready-action-modal__secondary,
+.ready-action-modal__ghost {
+  min-width: 142px;
+  padding: 0 18px;
+}
+
+.upcoming-risks-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(8px);
+}
+
+.upcoming-risks-modal {
+  width: min(1260px, 100%);
+  max-height: calc(100vh - 36px);
+  border: 1px solid #edf1f8;
+  border-radius: 30px;
+  background: #fff;
+  box-shadow: 0 34px 90px rgba(15, 23, 42, 0.24);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.upcoming-risks-modal__head,
+.upcoming-risks-modal__title-wrap,
+.upcoming-risks-stat,
+.upcoming-risks-card__job-row,
+.upcoming-risks-card__job-copy small,
+.upcoming-risks-sidecard__head,
+.upcoming-risks-overview,
+.upcoming-risks-overview__legend div,
+.upcoming-risks-modal__footer {
+  display: flex;
+  align-items: center;
+}
+
+.upcoming-risks-modal__head,
+.upcoming-risks-overview__legend div,
+.upcoming-risks-modal__footer {
+  justify-content: space-between;
+}
+
+.upcoming-risks-modal__head,
+.upcoming-risks-modal__body,
+.upcoming-risks-modal__footer {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.upcoming-risks-modal__head {
+  padding-top: 24px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #edf1f8;
+}
+
+.upcoming-risks-modal__title-wrap {
+  gap: 16px;
+}
+
+.upcoming-risks-modal__title-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ff6b95;
+  background: #fff1f7;
+  flex-shrink: 0;
+}
+
+.upcoming-risks-modal__title-wrap h2 {
+  margin: 0 0 4px;
+  color: #1f2b45;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.upcoming-risks-modal__title-wrap p {
+  margin: 0;
+  color: #6f7d94;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.upcoming-risks-modal__close,
+.upcoming-risks-modal__secondary,
+.upcoming-risks-modal__ghost,
+.upcoming-risks-card__primary,
+.upcoming-risks-card__secondary,
+.upcoming-risks-sidecard__primary {
+  min-height: 42px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.upcoming-risks-modal__close {
+  width: 42px;
+  border: 0;
+  color: #94a3b8;
+  background: transparent;
+}
+
+.upcoming-risks-modal__body {
+  min-height: 0;
+  padding-top: 18px;
+  padding-bottom: 18px;
+  overflow-y: auto;
+}
+
+.upcoming-risks-modal__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 270px;
+  gap: 24px;
+}
+
+.upcoming-risks-main {
+  min-width: 0;
+  padding-right: 24px;
+  border-right: 1px solid #edf1f8;
+  display: grid;
+  gap: 18px;
+}
+
+.upcoming-risks-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.upcoming-risks-stat {
+  gap: 12px;
+  min-height: 76px;
+  padding: 16px 14px;
+  border: 1px solid #edf1f8;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.upcoming-risks-stat__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.upcoming-risks-stat__copy {
+  display: grid;
+  gap: 4px;
+}
+
+.upcoming-risks-stat__copy strong {
+  color: #111827;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.upcoming-risks-stat__copy span {
+  color: #7c8798;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.upcoming-risks-stat__icon.tone-pink {
+  color: #ff6b95;
+  background: #fff1f7;
+}
+
+.upcoming-risks-stat__icon.tone-orange {
+  color: #ff7a12;
+  background: #fff5ec;
+}
+
+.upcoming-risks-stat__icon.tone-yellow {
+  color: #e0a100;
+  background: #fff8dd;
+}
+
+.upcoming-risks-stat__icon.tone-violet {
+  color: #6672ff;
+  background: #eff1ff;
+}
+
+.upcoming-risks-list {
+  display: grid;
+  gap: 18px;
+}
+
+.upcoming-risks-card {
+  position: relative;
+  padding: 20px 20px 20px 18px;
+  border: 1px solid #edf1f8;
+  border-radius: 18px;
+  background: #fff;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(220px, 1fr) minmax(260px, 1fr);
+  gap: 18px;
+}
+
+.upcoming-risks-card__job,
+.upcoming-risks-card__risk {
+  padding-right: 18px;
+  border-right: 1px solid #edf1f8;
+}
+
+.upcoming-risks-card__job,
+.upcoming-risks-card__risk,
+.upcoming-risks-card__action {
+  min-width: 0;
+}
+
+.upcoming-risks-card__badge,
+.upcoming-risks-sidecard__badge {
+  width: fit-content;
+  min-height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.upcoming-risks-card__badge.tone-pink,
+.upcoming-risks-sidecard__badge.tone-pink {
+  color: #ff6b95;
+  background: #fff1f7;
+}
+
+.upcoming-risks-card__badge.tone-orange {
+  color: #ff7a12;
+  background: #fff5ec;
+}
+
+.upcoming-risks-card__badge.tone-violet {
+  color: #6672ff;
+  background: #eff1ff;
+}
+
+.upcoming-risks-card__badge.tone-yellow {
+  color: #e0a100;
+  background: #fff8dd;
+}
+
+.upcoming-risks-card__job {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.upcoming-risks-card__job-row {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.upcoming-risks-card__job-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.upcoming-risks-card__job-icon.tone-pink {
+  color: #ff6b95;
+  background: #fff1f7;
+}
+
+.upcoming-risks-card__job-icon.tone-orange {
+  color: #ff7a12;
+  background: #fff5ec;
+}
+
+.upcoming-risks-card__job-icon.tone-violet {
+  color: #6672ff;
+  background: #eff1ff;
+}
+
+.upcoming-risks-card__job-icon.tone-yellow {
+  color: #e0a100;
+  background: #fff8dd;
+}
+
+.upcoming-risks-card__job-copy {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.upcoming-risks-card__job-copy h3,
+.upcoming-risks-card__risk h4,
+.upcoming-risks-card__action h4,
+.upcoming-risks-sidecard h3 {
+  margin: 0;
+  color: #1f2b45;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.upcoming-risks-card__job-copy p,
+.upcoming-risks-card__job-copy small,
+.upcoming-risks-card__action p,
+.upcoming-risks-sidecard p,
+.upcoming-risks-overview__legend span {
+  margin: 0;
+  color: #6f7d94;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.upcoming-risks-card__job-copy small {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.upcoming-risks-card__job-copy small span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.upcoming-risks-card__eyebrow,
+.upcoming-risks-sidecard label,
+.upcoming-risks-card__why {
+  color: #ff6b95;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.upcoming-risks-card__risk,
+.upcoming-risks-card__action {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.upcoming-risks-card__why {
+  color: #ff7a12;
+}
+
+.upcoming-risks-card__risk ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.upcoming-risks-card__risk li {
+  position: relative;
+  padding-left: 14px;
+  color: #607089;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.upcoming-risks-card__risk li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #d7deea;
+}
+
+.upcoming-risks-card__primary,
+.upcoming-risks-sidecard__primary {
+  border: 0;
+  color: #fff;
+}
+
+.upcoming-risks-card__primary.tone-pink {
+  background: linear-gradient(90deg, #f55ca6 0%, #ea6dbd 100%);
+}
+
+.upcoming-risks-card__primary.tone-orange {
+  background: linear-gradient(90deg, #ff7a12 0%, #ff6a00 100%);
+}
+
+.upcoming-risks-card__primary.tone-violet {
+  background: linear-gradient(90deg, #6b55f5 0%, #7c3aed 100%);
+}
+
+.upcoming-risks-card__primary.tone-yellow {
+  background: linear-gradient(90deg, #f2b301 0%, #dca103 100%);
+}
+
+.upcoming-risks-card__secondary,
+.upcoming-risks-modal__secondary,
+.upcoming-risks-modal__ghost {
+  border: 1px solid #dde6f2;
+  color: #34425e;
+  background: #fff;
+}
+
+.upcoming-risks-card__primary,
+.upcoming-risks-card__secondary {
+  width: 100%;
+  padding: 0 18px;
+}
+
+.upcoming-risks-card__more {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 10px;
+  display: inline-grid;
+  place-items: center;
+  color: #94a3b8;
+  background: transparent;
+}
+
+.upcoming-risks-sidebar {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 18px;
+}
+
+.upcoming-risks-sidecard {
+  padding: 18px 20px;
+  border: 1px solid #edf1f8;
+  border-radius: 20px;
+  background: #fff;
+  display: grid;
+  gap: 16px;
+}
+
+.upcoming-risks-sidecard--advisor {
+  background: linear-gradient(180deg, #eef2ff 0%, #f8faff 100%);
+}
+
+.upcoming-risks-sidecard__head {
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.upcoming-risks-sidecard__head h3 {
+  margin-bottom: 8px;
+  color: #6b55f5;
+}
+
+.upcoming-risks-sidecard__advisor-body {
+  display: grid;
+  gap: 12px;
+}
+
+.upcoming-risks-sidecard__advisor-body > strong {
+  color: #1f2b45;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.upcoming-risks-sidecard__primary {
+  min-height: 44px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(90deg, #6b55f5 0%, #7c3aed 100%);
+  box-shadow: 0 14px 28px rgba(107, 85, 245, 0.18);
+}
+
+.upcoming-risks-overview {
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.upcoming-risks-overview__total {
+  min-width: 68px;
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+}
+
+.upcoming-risks-overview__total strong {
+  color: #1f2b45;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.upcoming-risks-overview__total span {
+  color: #8e99ab;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.upcoming-risks-overview__legend {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: grid;
+  gap: 10px;
+}
+
+.upcoming-risks-overview__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.upcoming-risks-overview__legend strong {
+  color: #1f2b45;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.upcoming-risks-overview__legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.upcoming-risks-overview__legend i.tone-pink {
+  background: #ff6b95;
+}
+
+.upcoming-risks-overview__legend i.tone-orange {
+  background: #ff7a12;
+}
+
+.upcoming-risks-overview__legend i.tone-yellow {
+  background: #e0a100;
+}
+
+.upcoming-risks-overview__legend i.tone-slate {
+  background: #cbd5e1;
+}
+
+.upcoming-risks-overview__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: #94a3b8;
+}
+
+.upcoming-risks-overview__note p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.upcoming-risks-modal__footer {
+  padding-top: 16px;
+  padding-bottom: 18px;
+  border-top: 1px solid #edf1f8;
+}
+
+.upcoming-risks-modal__secondary,
+.upcoming-risks-modal__ghost {
+  min-width: 142px;
+  padding: 0 18px;
+}
+
+.refresh-posting-layer,
+.refresh-posting-success-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 97;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(8px);
+}
+
+.refresh-posting-modal,
+.refresh-posting-success-modal {
+  border: 1px solid #edf1f8;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 34px 90px rgba(15, 23, 42, 0.24);
+}
+
+.refresh-posting-modal {
+  width: min(1140px, 100%);
+  max-height: calc(100vh - 36px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.refresh-posting-success-modal {
+  width: min(672px, 100%);
+  overflow: hidden;
+}
+
+.refresh-posting-modal__head,
+.refresh-posting-modal__title-wrap,
+.refresh-posting-summary__reason,
+.refresh-posting-summary__metric strong,
+.refresh-posting-section__head,
+.refresh-posting-improvement__button,
+.refresh-posting-improvement__badges,
+.refresh-posting-impact__head,
+.refresh-posting-preview__row,
+.refresh-posting-channel,
+.refresh-posting-modal__footer,
+.refresh-posting-modal__actions,
+.refresh-posting-modal__note,
+.refresh-posting-success-modal__head,
+.refresh-posting-success-modal__title-wrap,
+.refresh-posting-success-stat,
+.refresh-posting-success-sync,
+.refresh-posting-success-modal__footer {
+  display: flex;
+  align-items: center;
+}
+
+.refresh-posting-modal__head,
+.refresh-posting-modal__body,
+.refresh-posting-modal__footer,
+.refresh-posting-success-modal__head,
+.refresh-posting-success-modal__body,
+.refresh-posting-success-modal__footer {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.refresh-posting-modal__head,
+.refresh-posting-success-modal__head {
+  justify-content: space-between;
+  gap: 18px;
+  padding-top: 22px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #edf1f8;
+}
+
+.refresh-posting-modal__title-wrap,
+.refresh-posting-success-modal__title-wrap {
+  gap: 14px;
+}
+
+.refresh-posting-modal__title-icon,
+.refresh-posting-success-modal__title-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.refresh-posting-modal__title-icon {
+  color: #ef5da8;
+  background: #fff1f7;
+}
+
+.refresh-posting-success-modal__title-icon {
+  color: #22c55e;
+  background: #effcf4;
+}
+
+.refresh-posting-modal__title-wrap h2,
+.refresh-posting-success-modal__title-wrap h2 {
+  margin: 0 0 4px;
+  color: #1f2b45;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.refresh-posting-modal__title-wrap p,
+.refresh-posting-success-modal__title-wrap p {
+  margin: 0;
+  color: #6f7d94;
+  font-size: 15px;
+}
+
+.refresh-posting-modal__close,
+.refresh-posting-success-modal__close,
+.refresh-posting-modal__secondary,
+.refresh-posting-modal__ghost,
+.refresh-posting-modal__primary,
+.refresh-posting-compare,
+.refresh-posting-success-modal__primary {
+  min-height: 46px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.refresh-posting-modal__close,
+.refresh-posting-success-modal__close {
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.refresh-posting-modal__body {
+  padding-top: 18px;
+  padding-bottom: 18px;
+  overflow: auto;
+  display: grid;
+  gap: 18px;
+}
+
+.refresh-posting-summary {
+  border: 1px solid #f7dbe7;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fff7fb 0%, #fff 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+}
+
+.refresh-posting-summary__reason,
+.refresh-posting-summary__metric {
+  min-width: 0;
+  padding: 18px 20px;
+}
+
+.refresh-posting-summary__reason {
+  gap: 14px;
+}
+
+.refresh-posting-summary__icon {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #f2e8ee;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #b0347f;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.refresh-posting-summary__reason strong,
+.refresh-posting-preview__group h4 {
+  color: #1f2b45;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.refresh-posting-summary__reason p {
+  margin: 6px 0 0;
+  color: #6f5968;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.refresh-posting-summary__metric {
+  display: grid;
+  gap: 6px;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+  border-left: 1px solid #f7dbe7;
+}
+
+.refresh-posting-summary__metric strong {
+  gap: 6px;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.refresh-posting-summary__metric span {
+  color: #7f6e79;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.refresh-posting-summary__metric strong.tone-pink {
+  color: #c13784;
+}
+
+.refresh-posting-content {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 384px minmax(0, 1fr);
+  gap: 22px;
+}
+
+.refresh-posting-improvements {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.refresh-posting-section__head {
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.refresh-posting-section__head h3 {
+  margin: 0;
+  color: #4b4351;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.refresh-posting-section__head--preview {
+  margin-bottom: 14px;
+}
+
+.refresh-posting-improvements__list {
+  display: grid;
+  gap: 12px;
+}
+
+.refresh-posting-improvement {
+  border: 1px solid #f0e5ed;
+  border-radius: 18px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.refresh-posting-improvement.is-active {
+  border-color: #f4c8db;
+  box-shadow: 0 16px 30px rgba(239, 93, 168, 0.08);
+}
+
+.refresh-posting-improvement__button {
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  background: transparent;
+  gap: 14px;
+  align-items: flex-start;
+  text-align: left;
+  color: #4b5568;
+}
+
+.refresh-posting-improvement__step {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.refresh-posting-improvement__step.tone-pink { color: #b2397f; background: #fde8f2; }
+.refresh-posting-improvement__step.tone-blue { color: #3267ea; background: #e7f0ff; }
+.refresh-posting-improvement__step.tone-violet { color: #7c3aed; background: #efe8ff; }
+.refresh-posting-improvement__step.tone-mint { color: #0f9a8a; background: #ddfbf4; }
+
+.refresh-posting-improvement__copy {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: grid;
+  gap: 5px;
+}
+
+.refresh-posting-improvement__copy strong {
+  color: #1f2b45;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.refresh-posting-improvement__copy small {
+  color: #615a67;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.refresh-posting-improvement__body {
+  padding: 0 16px 16px 62px;
+}
+
+.refresh-posting-improvement__badges {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.refresh-posting-improvement__badges span {
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.refresh-posting-improvement__badges .is-current {
+  color: #6f7187;
+  background: #f2f4fa;
+}
+
+.refresh-posting-improvement__badges .is-recommended {
+  color: #b2397f;
+  background: #fde8f2;
+}
+
+.refresh-posting-impact {
+  padding: 16px;
+  border: 1px solid #f0e5ed;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fff8fc 0%, #fff 100%);
+  display: grid;
+  gap: 14px;
+}
+
+.refresh-posting-impact__head {
+  gap: 8px;
+  color: #c13784;
+}
+
+.refresh-posting-impact__head h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.refresh-posting-impact__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid #ece6f2;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.refresh-posting-impact__card {
+  min-height: 90px;
+  padding: 14px 10px;
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  text-align: center;
+  background: #fff;
+}
+
+.refresh-posting-impact__card + .refresh-posting-impact__card {
+  border-left: 1px solid #ece6f2;
+}
+
+.refresh-posting-impact__card strong {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.refresh-posting-impact__card span {
+  color: #6f7d94;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.refresh-posting-impact__card.tone-pink {
+  background: #fff4fa;
+}
+
+.refresh-posting-impact__card.tone-pink strong {
+  color: #b2397f;
+}
+
+.refresh-posting-impact__card.tone-blue {
+  background: #eff5ff;
+}
+
+.refresh-posting-impact__card.tone-blue strong {
+  color: #2f66ea;
+}
+
+.refresh-posting-impact__card.tone-mint {
+  background: #ebfffb;
+}
+
+.refresh-posting-impact__card.tone-mint strong {
+  color: #0f9a8a;
+}
+
+.refresh-posting-preview {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+}
+
+.refresh-posting-compare {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #f2c4db;
+  color: #b2397f;
+  background: #fff;
+}
+
+.refresh-posting-compare.is-active {
+  background: #fff4fa;
+}
+
+.refresh-posting-preview__panel {
+  padding: 20px;
+  border: 1px solid #f0e5ed;
+  border-radius: 20px;
+  background: #fff;
+  display: grid;
+  gap: 20px;
+}
+
+.refresh-posting-preview__group {
+  display: grid;
+  gap: 12px;
+}
+
+.refresh-posting-preview__group h4 {
+  margin: 0;
+}
+
+.refresh-posting-preview__rows {
+  display: grid;
+  gap: 12px;
+}
+
+.refresh-posting-preview__row {
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.refresh-posting-preview__row label {
+  width: 78px;
+  padding-top: 12px;
+  color: #6f5968;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.refresh-posting-preview__box {
+  min-width: 0;
+  flex: 1 1 auto;
+  min-height: 42px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.refresh-posting-preview__box.is-current {
+  border: 1px solid #ebeef6;
+  color: #4f5565;
+  background: #f8f9fc;
+}
+
+.refresh-posting-preview__box.is-recommended {
+  border: 1px solid #f4c8db;
+  color: #b2397f;
+  background: #fff7fb;
+}
+
+.refresh-posting-preview__box.is-multiline {
+  min-height: 94px;
+}
+
+.refresh-posting-preview__box.is-multiline p {
+  margin: 0;
+}
+
+.refresh-posting-preview__more {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #b2397f;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.refresh-posting-channels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.refresh-posting-channel {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid #eceef5;
+  border-radius: 12px;
+  gap: 8px;
+  color: #1f2b45;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.refresh-posting-channel i {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.refresh-posting-channel.tone-pink i { color: #b2397f; background: #fde8f2; }
+.refresh-posting-channel.tone-blue i { color: #2f66ea; background: #e7f0ff; }
+.refresh-posting-channel.tone-slate i { color: #7f8ba0; background: #eef2f8; }
+.refresh-posting-channel.tone-green i { color: #16a34a; background: #eaf9ef; }
+.refresh-posting-channel.tone-plain {
+  border-style: dashed;
+  color: #6f7d94;
+}
+
+.refresh-posting-modal__footer {
+  justify-content: space-between;
+  gap: 18px;
+  padding-top: 18px;
+  padding-bottom: 22px;
+  border-top: 1px solid #edf1f8;
+}
+
+.refresh-posting-modal__note {
+  gap: 10px;
+  color: #7f8ba0;
+  font-size: 13px;
+}
+
+.refresh-posting-modal__actions {
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.refresh-posting-modal__secondary,
+.refresh-posting-modal__ghost {
+  padding: 0 20px;
+  border: 1px solid #dde6f2;
+  color: #34425e;
+  background: #fff;
+}
+
+.refresh-posting-modal__primary,
+.refresh-posting-success-modal__primary {
+  padding: 0 22px;
+  border: 0;
+  color: #fff;
+  background: linear-gradient(90deg, #f95ba8 0%, #ef69c2 100%);
+  box-shadow: 0 14px 28px rgba(241, 88, 173, 0.2);
+}
+
+.refresh-posting-success-modal__body {
+  padding-top: 18px;
+  padding-bottom: 22px;
+  display: grid;
+  gap: 22px;
+}
+
+.refresh-posting-success-hero {
+  position: relative;
+  padding: 16px 0 4px;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.refresh-posting-success-hero__icon {
+  width: 96px;
+  height: 96px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #22c55e;
+  background: linear-gradient(180deg, #edfdf2 0%, #e7f9ee 100%);
+  box-shadow: inset 0 0 0 8px rgba(255, 255, 255, 0.65);
+}
+
+.refresh-posting-success-hero h3 {
+  margin: 10px 0 0;
+  color: #1f2b45;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.refresh-posting-success-hero p {
+  max-width: 420px;
+  margin: 0;
+  color: #6f7d94;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.refresh-posting-success-hero__spark {
+  position: absolute;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.refresh-posting-success-hero__spark.is-one { top: 4px; left: 34%; color: #f8c24e; }
+.refresh-posting-success-hero__spark.is-two { top: -4px; right: 37%; color: #7db8ff; font-size: 16px; }
+.refresh-posting-success-hero__spark.is-three { top: 78px; right: 29%; color: #f8c24e; }
+.refresh-posting-success-hero__spark.is-four { top: 110px; left: 39%; color: #f7c58d; font-size: 30px; }
+.refresh-posting-success-hero__spark.is-five { top: 64px; left: 30%; color: #6ee7b7; font-size: 16px; }
+
+.refresh-posting-success-stats {
+  border: 1px solid #edf1f8;
+  border-radius: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+}
+
+.refresh-posting-success-stat {
+  min-height: 120px;
+  padding: 18px 14px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.refresh-posting-success-stat + .refresh-posting-success-stat {
+  border-left: 1px solid #edf1f8;
+}
+
+.refresh-posting-success-stat__icon {
+  color: #16a34a;
+}
+
+.refresh-posting-success-stat strong {
+  color: #1f2b45;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.refresh-posting-success-stat small {
+  color: #6f7d94;
+  font-size: 13px;
+}
+
+.refresh-posting-success-sync {
+  gap: 12px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.refresh-posting-success-sync i {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  display: inline-block;
+  background: #ef5da8;
+}
+
+.refresh-posting-success-modal__footer {
+  justify-content: flex-end;
+  padding-top: 0;
+  padding-bottom: 22px;
+}
+
+@media (max-width: 1180px) {
+  .refresh-posting-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .refresh-posting-summary__metric {
+    border-top: 1px solid #f7dbe7;
+    border-left: 0;
+  }
+
+  .refresh-posting-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .refresh-posting-layer,
+  .refresh-posting-success-layer {
+    padding: 12px;
+  }
+
+  .refresh-posting-modal,
+  .refresh-posting-success-modal {
+    width: min(100%, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    border-radius: 22px;
+  }
+
+  .refresh-posting-modal__head,
+  .refresh-posting-modal__body,
+  .refresh-posting-modal__footer,
+  .refresh-posting-success-modal__head,
+  .refresh-posting-success-modal__body,
+  .refresh-posting-success-modal__footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .refresh-posting-modal__head,
+  .refresh-posting-modal__footer,
+  .refresh-posting-modal__actions,
+  .refresh-posting-preview__row,
+  .refresh-posting-success-modal__head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .refresh-posting-impact__grid,
+  .refresh-posting-success-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .refresh-posting-impact__card + .refresh-posting-impact__card,
+  .refresh-posting-success-stat + .refresh-posting-success-stat {
+    border-top: 1px solid #edf1f8;
+    border-left: 0;
+  }
+
+  .refresh-posting-modal__secondary,
+  .refresh-posting-modal__ghost,
+  .refresh-posting-modal__primary,
+  .refresh-posting-success-modal__primary,
+  .refresh-posting-compare {
+    width: 100%;
+  }
+
+  .refresh-posting-preview__row label {
+    width: auto;
+    padding-top: 0;
+  }
+}
+
+.risk-review-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 96;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+}
+
+.risk-review-modal {
+  width: min(1180px, 100%);
+  max-height: calc(100vh - 36px);
+  border: 1px solid #edf1f8;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 34px 90px rgba(15, 23, 42, 0.24);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.risk-review-modal__head,
+.risk-review-modal__title-wrap,
+.risk-review-alert,
+.risk-review-alert__main,
+.risk-review-card__profile,
+.risk-review-card__name-row,
+.risk-review-card__meta,
+.risk-review-card__recommendation,
+.risk-review-card__actions,
+.risk-review-sidecard h3,
+.risk-review-impact__item,
+.risk-review-snapshot div,
+.risk-review-activity__item,
+.risk-review-modal__note,
+.risk-review-modal__footer,
+.risk-review-modal__footer-actions,
+.risk-review-toolbar,
+.risk-review-toolbar__actions {
+  display: flex;
+  align-items: center;
+}
+
+.risk-review-modal__head,
+.risk-review-alert,
+.risk-review-card__meta,
+.risk-review-modal__footer,
+.risk-review-toolbar,
+.risk-review-snapshot div {
+  justify-content: space-between;
+}
+
+.risk-review-modal__head,
+.risk-review-modal__body,
+.risk-review-modal__footer {
+  padding-left: 32px;
+  padding-right: 32px;
+}
+
+.risk-review-modal__head {
+  padding-top: 28px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #edf1f8;
+}
+
+.risk-review-modal__title-wrap {
+  gap: 16px;
+}
+
+.risk-review-modal__title-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #ef5da8;
+  background: #fff1f7;
+}
+
+.risk-review-modal__title-wrap h2 {
+  margin: 0 0 4px;
+  color: #1f2b45;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.risk-review-modal__title-wrap p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.risk-review-modal__close,
+.risk-review-alert__button,
+.risk-review-toolbar__filter,
+.risk-review-card__primary,
+.risk-review-card__secondary,
+.risk-review-modal__secondary,
+.risk-review-modal__primary {
+  min-height: 42px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.risk-review-modal__close {
+  width: 42px;
+  border: 0;
+  color: #94a3b8;
+  background: transparent;
+}
+
+.risk-review-modal__body {
+  min-height: 0;
+  padding-top: 24px;
+  padding-bottom: 24px;
+  overflow-y: auto;
+  display: grid;
+  gap: 22px;
+}
+
+.risk-review-alert {
+  gap: 20px;
+  padding: 18px 22px;
+  border: 1px solid #fde0ec;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fffafb 0%, #fffefe 100%);
+}
+
+.risk-review-alert__main {
+  gap: 18px;
+  min-width: 0;
+  flex: 1 1 38%;
+}
+
+.risk-review-alert__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ff6b95;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.risk-review-alert__main label,
+.risk-review-alert__impact label {
+  display: block;
+  margin-bottom: 6px;
+  color: #ff6b95;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.risk-review-alert__main strong,
+.risk-review-toolbar h3,
+.risk-review-sidecard h3 {
+  color: #1f2b45;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.risk-review-alert__main p,
+.risk-review-alert__impact p,
+.risk-review-card__job p,
+.risk-review-card__job small,
+.risk-review-card__recommendation-copy span,
+.risk-review-sidecard p,
+.risk-review-activity__item small {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.risk-review-alert__impact {
+  min-width: 0;
+  flex: 1 1 30%;
+}
+
+.risk-review-alert__button,
+.risk-review-toolbar__filter,
+.risk-review-card__secondary,
+.risk-review-modal__secondary {
+  border: 1px solid #f5cadd;
+  color: #ef5da8;
+  background: #fff;
+}
+
+.risk-review-alert__button,
+.risk-review-toolbar__filter {
+  padding: 0 16px;
+}
+
+.risk-review-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 342px;
+  gap: 28px;
+  align-items: start;
+}
+
+.risk-review-main,
+.risk-review-sidebar {
+  min-width: 0;
+  display: grid;
+  gap: 18px;
+}
+
+.risk-review-toolbar h3 {
+  margin: 0;
+}
+
+.risk-review-toolbar__actions {
+  gap: 10px;
+}
+
+.risk-review-toolbar__sort {
+  min-width: 0;
+  width: 206px;
+}
+
+.risk-review-toolbar__sort :deep(.app-select-trigger) {
+  min-height: 42px;
+}
+
+.risk-review-toolbar__filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.risk-review-cards {
+  display: grid;
+  gap: 18px;
+}
+
+.risk-review-card {
+  position: relative;
+  padding: 22px 24px;
+  border: 1px solid #edf1f8;
+  border-radius: 18px;
+  background: #fff;
+  display: grid;
+  gap: 18px;
+}
+
+.risk-review-card__more {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 10px;
+  display: inline-grid;
+  place-items: center;
+  color: #94a3b8;
+  background: transparent;
+}
+
+.risk-review-card__profile {
+  gap: 14px;
+}
+
+.risk-review-card__avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.risk-review-card__avatar.tone-rose { background: linear-gradient(135deg, #9f4d65 0%, #ec7ea6 100%); }
+.risk-review-card__avatar.tone-brown { background: linear-gradient(135deg, #584134 0%, #9c7453 100%); }
+
+.risk-review-card__name-row {
+  justify-content: flex-start;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+
+.risk-review-card__name-row strong,
+.risk-review-card__meta strong,
+.risk-review-card__recommendation-copy strong,
+.risk-review-impact__item strong,
+.risk-review-snapshot strong,
+.risk-review-activity__item strong {
+  color: #1f2b45;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.risk-review-card__name-row span {
+  min-height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  color: #18a957;
+  background: #eafbf0;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.risk-review-card__job p {
+  margin-bottom: 3px;
+}
+
+.risk-review-card__job small {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.risk-review-card__meta {
+  gap: 16px;
+  padding: 14px 0 0;
+}
+
+.risk-review-card__meta > div {
+  min-width: 0;
+  flex: 1 1 0;
+  display: grid;
+  gap: 4px;
+}
+
+.risk-review-card__meta label,
+.risk-review-sidecard label {
+  color: #9aa6bb;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.risk-review-card__meta small {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.risk-review-card__recommendation {
+  gap: 16px;
+  padding: 18px;
+  border-top: 1px solid #edf1f8;
+  border-radius: 16px;
+  background: #fbfcff;
+}
+
+.risk-review-card__recommendation-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: grid;
+  gap: 6px;
+}
+
+.risk-review-card__recommendation-copy span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.risk-review-card__actions {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.risk-review-card__primary,
+.risk-review-modal__primary {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(90deg, #f55ca6 0%, #ea6dbd 100%);
+  box-shadow: 0 14px 28px rgba(241, 88, 173, 0.18);
+}
+
+.risk-review-card__primary,
+.risk-review-card__secondary {
+  min-width: 140px;
+  padding: 0 18px;
+}
+
+.risk-review-card__link {
+  width: fit-content;
+  border: 0;
+  padding: 0;
+  color: #ef5da8;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.risk-review-sidecard {
+  padding: 20px;
+  border: 1px solid #edf1f8;
+  border-radius: 18px;
+  background: #fff;
+  display: grid;
+  gap: 18px;
+}
+
+.risk-review-sidecard--recommendation {
+  background: linear-gradient(180deg, #eef2ff 0%, #f8faff 100%);
+}
+
+.risk-review-sidecard h3 {
+  margin: 0;
+  gap: 8px;
+  color: #4f46e5;
+}
+
+.risk-review-impact {
+  display: grid;
+  gap: 12px;
+}
+
+.risk-review-impact__item {
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.risk-review-impact__icon,
+.risk-review-activity__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.risk-review-impact__icon.tone-green { color: #22c55e; background: #ebfbf1; }
+.risk-review-impact__icon.tone-pink { color: #ef5da8; background: #fff1f7; }
+
+.risk-review-impact__item span {
+  min-width: 0;
+  flex: 1 1 auto;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.risk-review-impact__item strong.tone-green { color: #10b981; }
+.risk-review-impact__item strong.tone-pink { color: #f43f5e; }
+
+.risk-review-snapshot,
+.risk-review-activity {
+  display: grid;
+  gap: 12px;
+}
+
+.risk-review-snapshot span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #5f6d84;
+  font-size: 14px;
+}
+
+.risk-review-snapshot i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.risk-review-snapshot i.tone-violet { background: #6366f1; }
+.risk-review-snapshot i.tone-orange { background: #fb923c; }
+.risk-review-snapshot i.tone-yellow { background: #fbbf24; }
+.risk-review-snapshot i.tone-green { background: #10b981; }
+
+.risk-review-activity__item {
+  gap: 12px;
+}
+
+.risk-review-activity__icon.tone-violet { color: #6672ff; background: #eef1ff; }
+.risk-review-activity__icon.tone-orange { color: #ff7a12; background: #fff5ec; }
+
+.risk-review-modal__footer {
+  padding-top: 18px;
+  padding-bottom: 18px;
+  border-top: 1px solid #edf1f8;
+  gap: 18px;
+}
+
+.risk-review-modal__note {
+  gap: 8px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.risk-review-modal__footer-actions {
+  gap: 12px;
+}
+
+.risk-review-modal__secondary,
+.risk-review-modal__primary {
+  min-width: 188px;
+  padding: 0 20px;
+}
+
+.move-candidate-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 97;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.44);
+  backdrop-filter: blur(8px);
+}
+
+.move-candidate-modal {
+  width: min(672px, 100%);
+  max-height: calc(100vh - 36px);
+  border: 1px solid #edf1f8;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 34px 90px rgba(15, 23, 42, 0.26);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.move-candidate-modal__head,
+.move-candidate-modal__title-wrap,
+.move-candidate-profile,
+.move-candidate-profile__name-row,
+.move-candidate-recommendation,
+.move-candidate-recommendation__copy,
+.move-candidate-card__heading,
+.move-candidate-alternative__heading,
+.move-candidate-impact-card__heading,
+.move-candidate-impact-item,
+.move-candidate-comment__field,
+.move-candidate-notify__pill,
+.move-candidate-modal__footer-actions,
+.move-candidate-modal__note {
+  display: flex;
+  align-items: center;
+}
+
+.move-candidate-modal__head,
+.move-candidate-modal__body,
+.move-candidate-modal__footer {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.move-candidate-modal__head {
+  justify-content: space-between;
+  padding-top: 24px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #edf1f8;
+}
+
+.move-candidate-modal__title-wrap {
+  gap: 14px;
+}
+
+.move-candidate-modal__title-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ef5da8;
+  background: #fff1f7;
+  flex-shrink: 0;
+}
+
+.move-candidate-modal__title-wrap h2 {
+  margin: 0;
+  color: #1f2b45;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.move-candidate-modal__close,
+.move-candidate-modal__secondary,
+.move-candidate-modal__primary,
+.move-candidate-stage,
+.move-candidate-notify__pill {
+  min-height: 44px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.move-candidate-modal__close {
+  width: 42px;
+  border: 0;
+  color: #94a3b8;
+  background: transparent;
+}
+
+.move-candidate-modal__body {
+  min-height: 0;
+  padding-top: 22px;
+  padding-bottom: 20px;
+  overflow-y: auto;
+  display: grid;
+  gap: 18px;
+}
+
+.move-candidate-profile {
+  gap: 16px;
+}
+
+.move-candidate-profile__avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.move-candidate-profile__avatar.tone-rose { background: linear-gradient(135deg, #d7d1f4 0%, #f5eef8 100%); color: #ef5da8; }
+.move-candidate-profile__avatar.tone-brown { background: linear-gradient(135deg, #584134 0%, #9c7453 100%); }
+
+.move-candidate-profile__copy {
+  display: grid;
+  gap: 4px;
+}
+
+.move-candidate-profile__name-row {
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.move-candidate-profile__name-row strong {
+  color: #1f2b45;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.move-candidate-profile__name-row span {
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  color: #18a957;
+  background: #eafbf0;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.move-candidate-profile__copy p,
+.move-candidate-profile__copy small,
+.move-candidate-recommendation__copy p,
+.move-candidate-alternative__content span,
+.move-candidate-alternative__content small,
+.move-candidate-impact-item span,
+.move-candidate-impact-item small,
+.move-candidate-modal__note {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.55;
+}
+
+.move-candidate-profile__copy p {
+  font-size: 14px;
+}
+
+.move-candidate-profile__copy small {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+}
+
+.move-candidate-recommendation {
+  gap: 18px;
+  padding: 18px 22px;
+  border: 1px solid #fde0ec;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fffafb 0%, #fffefe 100%);
+  justify-content: space-between;
+}
+
+.move-candidate-recommendation__copy {
+  min-width: 0;
+  gap: 18px;
+  flex: 1 1 auto;
+  align-items: flex-start;
+}
+
+.move-candidate-recommendation__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ef5da8;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.move-candidate-recommendation__copy label,
+.move-candidate-recommendation__confidence label {
+  display: block;
+  margin-bottom: 8px;
+  color: #ef5da8;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.move-candidate-recommendation__copy strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #1f2b45;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.move-candidate-recommendation__copy strong span {
+  color: #ef5da8;
+}
+
+.move-candidate-recommendation__confidence {
+  min-width: 114px;
+  padding-left: 18px;
+  border-left: 1px solid #f7dbe7;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.move-candidate-recommendation__score {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #1f2b45;
+  background: #fff;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.move-candidate-recommendation__confidence strong {
+  color: #ef5da8;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.move-candidate-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.move-candidate-card,
+.move-candidate-panel,
+.move-candidate-impact-card {
+  border: 1px solid #edf1f8;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #fbfcff 0%, #fff 100%);
+}
+
+.move-candidate-card,
+.move-candidate-panel {
+  padding: 20px;
+  display: grid;
+  gap: 18px;
+}
+
+.move-candidate-card__heading,
+.move-candidate-impact-card__heading {
+  gap: 10px;
+}
+
+.move-candidate-card__icon,
+.move-candidate-alternative__icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #4f7cff;
+  background: #eef4ff;
+  flex-shrink: 0;
+}
+
+.move-candidate-card__heading h3,
+.move-candidate-panel > h3,
+.move-candidate-impact-card__heading h3,
+.move-candidate-notify h3 {
+  margin: 0;
+  color: #1f2b45;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.move-candidate-reasons {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 14px;
+}
+
+.move-candidate-reasons li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #425168;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.move-candidate-reasons li :deep(svg) {
+  color: #6366f1;
+  flex-shrink: 0;
+}
+
+.move-candidate-alternative {
+  padding-top: 16px;
+  border-top: 1px solid #edf1f8;
+  display: grid;
+  gap: 10px;
+}
+
+.move-candidate-alternative__heading {
+  gap: 10px;
+}
+
+.move-candidate-alternative__heading strong {
+  color: #334155;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.move-candidate-alternative__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.move-candidate-alternative__content span {
+  font-size: 14px;
+}
+
+.move-candidate-alternative__content small {
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  color: #5b60f1;
+  background: #eef1ff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.move-candidate-stages {
+  display: grid;
+  gap: 12px;
+}
+
+.move-candidate-stage {
+  width: 100%;
+  padding: 0 16px;
+  border: 1px solid #dbe5f0;
+  background: #fff;
+  color: #425168;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+}
+
+.move-candidate-stage.is-active {
+  border-color: #f7a4c8;
+  box-shadow: inset 0 0 0 1px #f7a4c8;
+  background: #fffafb;
+  color: #1f2b45;
+}
+
+.move-candidate-stage__radio {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid #d2dbea;
+  border-radius: 50%;
+  position: relative;
+}
+
+.move-candidate-stage.is-active .move-candidate-stage__radio {
+  border-color: #ef5da8;
+}
+
+.move-candidate-stage.is-active .move-candidate-stage__radio::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: #ef5da8;
+}
+
+.move-candidate-stage__copy {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.move-candidate-stage__copy strong {
+  color: currentColor;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.move-candidate-stage__copy small {
+  min-height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  color: #ef5da8;
+  background: #fff0f7;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.move-candidate-impact-card {
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.move-candidate-impact-card__heading {
+  color: #1f2b45;
+}
+
+.move-candidate-impact-list {
+  display: grid;
+  gap: 12px;
+}
+
+.move-candidate-impact-item {
+  gap: 12px;
+}
+
+.move-candidate-impact-item__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.move-candidate-impact-item__icon.tone-green { color: #16a34a; background: #eaf9ef; }
+.move-candidate-impact-item__icon.tone-pink { color: #ef5da8; background: #fff1f7; }
+.move-candidate-impact-item__icon.tone-blue { color: #3b82f6; background: #eef5ff; }
+
+.move-candidate-impact-item > div {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.move-candidate-impact-item strong {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.move-candidate-impact-item strong.tone-green { color: #16a34a; }
+.move-candidate-impact-item strong.tone-pink { color: #f43f5e; }
+.move-candidate-impact-item strong.tone-blue { color: #2563eb; }
+
+.move-candidate-impact-item span {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.move-candidate-impact-item small {
+  font-size: 12px;
+}
+
+.move-candidate-comment__field {
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #dde6f2;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.move-candidate-comment__field :deep(svg) {
+  color: #94a3b8;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.move-candidate-comment__content {
+  position: relative;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.move-candidate-comment__content textarea {
+  width: 100%;
+  min-height: 56px;
+  border: 0;
+  padding: 2px 56px 0 0;
+  resize: vertical;
+  color: #1f2b45;
+  font: inherit;
+  line-height: 1.6;
+  background: transparent;
+}
+
+.move-candidate-comment__content textarea::placeholder {
+  color: #94a3b8;
+}
+
+.move-candidate-comment__content textarea:focus {
+  outline: none;
+}
+
+.move-candidate-comment__content small {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  color: #94a3b8;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.move-candidate-notify {
+  display: grid;
+  gap: 12px;
+}
+
+.move-candidate-notify__list {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.move-candidate-notify__pill {
+  padding: 0 14px 0 10px;
+  border: 1px solid #dde6f2;
+  background: #fff;
+  color: #475569;
+  gap: 10px;
+}
+
+.move-candidate-notify__pill.is-active {
+  border-color: #f7a4c8;
+  color: #1f2b45;
+  background: #fffafb;
+}
+
+.move-candidate-notify__pill.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.move-candidate-notify__check {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #d7deea;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.move-candidate-notify__pill.is-active .move-candidate-notify__check {
+  border-color: #ef5da8;
+  background: #ef5da8;
+}
+
+.move-candidate-modal__footer {
+  padding-top: 16px;
+  padding-bottom: 18px;
+  border-top: 1px solid #edf1f8;
+  display: grid;
+  gap: 14px;
+}
+
+.move-candidate-modal__footer-actions {
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.move-candidate-modal__secondary,
+.move-candidate-modal__primary {
+  min-width: 164px;
+  padding: 0 20px;
+}
+
+.move-candidate-modal__secondary {
+  border: 1px solid #dde6f2;
+  color: #34425e;
+  background: #fff;
+}
+
+.move-candidate-modal__primary {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(90deg, #f55ca6 0%, #ea6dbd 100%);
+  box-shadow: 0 14px 28px rgba(241, 88, 173, 0.18);
+}
+
+.move-candidate-modal__note {
+  justify-content: center;
+  gap: 8px;
+  color: #94a3b8;
+  font-size: 12px;
+  text-align: center;
 }
 
 .attention-overview-layer {
@@ -21476,6 +30284,689 @@ onBeforeUnmount(() => {
   font-weight: 800;
 }
 
+.publish-boards-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 94;
+  padding: 24px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.44);
+  backdrop-filter: blur(8px);
+}
+
+.publish-boards-modal {
+  width: min(1120px, 100%);
+  max-height: calc(100vh - 32px);
+  border: 1px solid #edf1f8;
+  border-radius: 26px;
+  background: #fff;
+  box-shadow: 0 32px 80px rgba(15, 23, 42, 0.22);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  overflow: hidden;
+}
+
+.publish-boards-modal__head,
+.publish-boards-modal__footer,
+.publish-boards-modal__title-wrap,
+.publish-boards-overview,
+.publish-boards-overview__intro,
+.publish-boards-job,
+.publish-boards-card__head,
+.publish-boards-card__channel,
+.publish-boards-modal__summary,
+.publish-boards-modal__note {
+  display: flex;
+  align-items: center;
+}
+
+.publish-boards-modal__head,
+.publish-boards-modal__footer,
+.publish-boards-overview,
+.publish-boards-job,
+.publish-boards-card__head {
+  justify-content: space-between;
+}
+
+.publish-boards-modal__head,
+.publish-boards-modal__body,
+.publish-boards-modal__footer,
+.publish-boards-modal__note {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.publish-boards-modal__head {
+  padding-top: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #edf1f8;
+}
+
+.publish-boards-modal__body {
+  min-height: 0;
+  padding-top: 20px;
+  padding-bottom: 22px;
+  overflow-y: auto;
+  display: grid;
+  gap: 22px;
+}
+
+.publish-boards-modal__footer {
+  gap: 18px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  border-top: 1px solid #edf1f8;
+  background: #fff;
+}
+
+.publish-boards-modal__note {
+  gap: 8px;
+  justify-content: center;
+  padding-top: 10px;
+  padding-bottom: 18px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.publish-boards-modal__title-wrap {
+  gap: 14px;
+}
+
+.publish-boards-modal__title-icon,
+.publish-boards-overview__icon,
+.publish-boards-job__icon,
+.publish-boards-card__badge {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.publish-boards-modal__title-icon {
+  color: #ef5da8;
+  background: #fff1f7;
+}
+
+.publish-boards-overview__icon,
+.publish-boards-job__icon {
+  color: #5b5cf0;
+  background: #f4f6ff;
+}
+
+.publish-boards-card__badge {
+  color: #5b5cf0;
+  background: #f8faff;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.publish-boards-card__badge.is-brand {
+  background: #fff;
+  border: 1px solid #edf1f8;
+}
+
+.publish-boards-modal__title-wrap h2 {
+  margin: 0 0 4px;
+  color: #1f2b45;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.publish-boards-modal__title-wrap p,
+.publish-boards-overview__intro small,
+.publish-boards-job__copy small,
+.publish-boards-card small,
+.publish-boards-modal__note span {
+  margin: 0;
+  color: #6f7d94;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.publish-boards-modal__close {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 12px;
+  display: inline-grid;
+  place-items: center;
+  color: #94a3b8;
+  background: transparent;
+}
+
+.publish-boards-overview,
+.publish-boards-job {
+  gap: 18px;
+  padding: 16px 18px;
+  border: 1px solid #edf1f8;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.publish-boards-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(180px, 1fr));
+}
+
+.publish-boards-job {
+  gap: 14px;
+  padding: 12px 16px;
+}
+
+.publish-boards-overview__intro {
+  gap: 14px;
+}
+
+.publish-boards-overview__intro div,
+.publish-boards-job__copy {
+  display: grid;
+  gap: 4px;
+}
+
+.publish-boards-job__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.publish-boards-job__copy {
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: 2px;
+}
+
+.publish-boards-overview__intro strong,
+.publish-boards-job__copy strong,
+.publish-boards-card strong {
+  color: #1f2b45;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.publish-boards-job__copy small {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.publish-boards-overview__metric {
+  padding-left: 18px;
+  border-left: 1px solid #edf1f8;
+  display: grid;
+  gap: 8px;
+  align-content: center;
+}
+
+.publish-boards-overview__metric label,
+.publish-boards-modal__summary label {
+  color: #9aa6bb;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.publish-boards-overview__metric strong,
+.publish-boards-modal__summary strong {
+  color: #1f2b45;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.publish-boards-overview__metric:first-of-type strong,
+.publish-boards-modal__summary div:nth-child(2) strong {
+  color: #ef5da8;
+}
+
+.publish-boards-job__button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid #dde6f2;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #334155;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.publish-boards-section {
+  display: grid;
+  gap: 14px;
+}
+
+.publish-boards-section h3 {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #1f2b45;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.publish-boards-section h3 span {
+  color: #94a3b8;
+}
+
+.publish-boards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.publish-boards-grid--published {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.publish-boards-card {
+  padding: 16px;
+  border: 1px solid #edf1f8;
+  border-radius: 16px;
+  background: #fff;
+  display: grid;
+  gap: 14px;
+}
+
+.publish-boards-card--published {
+  border-color: #d6f5df;
+}
+
+.publish-boards-card--ready.is-selected {
+  border-color: #f49ac4;
+  box-shadow: inset 0 0 0 1px #f49ac4;
+}
+
+.publish-boards-card__status-icon {
+  color: #22c55e;
+}
+
+.publish-boards-card__status {
+  width: fit-content;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  color: #16a34a;
+  background: #eafbf0;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.publish-boards-card__channel {
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.publish-boards-card__channel > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.publish-boards-card__channel label {
+  width: fit-content;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  color: #16a34a;
+  background: #eafbf0;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.publish-boards-card__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.publish-boards-card__stats span {
+  display: block;
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.publish-boards-card__stats i {
+  display: inline-flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.publish-boards-card__stats b {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  display: inline-block;
+  background: #e2e8f0;
+}
+
+.publish-boards-card__stats b.is-active {
+  background: #ef5da8;
+}
+
+.publish-boards-card__stats strong {
+  display: block;
+  margin-top: 6px;
+  color: #ef5da8;
+}
+
+.publish-boards-card__action,
+.publish-boards-card__config {
+  min-height: 36px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.publish-boards-card__action {
+  border: 1px solid #f49ac4;
+  color: #ef5da8;
+  background: #fff;
+}
+
+.publish-boards-card--ready.is-selected .publish-boards-card__action {
+  color: #fff;
+  background: linear-gradient(90deg, #f95ba8 0%, #ef69c2 100%);
+  border-color: transparent;
+}
+
+.publish-boards-card__config {
+  width: fit-content;
+  padding: 0 14px;
+  border: 1px solid #dde6f2;
+  color: #334155;
+  background: #fff;
+}
+
+.publish-boards-modal__summary {
+  margin-left: auto;
+  gap: 28px;
+}
+
+.publish-boards-modal__summary > div {
+  min-width: 118px;
+  display: grid;
+  gap: 6px;
+}
+
+.publish-boards-modal__secondary,
+.publish-boards-modal__primary {
+  min-height: 46px;
+  padding: 0 22px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.publish-boards-modal__secondary {
+  border: 1px solid #dde6f2;
+  color: #34425e;
+  background: #fff;
+}
+
+.publish-boards-modal__primary {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(90deg, #f95ba8 0%, #ef69c2 100%);
+  box-shadow: 0 14px 28px rgba(241, 88, 173, 0.2);
+}
+
+.publish-boards-modal__primary:disabled {
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+.boost-job-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 94;
+  padding: 24px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.46);
+  backdrop-filter: blur(6px);
+}
+
+.boost-job-modal {
+  width: min(580px, 100%);
+  border: 1px solid #edf1f8;
+  border-radius: 26px;
+  background: #fff;
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.22);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.boost-job-modal__head,
+.boost-job-modal__footer,
+.boost-job-modal__title-wrap,
+.boost-job-channel,
+.boost-job-channel__copy,
+.boost-job-note {
+  display: flex;
+  align-items: center;
+}
+
+.boost-job-modal__head,
+.boost-job-modal__footer,
+.boost-job-channel {
+  justify-content: space-between;
+}
+
+.boost-job-modal__head,
+.boost-job-modal__body,
+.boost-job-modal__footer {
+  padding-left: 30px;
+  padding-right: 30px;
+}
+
+.boost-job-modal__head {
+  gap: 18px;
+  padding-top: 28px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #edf1f8;
+}
+
+.boost-job-modal__body {
+  padding-top: 24px;
+  padding-bottom: 24px;
+  display: grid;
+  gap: 24px;
+}
+
+.boost-job-modal__footer {
+  padding-top: 20px;
+  padding-bottom: 24px;
+  border-top: 1px solid #edf1f8;
+  justify-content: flex-end;
+}
+
+.boost-job-modal__title-wrap {
+  gap: 16px;
+}
+
+.boost-job-modal__title-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #f24193;
+  background: #fff0f7;
+}
+
+.boost-job-modal__title-wrap h2 {
+  margin: 0 0 4px;
+  color: #1b2647;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.boost-job-modal__title-wrap p {
+  margin: 0;
+  color: #6f7d94;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.boost-job-modal__close,
+.boost-job-modal__secondary {
+  border: 1px solid #dde6f2;
+  background: #fff;
+  color: #627189;
+}
+
+.boost-job-modal__close {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.boost-job-section {
+  display: grid;
+  gap: 18px;
+}
+
+.boost-job-section h3 {
+  margin: 0;
+  color: #1b2647;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.boost-job-channels {
+  display: grid;
+  gap: 14px;
+}
+
+.boost-job-channel {
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid #e6edf6;
+  border-radius: 16px;
+  background: #fff;
+  color: #1b2647;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.boost-job-channel:hover {
+  border-color: #d6e3f5;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.boost-job-channel__badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.boost-job-channel__badge.is-linkedin {
+  color: #0a66c2;
+  background: #eef6ff;
+}
+
+.boost-job-channel__badge.is-indeed {
+  color: #2557d6;
+  background: #eef2ff;
+}
+
+.boost-job-channel__badge.is-meta {
+  color: #1463ff;
+  background: #eff6ff;
+}
+
+.boost-job-channel__copy {
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: flex-start;
+  gap: 4px;
+  flex-direction: column;
+}
+
+.boost-job-channel__copy strong {
+  color: #1b2647;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.boost-job-channel__copy small {
+  color: #6f7d94;
+  font-size: 13px;
+}
+
+.boost-job-channel__status {
+  min-height: 28px;
+  padding: 0 12px;
+  border: 1px solid #c8f2d8;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #10a760;
+  background: #effcf4;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.boost-job-note {
+  gap: 10px;
+  padding: 16px 18px;
+  border: 1px solid #dbe7ff;
+  border-radius: 16px;
+  color: #3558c8;
+  background: #eef4ff;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.boost-job-modal__secondary {
+  min-width: 116px;
+  min-height: 46px;
+  padding: 0 20px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .schedule-modal-layer {
   position: fixed;
   inset: 0;
@@ -22406,6 +31897,52 @@ onBeforeUnmount(() => {
   .board-view {
     grid-template-columns: 1fr 1fr;
   }
+
+  .ready-action-modal__content {
+    grid-template-columns: 1fr;
+  }
+
+  .ready-action-main {
+    padding-right: 0;
+    border-right: 0;
+  }
+
+  .ready-action-sidebar {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .upcoming-risks-modal__content {
+    grid-template-columns: 1fr;
+  }
+
+  .upcoming-risks-main {
+    padding-right: 0;
+    border-right: 0;
+  }
+
+  .upcoming-risks-sidebar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .risk-review-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .risk-review-sidebar {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .move-candidate-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .attention-focus-content {
+    grid-template-columns: 1fr;
+  }
+
+  .attention-focus-sidebar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 960px) {
@@ -22429,6 +31966,121 @@ onBeforeUnmount(() => {
 
   .briefing-risk-card {
     grid-template-columns: 1fr;
+  }
+
+  .ready-action-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ready-action-card__summary,
+  .ready-action-card__action-box {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ready-action-card__metrics {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .ready-action-card__action-box {
+    grid-template-columns: 1fr;
+  }
+
+  .ready-action-card__action-side {
+    min-width: 0;
+  }
+
+  .ready-action-card__pill {
+    justify-self: start;
+  }
+
+  .ready-action-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .upcoming-risks-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .upcoming-risks-card {
+    grid-template-columns: 1fr;
+  }
+
+  .upcoming-risks-card__job,
+  .upcoming-risks-card__risk {
+    padding-right: 0;
+    border-right: 0;
+  }
+
+  .upcoming-risks-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .risk-review-alert,
+  .risk-review-card__meta,
+  .risk-review-card__recommendation {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .risk-review-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .move-candidate-recommendation,
+  .move-candidate-recommendation__copy {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .move-candidate-recommendation__confidence {
+    padding-left: 0;
+    padding-top: 16px;
+    border-left: 0;
+    border-top: 1px solid #f7dbe7;
+    justify-items: start;
+    text-align: left;
+  }
+
+  .move-candidate-profile,
+  .move-candidate-stage__copy,
+  .move-candidate-modal__footer-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .move-candidate-stage {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .move-candidate-stage > :last-child {
+    justify-self: end;
+    align-self: center;
+  }
+
+  .attention-focus-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .attention-focus-row {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .attention-focus-row__job,
+  .attention-focus-row__metrics {
+    padding-right: 0;
+    border-right: 0;
+  }
+
+  .attention-focus-row__metrics,
+  .attention-focus-row__action {
+    padding-left: 0;
+  }
+
+  .attention-focus-row__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .filter-grid {
@@ -22493,6 +32145,28 @@ onBeforeUnmount(() => {
 
   .reschedule-publication-content {
     grid-template-columns: 1fr;
+  }
+
+  .edit-closing-date-grid,
+  .edit-closing-date-quick-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .edit-closing-date-preview__content {
+    grid-template-columns: 1fr;
+  }
+
+  .edit-closing-date-preview__timeline {
+    padding-right: 0;
+    padding-bottom: 16px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(99, 102, 241, 0.12);
+    align-items: flex-start;
+  }
+
+  .edit-closing-date-preview__impact {
+    text-align: left;
+    justify-items: start;
   }
 
   .reschedule-publication-channels {
@@ -22721,6 +32395,240 @@ onBeforeUnmount(() => {
 
   .attention-overview-layer {
     padding: 12px;
+  }
+
+  .ready-action-layer {
+    padding: 12px;
+  }
+
+  .ready-action-modal {
+    width: min(100%, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    border-radius: 22px;
+  }
+
+  .ready-action-modal__head,
+  .ready-action-modal__body,
+  .ready-action-modal__footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .ready-action-modal__head,
+  .ready-action-modal__toolbar,
+  .ready-action-modal__footer,
+  .ready-action-card__buttons,
+  .ready-action-overview {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ready-action-stats,
+  .ready-action-card__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .ready-action-modal__sort,
+  .ready-action-modal__filter,
+  .ready-action-card__primary,
+  .ready-action-card__secondary,
+  .ready-action-sidecard__primary,
+  .ready-action-modal__secondary,
+  .ready-action-modal__ghost {
+    width: 100%;
+  }
+
+  .ready-action-overview__ring {
+    margin: 0 auto;
+  }
+
+  .upcoming-risks-layer {
+    padding: 12px;
+  }
+
+  .upcoming-risks-modal {
+    width: min(100%, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    border-radius: 22px;
+  }
+
+  .upcoming-risks-modal__head,
+  .upcoming-risks-modal__body,
+  .upcoming-risks-modal__footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .upcoming-risks-modal__head,
+  .upcoming-risks-modal__footer,
+  .upcoming-risks-overview {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .upcoming-risks-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .upcoming-risks-card__primary,
+  .upcoming-risks-card__secondary,
+  .upcoming-risks-sidecard__primary,
+  .upcoming-risks-modal__secondary,
+  .upcoming-risks-modal__ghost {
+    width: 100%;
+  }
+
+  .risk-review-layer {
+    padding: 12px;
+  }
+
+  .risk-review-modal {
+    width: min(100%, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    border-radius: 22px;
+  }
+
+  .risk-review-modal__head,
+  .risk-review-modal__body,
+  .risk-review-modal__footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .risk-review-modal__head,
+  .risk-review-modal__footer,
+  .risk-review-toolbar,
+  .risk-review-toolbar__actions,
+  .risk-review-modal__footer-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .risk-review-card__actions,
+  .risk-review-card__meta {
+    gap: 10px;
+  }
+
+  .risk-review-card__primary,
+  .risk-review-card__secondary,
+  .risk-review-alert__button,
+  .risk-review-toolbar__sort,
+  .risk-review-toolbar__filter,
+  .risk-review-modal__secondary,
+  .risk-review-modal__primary {
+    width: 100%;
+  }
+
+  .move-candidate-layer {
+    padding: 12px;
+  }
+
+  .move-candidate-modal {
+    width: min(100%, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    border-radius: 22px;
+  }
+
+  .move-candidate-modal__head,
+  .move-candidate-modal__body,
+  .move-candidate-modal__footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .move-candidate-modal__head,
+  .move-candidate-modal__footer-actions,
+  .move-candidate-notify__list {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .move-candidate-modal__secondary,
+  .move-candidate-modal__primary,
+  .move-candidate-notify__pill {
+    width: 100%;
+  }
+
+  .move-candidate-comment__field {
+    align-items: flex-start;
+  }
+
+  .attention-focus-modal {
+    width: min(100%, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    border-radius: 22px;
+  }
+
+  .attention-focus-modal__head,
+  .attention-focus-modal__body,
+  .attention-focus-modal__footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .attention-focus-modal__head,
+  .attention-focus-modal__footer,
+  .attention-focus-modal__title-wrap,
+  .attention-focus-row__buttons {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .attention-focus-stats,
+  .attention-focus-sidebar,
+  .attention-focus-row__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .attention-focus-row__secondary,
+  .attention-focus-row__primary,
+  .attention-focus-sidecard__primary,
+  .attention-focus-modal__secondary,
+  .attention-focus-modal__ghost {
+    width: 100%;
+  }
+
+  .edit-closing-date-layer {
+    padding: 12px;
+  }
+
+  .edit-closing-date-modal {
+    width: min(100%, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    border-radius: 22px;
+  }
+
+  .edit-closing-date-modal__head,
+  .edit-closing-date-modal__body,
+  .edit-closing-date-modal__footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .edit-closing-date-row,
+  .edit-closing-date-modal__head,
+  .edit-closing-date-modal__footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .edit-closing-date-grid,
+  .edit-closing-date-quick-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .edit-closing-date-preview__timeline {
+    gap: 14px;
+    flex-direction: column;
+  }
+
+  .edit-closing-date-select {
+    flex: 1 1 auto;
+  }
+
+  .edit-closing-date-modal__secondary,
+  .edit-closing-date-modal__primary {
+    width: 100%;
   }
 
   .attention-overview-modal {
@@ -23025,24 +32933,18 @@ onBeforeUnmount(() => {
     grid-template-columns: 1fr;
   }
 
-  .review-summary__card + .review-summary__card {
-    border-left: 0;
-    border-top: 1px solid #edf1f8;
-  }
-
+  .review-feedback-card,
   .review-modal__footer {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .review-modal__footer-actions {
-    flex-direction: column;
-    margin-left: 0;
+  .review-feedback-timings {
+    grid-template-columns: 1fr;
   }
 
-  .review-modal__ghost,
-  .review-modal__primary,
-  .review-modal__footer-actions .review-modal__ghost {
+  .review-modal__secondary,
+  .review-modal__primary {
     width: 100%;
   }
 
@@ -23072,6 +32974,38 @@ onBeforeUnmount(() => {
 
   .complete-feedback-modal__secondary,
   .complete-feedback-modal__primary {
+    width: 100%;
+  }
+
+  .contact-manager-layer {
+    padding: 12px;
+  }
+
+  .contact-manager-modal {
+    width: min(100%, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    border-radius: 22px;
+  }
+
+  .contact-manager-modal__head,
+  .contact-manager-modal__body,
+  .contact-manager-modal__footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .contact-manager-modal__head,
+  .contact-manager-modal__footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .contact-manager-schedule__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-manager-modal__secondary,
+  .contact-manager-modal__primary {
     width: 100%;
   }
 
@@ -23536,11 +33470,95 @@ onBeforeUnmount(() => {
     width: 100%;
   }
 
+  .publish-boards-modal {
+    width: min(100%, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    border-radius: 22px;
+  }
+
+  .publish-boards-modal__head,
+  .publish-boards-modal__body,
+  .publish-boards-modal__footer,
+  .publish-boards-modal__note {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .publish-boards-overview,
+  .publish-boards-grid,
+  .publish-boards-grid--published,
+  .publish-boards-card__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .publish-boards-overview__metric {
+    padding-top: 12px;
+    padding-left: 0;
+    border-top: 1px solid #edf1f8;
+    border-left: 0;
+  }
+
+  .publish-boards-job,
+  .publish-boards-modal__footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .publish-boards-job__button,
+  .publish-boards-card__config,
+  .publish-boards-modal__secondary,
+  .publish-boards-modal__primary {
+    width: 100%;
+  }
+
+  .publish-boards-modal__summary {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .publish-boards-modal__summary > div {
+    min-width: 0;
+    flex: 1 1 140px;
+  }
+
   .share-job-option {
     align-items: flex-start;
   }
 
   .share-job-modal__footer {
+    justify-content: stretch;
+  }
+
+  .boost-job-modal {
+    border-radius: 22px;
+  }
+
+  .boost-job-modal__head,
+  .boost-job-modal__body,
+  .boost-job-modal__footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .boost-job-channel {
+    gap: 12px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .boost-job-channel__status {
+    order: 3;
+    margin-left: 62px;
+  }
+
+  .boost-job-modal__secondary {
+    width: 100%;
+  }
+
+  .boost-job-modal__footer {
     justify-content: stretch;
   }
 

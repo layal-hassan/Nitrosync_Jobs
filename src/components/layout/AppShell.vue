@@ -6,6 +6,7 @@ import JobsListPage from '../pages/JobsListPage.vue'
 import JobDetailsPage from '../pages/JobDetailsPage.vue'
 import CompareCandidatesPage from '../pages/CompareCandidatesPage.vue'
 import JobsOverviewPage from '../pages/JobsOverviewPage.vue'
+import StartFromScratchFlowPage from '../pages/StartFromScratchFlowPage.vue'
 import CreateJobStartPage from '../pages/CreateJobStartPage.vue'
 import JobPipelinePage from '../pages/JobPipelinePage.vue'
 import NitroPage from '../pages/NitroPage.vue'
@@ -30,6 +31,12 @@ function syncRouteFromHash() {
 
   if (hash === '#create-job' || hash === '#create-job/start') {
     currentPage.value = 'create-job-start'
+    scrollToTop()
+    return
+  }
+
+  if (/^#create-job\/scratch/.test(hash)) {
+    currentPage.value = 'create-job-scratch'
     scrollToTop()
     return
   }
@@ -106,10 +113,14 @@ function goToNitro() {
 }
 
 function startCreateJobFlow(option = 'template') {
-  currentPage.value = 'create-job-flow'
+  currentPage.value = option === 'scratch' ? 'create-job-scratch' : 'create-job-flow'
 
   if (typeof window !== 'undefined') {
-    window.history.replaceState(null, '', '#create-job/step-1')
+    window.history.replaceState(
+      null,
+      '',
+      option === 'scratch' ? '#create-job/scratch/step-1' : '#create-job/step-1',
+    )
   }
 
   scrollToTop()
@@ -191,7 +202,8 @@ const sidebarActiveItem = computed(() => {
     currentPage.value === 'compare-candidates' ||
     currentPage.value === 'job-pipeline' ||
     currentPage.value === 'create-job-start' ||
-    currentPage.value === 'create-job-flow'
+    currentPage.value === 'create-job-flow' ||
+    currentPage.value === 'create-job-scratch'
   ) {
     return 'jobs'
   }
@@ -244,6 +256,12 @@ onBeforeUnmount(() => {
         v-else-if="currentPage === 'create-job-start'"
         @continue="startCreateJobFlow"
         @go-jobs="goToJobs"
+      />
+      <StartFromScratchFlowPage
+        v-else-if="currentPage === 'create-job-scratch'"
+        :job-id="activeJobId"
+        route-prefix="create-job/scratch"
+        @open-pipeline="openJobPipeline"
       />
       <JobDetailsPage
         v-else-if="currentPage === 'job-detail'"

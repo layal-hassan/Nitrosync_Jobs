@@ -38,7 +38,7 @@ function submit() {
 function chooseOption(optionId) {
   selectedOption.value = optionId
 
-  if (optionId === 'ai') {
+  if (optionId === 'ai' || optionId === 'scratch') {
     emit('continue', optionId)
   }
 }

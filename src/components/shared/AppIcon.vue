@@ -58,6 +58,7 @@ import {
   ThumbsDown,
   ThumbsUp,
   Clock3,
+  Trash2,
   TrendingUp,
   TriangleAlert,
   User,
@@ -145,6 +146,7 @@ const iconMap = {
   target: Target,
   thumbsDown: ThumbsDown,
   thumbsUp: ThumbsUp,
+  trash: Trash2,
   'team-gear': UserCog,
   'trend-up': TrendingUp,
   user: User,
@@ -157,9 +159,9 @@ const iconMap = {
 
 const iconComponent = computed(() => iconMap[props.name] ?? Info)
 const brandIconMap = {
-  linkedin: 'https://www.google.com/s2/favicons?domain=linkedin.com&sz=64',
-  indeed: 'https://www.google.com/s2/favicons?domain=indeed.com&sz=64',
-  glassdoor: 'https://www.google.com/s2/favicons?domain=glassdoor.com&sz=64',
+  linkedin: 'https://api.iconify.design/simple-icons:linkedin.svg?color=%230A66C2',
+  indeed: 'https://api.iconify.design/simple-icons:indeed.svg?color=%232557A7',
+  glassdoor: 'https://api.iconify.design/simple-icons:glassdoor.svg?color=%2300A162',
 }
 
 const brandIconSrc = computed(() => brandIconMap[props.name] ?? '')

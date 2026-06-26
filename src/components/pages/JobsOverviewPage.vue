@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AppIcon from '../shared/AppIcon.vue'
 import StepDefineGoal from './job-setup/StepDefineGoal.vue'

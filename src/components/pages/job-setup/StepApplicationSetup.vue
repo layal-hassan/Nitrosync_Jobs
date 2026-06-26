@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import AppIcon from '../../shared/AppIcon.vue'
 import linkedInIcon from '../../../assets/linkedin.svg'
 
