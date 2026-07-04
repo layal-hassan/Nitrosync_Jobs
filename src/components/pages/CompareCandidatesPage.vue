@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import AppIcon from '../shared/AppIcon.vue'
+import ScheduleScreeningOverlay from '../shared/ScheduleScreeningOverlay.vue'
 import { getJobById } from '../../data/jobs'
 
 const props = defineProps({
@@ -19,6 +20,7 @@ const confidenceScore = 92
 const maxCompareCandidates = 5
 const addCandidateModalOpen = ref(false)
 const addCandidateSearch = ref('')
+const scheduleScreeningOpen = ref(false)
 
 const candidateDirectory = [
   { id: 'sj', name: 'Sarah Johnson', role: 'Senior Frontend Engineer', avatar: 'SJ', match: 92, experience: '7 years', interview: '9.2 / 10', skillsMatch: '95%', fit: '90%', availability: 'Available in 4 weeks', salary: 'Excellent', notice: '1 month', retention: 'High', ramp: 'Fast', location: 'Stockholm', skills: ['Vue', 'TypeScript', 'Design Systems', 'Accessibility'] },
@@ -127,6 +129,14 @@ function applySelectedCandidates() {
 
 function backToJob() {
   emit('back')
+}
+
+function openScheduleScreening() {
+  scheduleScreeningOpen.value = true
+}
+
+function closeScheduleScreening() {
+  scheduleScreeningOpen.value = false
 }
 
 function scoreWidth(value) {
@@ -427,7 +437,7 @@ function toneClass(tone) {
               <h3>What's next?</h3>
             </div>
             <div class="compare-next-list">
-              <button class="compare-next-action" type="button">
+              <button class="compare-next-action" type="button" @click="openScheduleScreening">
                 <span class="compare-next-icon">
                   <AppIcon name="calendar" :size="15" />
                 </span>
@@ -475,6 +485,13 @@ function toneClass(tone) {
           </button>
         </div>
       </div>
+
+      <ScheduleScreeningOverlay
+        :open="scheduleScreeningOpen"
+        :candidate-name="selectedCandidate.name"
+        :candidate-role="selectedCandidate.role"
+        @close="closeScheduleScreening"
+      />
     </div>
 
     <div v-if="addCandidateModalOpen" class="compare-modal-layer" @click.self="closeAddCandidateModal">

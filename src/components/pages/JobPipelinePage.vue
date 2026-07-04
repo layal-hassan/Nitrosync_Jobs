@@ -1,6 +1,59 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import AppIcon from '../shared/AppIcon.vue'
+import AICandidateRankingOverlay from '../shared/AICandidateRankingOverlay.vue'
+import AIHiringSuccessPredictionOverlay from '../shared/AIHiringSuccessPredictionOverlay.vue'
+import AIAssessmentInsightsOverlay from '../shared/AIAssessmentInsightsOverlay.vue'
+import AIFeedbackQualityOverlay from '../shared/AIFeedbackQualityOverlay.vue'
+import AIInterviewGapAnalysisOverlay from '../shared/AIInterviewGapAnalysisOverlay.vue'
+import AIInterviewReadinessOverlay from '../shared/AIInterviewReadinessOverlay.vue'
+import AIMatchAnalysisOverlay from '../shared/AIMatchAnalysisOverlay.vue'
+import AIQualificationAnalysisOverlay from '../shared/AIQualificationAnalysisOverlay.vue'
+import AIScreeningSummaryOverlay from '../shared/AIScreeningSummaryOverlay.vue'
+import AIScoreCalibrationOverlay from '../shared/AIScoreCalibrationOverlay.vue'
+import AIScorecardBiasDetectionOverlay from '../shared/AIScorecardBiasDetectionOverlay.vue'
+import AIStageRecommendationOverlay from '../shared/AIStageRecommendationOverlay.vue'
+import AIStrengthsGapsOverlay from '../shared/AIStrengthsGapsOverlay.vue'
+import AIRiskDetectionOverlay from '../shared/AIRiskDetectionOverlay.vue'
+import ActivityLogOverlay from '../shared/ActivityLogOverlay.vue'
+import AssessmentReviewOverlay from '../shared/AssessmentReviewOverlay.vue'
+import AddToTalentPoolOverlay from '../shared/AddToTalentPoolOverlay.vue'
+import AssignInterviewPanelOverlay from '../shared/AssignInterviewPanelOverlay.vue'
+import AssignInterviewKitOverlay from '../shared/AssignInterviewKitOverlay.vue'
+import AssignHiringManagerOverlay from '../shared/AssignHiringManagerOverlay.vue'
+import AddNoteOverlay from '../shared/AddNoteOverlay.vue'
+import AddAssessmentLibraryOverlay from '../shared/AddAssessmentLibraryOverlay.vue'
+import AddTagsOverlay from '../shared/AddTagsOverlay.vue'
+import ArchiveCandidateOverlay from '../shared/ArchiveCandidateOverlay.vue'
+import AssignAssessmentOverlay from '../shared/AssignAssessmentOverlay.vue'
+import AutoDQKnockoutOverlay from '../shared/AutoDQKnockoutOverlay.vue'
+import CheckInterviewerWorkloadOverlay from '../shared/CheckInterviewerWorkloadOverlay.vue'
+import ConfirmAvailabilityOverlay from '../shared/ConfirmAvailabilityOverlay.vue'
+import ConfirmCandidateInterestOverlay from '../shared/ConfirmCandidateInterestOverlay.vue'
+import ConfirmSalaryAlignmentOverlay from '../shared/ConfirmSalaryAlignmentOverlay.vue'
+import InterviewPlanSequenceOverlay from '../shared/InterviewPlanSequenceOverlay.vue'
+import InterviewScorecardOverlay from '../shared/InterviewScorecardOverlay.vue'
+import PutCandidateOnHoldOverlay from '../shared/PutCandidateOnHoldOverlay.vue'
+import RequestFeedbackOverlay from '../shared/RequestFeedbackOverlay.vue'
+import RequestFinalFeedbackOverlay from '../shared/RequestFinalFeedbackOverlay.vue'
+import RequestHiringManagerDecisionOverlay from '../shared/RequestHiringManagerDecisionOverlay.vue'
+import RequestSalaryExpectationOverlay from '../shared/RequestSalaryExpectationOverlay.vue'
+import RejectCandidateOverlay from '../shared/RejectCandidateOverlay.vue'
+import ScheduleHiringManagerReviewOverlay from '../shared/ScheduleHiringManagerReviewOverlay.vue'
+import ScheduleScreeningOverlay from '../shared/ScheduleScreeningOverlay.vue'
+import SendReminderOverlay from '../shared/SendReminderOverlay.vue'
+import ShareCandidateOverlay from '../shared/ShareCandidateOverlay.vue'
+import SendCandidateEmailOverlay from '../shared/SendCandidateEmailOverlay.vue'
+import SuggestedNextActionOverlay from '../shared/SuggestedNextActionOverlay.vue'
+import FinalFeedbackReviewOverlay from '../shared/FinalFeedbackReviewOverlay.vue'
+import CreateHiringDecisionOverlay from '../shared/CreateHiringDecisionOverlay.vue'
+import DecisionReviewOverlay from '../shared/DecisionReviewOverlay.vue'
+import ConfigureInterviewKitOverlay from '../shared/ConfigureInterviewKitOverlay.vue'
+import CandidateComparisonOverlay from '../shared/CandidateComparisonOverlay.vue'
+import ReviewerCalibrationOverlay from '../shared/ReviewerCalibrationOverlay.vue'
+import TrackAssessmentProgressOverlay from '../shared/TrackAssessmentProgressOverlay.vue'
+import ViewFeedbackStatusOverlay from '../shared/ViewFeedbackStatusOverlay.vue'
+import ViewNotesOverlay from '../shared/ViewNotesOverlay.vue'
 import { getJobById } from '../../data/jobs'
 
 const props = defineProps({
@@ -24,7 +77,7 @@ const stageFocusMap = {
   screening: 'screening',
   qualified: 'screening',
   interview: 'interview',
-  shortlisted: 'shortlisted',
+  shortlisted: 'interview',
   assessment: 'assessment',
   validation: 'validation',
   offer: 'offer',
@@ -34,81 +87,501 @@ const stageFocusMap = {
 const activeColumnSlug = computed(() => stageFocusMap[props.focusStage] ?? '')
 const activeBoardView = ref('board')
 const activeAudienceView = ref('recruiter')
-
-const pipelineStagePresets = {
-  applied: { average: '2.1 avg. days', health: 'Healthy', tone: 'green' },
-  new: { average: '2.1 avg. days', health: 'Healthy', tone: 'green' },
-  screening: { average: '3.4 avg. days', health: 'At risk', tone: 'orange' },
-  qualified: { average: '3.4 avg. days', health: 'At risk', tone: 'orange' },
-  interview: { average: '6.2 avg. days', health: 'Bottleneck', tone: 'pink' },
-  shortlisted: { average: '6.2 avg. days', health: 'Bottleneck', tone: 'pink' },
-  assessment: { average: '4.3 avg. days', health: 'Healthy', tone: 'green' },
-  validation: { average: '1.6 avg. days', health: 'Good', tone: 'green' },
-  offer: { average: '1.6 avg. days', health: 'Good', tone: 'green' },
-  hired: { average: 'Latest', health: 'Completed', tone: 'green' },
+const activeStageMenuCandidateId = ref('')
+const activeStageMenuColumnSlug = ref('')
+const addNoteCandidateId = ref('')
+const addNoteOpen = ref(false)
+const viewNotesCandidateId = ref('')
+const viewNotesOpen = ref(false)
+const addTagsCandidateId = ref('')
+const addTagsOpen = ref(false)
+const activityLogCandidateId = ref('')
+const activityLogOpen = ref(false)
+const archiveCandidateCandidateId = ref('')
+const archiveCandidateOpen = ref(false)
+const aiCandidateRankingCandidateId = ref('')
+const aiCandidateRankingOpen = ref(false)
+const aiMatchAnalysisCandidateId = ref('')
+const aiMatchAnalysisOpen = ref(false)
+const aiInterviewGapAnalysisCandidateId = ref('')
+const aiInterviewGapAnalysisOpen = ref(false)
+const aiInterviewReadinessCandidateId = ref('')
+const aiInterviewReadinessOpen = ref(false)
+const aiHiringSuccessPredictionCandidateId = ref('')
+const aiHiringSuccessPredictionOpen = ref(false)
+const aiQualificationCandidateId = ref('')
+const aiQualificationOpen = ref(false)
+const configureInterviewKitCandidateId = ref('')
+const configureInterviewKitOpen = ref(false)
+const aiScreeningSummaryCandidateId = ref('')
+const aiScreeningSummaryOpen = ref(false)
+const aiRiskDetectionCandidateId = ref('')
+const aiRiskDetectionOpen = ref(false)
+const suggestedNextActionCandidateId = ref('')
+const suggestedNextActionOpen = ref(false)
+const finalFeedbackReviewCandidateId = ref('')
+const finalFeedbackReviewOpen = ref(false)
+const createHiringDecisionCandidateId = ref('')
+const createHiringDecisionOpen = ref(false)
+const decisionReviewCandidateId = ref('')
+const decisionReviewOpen = ref(false)
+const aiAssessmentInsightsCandidateId = ref('')
+const aiAssessmentInsightsOpen = ref(false)
+const aiFeedbackQualityCandidateId = ref('')
+const aiFeedbackQualityOpen = ref(false)
+const aiScoreCalibrationCandidateId = ref('')
+const aiScoreCalibrationOpen = ref(false)
+const aiScorecardBiasCandidateId = ref('')
+const aiScorecardBiasOpen = ref(false)
+const aiStageRecommendationCandidateId = ref('')
+const aiStageRecommendationOpen = ref(false)
+const aiStrengthsGapsCandidateId = ref('')
+const aiStrengthsGapsOpen = ref(false)
+const addToTalentPoolCandidateId = ref('')
+const addToTalentPoolOpen = ref(false)
+const assignAssessmentCandidateId = ref('')
+const assignAssessmentOpen = ref(false)
+const addAssessmentLibraryOpen = ref(false)
+const assignInterviewPanelCandidateId = ref('')
+const assignInterviewPanelOpen = ref(false)
+const checkInterviewerWorkloadCandidateId = ref('')
+const checkInterviewerWorkloadOpen = ref(false)
+const interviewPlanSequenceCandidateId = ref('')
+const interviewPlanSequenceOpen = ref(false)
+const interviewPlanSequenceInitialView = ref('auto')
+const assignInterviewKitCandidateId = ref('')
+const assignInterviewKitOpen = ref(false)
+const assignHiringManagerCandidateId = ref('')
+const assignHiringManagerOpen = ref(false)
+const autoDqCandidateId = ref('')
+const autoDqOpen = ref(false)
+const confirmAvailabilityCandidateId = ref('')
+const confirmAvailabilityOpen = ref(false)
+const confirmInterestCandidateId = ref('')
+const confirmInterestOpen = ref(false)
+const confirmSalaryAlignmentCandidateId = ref('')
+const confirmSalaryAlignmentOpen = ref(false)
+const feedbackRequestCandidateId = ref('')
+const feedbackRequestOpen = ref(false)
+const finalFeedbackRequestCandidateId = ref('')
+const finalFeedbackRequestOpen = ref(false)
+const sendReminderCandidateId = ref('')
+const sendReminderOpen = ref(false)
+const assessmentReviewCandidateId = ref('')
+const assessmentReviewOpen = ref(false)
+const candidateComparisonCandidateId = ref('')
+const candidateComparisonOpen = ref(false)
+const reviewerCalibrationCandidateId = ref('')
+const reviewerCalibrationOpen = ref(false)
+const trackAssessmentProgressCandidateId = ref('')
+const trackAssessmentProgressOpen = ref(false)
+const interviewScorecardCandidateId = ref('')
+const interviewScorecardOpen = ref(false)
+const feedbackStatusCandidateId = ref('')
+const feedbackStatusOpen = ref(false)
+const feedbackStatusInitialTab = ref('status')
+const putOnHoldCandidateId = ref('')
+const putOnHoldOpen = ref(false)
+const requestSalaryCandidateId = ref('')
+const requestSalaryOpen = ref(false)
+const requestHmDecisionCandidateId = ref('')
+const requestHmDecisionOpen = ref(false)
+const rejectCandidateCandidateId = ref('')
+const rejectCandidateOpen = ref(false)
+const scheduleHmReviewCandidateId = ref('')
+const scheduleHmReviewOpen = ref(false)
+const scheduleScreeningCandidateId = ref('')
+const scheduleScreeningOpen = ref(false)
+const sendEmailCandidateId = ref('')
+const sendEmailOpen = ref(false)
+const shareCandidateCandidateId = ref('')
+const shareCandidateOpen = ref(false)
+const stageMenuPosition = ref({ top: 0, left: 0 })
+const boardVisibleCandidateTotal = 48
+const stageMenuConfigs = {
+  applied: {
+    number: '1',
+    title: 'New (Applied)',
+    subtitle: 'Capture & engage',
+    badgeStyle: 'linear-gradient(180deg, #6d5cff 0%, #4f46e5 100%)',
+    sections: [
+      {
+        title: 'Quick Actions',
+        items: [
+          { label: 'Move to Qualified', icon: 'file-description' },
+          { label: 'Schedule Screening', icon: 'calendar' },
+          { label: 'Send Email', icon: 'mail' },
+        ],
+      },
+      {
+        title: 'Smart Actions',
+        items: [
+          { label: 'Confirm Interest', icon: 'user' },
+          { label: 'Request Availability', icon: 'clipboard-check' },
+          { label: 'Request Salary Expectations', icon: 'wallet' },
+          { label: 'Auto DQ / Knockout', icon: 'alert' },
+          { label: 'Add to Talent Pool', icon: 'archive' },
+        ],
+      },
+      {
+        title: 'Actions',
+        accent: true,
+        items: [
+          { label: 'AI Match Analysis', icon: 'spark' },
+          { label: 'AI Candidate Ranking', icon: 'compare' },
+          { label: 'AI Risk Detection', icon: 'alert' },
+          { label: 'Suggested Next Action', icon: 'spark' },
+        ],
+      },
+      {
+        title: 'More Actions ( )',
+        items: [
+          { label: 'View Profile', icon: 'eye' },
+          { label: 'Add Tags', icon: 'tag' },
+          { label: 'Add Note', icon: 'edit' },
+          { label: 'View Notes', icon: 'document' },
+          { label: 'Share Candidate', icon: 'share' },
+          { label: 'Put On Hold', icon: 'pause' },
+          { label: 'Reject Candidate', icon: 'close', tone: 'danger' },
+          { label: 'Archive Candidate', icon: 'archive' },
+          { label: 'Activity Log', icon: 'clock' },
+        ],
+      },
+    ],
+  },
+  screening: {
+    number: '2',
+    title: 'Qualified',
+    subtitle: 'Validate & align',
+    badgeStyle: 'linear-gradient(180deg, #27b0ff 0%, #1d8df1 100%)',
+    sections: [
+      {
+        title: 'Quick Actions',
+        items: [
+          { label: 'Move to Shortlisted', icon: 'file-description' },
+          { label: 'Schedule HM Review', icon: 'calendar' },
+          { label: 'Request HM Review', icon: 'users' },
+          { label: 'Send Email', icon: 'mail' },
+        ],
+      },
+      {
+        title: 'Smart Actions',
+        items: [
+          { label: 'Assign Hiring Manager', icon: 'team-gear' },
+          { label: 'Confirm Availability', icon: 'clipboard-check' },
+          { label: 'Confirm Salary Alignment', icon: 'wallet' },
+          { label: 'Conduct Screening Call', icon: 'phone' },
+          { label: 'Add Notes & Tags', icon: 'plus' },
+        ],
+      },
+      {
+        title: 'Actions',
+        accent: true,
+        items: [
+          { label: 'AI Hiring Success Prediction', icon: 'sparkles' },
+          { label: 'AI Qualification Score', icon: 'spark' },
+          { label: 'AI Screening Summary', icon: 'document' },
+          { label: 'Recommended Next Step', icon: 'sparkles' },
+          { label: 'AI Hiring Manager Match', icon: 'compare' },
+        ],
+      },
+      {
+        title: 'More Actions ( )',
+        items: [
+          { label: 'View Profile', icon: 'eye' },
+          { label: 'Add Tags', icon: 'tag' },
+          { label: 'Add Note', icon: 'edit' },
+          { label: 'View Note', icon: 'document' },
+          { label: 'Submit Feedback', icon: 'document' },
+          { label: 'View Feedback', icon: 'document' },
+          { label: 'Share Candidate', icon: 'share' },
+          { label: 'Put On Hold', icon: 'pause' },
+          { label: 'Reject Candidate', icon: 'close', tone: 'danger' },
+          { label: 'Archive Candidate', icon: 'archive' },
+          { label: 'Activity Log', icon: 'clock' },
+        ],
+      },
+    ],
+  },
+  interview: {
+    number: '3',
+    title: 'Shortlisted',
+    subtitle: 'Prepare for interviews',
+    badgeStyle: 'linear-gradient(180deg, #4c7cff 0%, #3568f6 100%)',
+    sections: [
+      {
+        title: 'Quick Actions',
+        items: [
+          { label: 'Schedule Interview', icon: 'calendar' },
+          { label: 'Move to Assessment', icon: 'file-description' },
+          { label: 'Share Candidate', icon: 'share' },
+          { label: 'Send Email', icon: 'mail' },
+          { label: '...', icon: 'more', disabled: true },
+        ],
+      },
+      {
+        title: 'Smart Actions',
+        items: [
+          { label: 'Assign Interview Panel', icon: 'users' },
+          { label: 'Assign Interview Kit', icon: 'document' },
+          { label: 'Request Candidate Availability', icon: 'clipboard-check' },
+          { label: 'Interview Plan & Sequence', icon: 'calendar' },
+          { label: 'Check Interviewer Workload', icon: 'clock' },
+          { label: 'Assign Assessment', icon: 'target' },
+        ],
+      },
+      {
+        title: 'Feedback Actions',
+        items: [
+          { label: 'Submit Feedback', icon: 'document' },
+          { label: 'Request Feedback', icon: 'mail' },
+          { label: 'View Feedback Status', icon: 'document' },
+          { label: 'Send Reminder', icon: 'bell' },
+        ],
+      },
+      {
+        title: 'Actions',
+        accent: true,
+        items: [
+          { label: 'AI Interview Readiness', icon: 'spark' },
+          { label: 'AI Interview Gap Analysis', icon: 'compare' },
+          { label: 'AI Interview Panel Review', icon: 'users' },
+          { label: 'AI Interview Kit Review', icon: 'document' },
+          { label: 'Suggested Next Action', icon: 'sparkles' },
+        ],
+      },
+      {
+        title: 'More Actions ( )',
+        items: [
+          { label: 'View Profile', icon: 'eye' },
+          { label: 'Compare Candidate', icon: 'compare' },
+          { label: 'Add to Talent Pool', icon: 'archive' },
+          { label: 'Add Feedback', icon: 'edit' },
+          { label: 'View Feedback', icon: 'document' },
+          { label: 'Add Note', icon: 'edit' },
+          { label: 'View Note', icon: 'document' },
+          { label: 'Put On Hold', icon: 'pause' },
+          { label: 'Reject Candidate', icon: 'close', tone: 'danger' },
+          { label: 'Activity Log', icon: 'clock' },
+        ],
+      },
+    ],
+  },
+  assessment: {
+    number: '4',
+    title: 'Assessment',
+    subtitle: 'Evaluate & collect data',
+    badgeStyle: 'linear-gradient(180deg, #2ec9df 0%, #1ea8c7 100%)',
+    sections: [
+      {
+        title: 'Quick Actions',
+        items: [
+          { label: 'Move to Validation', icon: 'file-description' },
+          { label: 'Assign Assessment', icon: 'target' },
+          { label: 'Assessment Review', icon: 'document' },
+          { label: 'Share Candidate', icon: 'share' },
+          { label: 'View Interview Scorecards', icon: 'clipboard-check' },
+        ],
+      },
+      {
+        title: 'Smart Actions',
+        items: [
+          { label: 'Track Assessment Progress', icon: 'clock' },
+          { label: 'Candidate Comparison', icon: 'compare' },
+          { label: 'Reviewer Calibration', icon: 'users' },
+        ],
+      },
+      {
+        title: 'Feedback Actions',
+        items: [
+          { label: 'Request Feedback', icon: 'mail' },
+          { label: 'Send Reminder', icon: 'bell' },
+          { label: 'Add Internal Feedback', icon: 'edit' },
+        ],
+      },
+      {
+        title: 'Actions',
+        accent: true,
+        items: [
+          { label: 'AI Assessment Insights', icon: 'spark' },
+          { label: 'AI Strengths & Gaps', icon: 'compare' },
+          { label: 'AI Hiring Recommendation', icon: 'sparkles' },
+          { label: 'AI Score Calibration', icon: 'target' },
+          { label: 'AI Feedback Quality', icon: 'document' },
+          { label: 'AI Scorecard Bias Detection', icon: 'alert' },
+          { label: 'AI Stage Recommendation', icon: 'sparkles' },
+        ],
+      },
+      {
+        title: 'More Actions ( )',
+        items: [
+          { label: 'View Profile', icon: 'eye' },
+          { label: 'Compare Candidate', icon: 'compare' },
+          { label: 'Assessment History', icon: 'clock' },
+          { label: 'Put On Hold', icon: 'pause' },
+          { label: 'Add Note', icon: 'edit' },
+          { label: 'View Note', icon: 'document' },
+          { label: 'View Feedback', icon: 'document' },
+          { label: 'Reject Candidate', icon: 'close', tone: 'danger' },
+          { label: 'Activity Log', icon: 'clock' },
+        ],
+      },
+    ],
+  },
+  validation: {
+    number: '5',
+    title: 'Validation',
+    subtitle: 'Make the decision',
+    badgeStyle: 'linear-gradient(180deg, #26c281 0%, #0ea768 100%)',
+    sections: [
+      {
+        title: 'Quick Actions',
+        items: [
+          { label: 'Move to Offer', icon: 'file-description' },
+          { label: 'Review Final Feedback', icon: 'document' },
+          { label: 'Create Hiring Decision', icon: 'document' },
+          { label: 'Schedule Final Meeting', icon: 'calendar' },
+          { label: '...', icon: 'more', disabled: true },
+        ],
+      },
+      {
+        title: 'Decision Actions',
+        items: [
+          { label: 'Request Final Feedback', icon: 'mail' },
+          { label: 'Decision Review', icon: 'users' },
+          { label: 'Hiring Committee Review', icon: 'users' },
+          { label: 'Select Backup Candidate', icon: 'compare' },
+          { label: 'Offer Readiness Checklist', icon: 'clipboard-check' },
+        ],
+      },
+      {
+        title: 'Compliance Actions',
+        items: [
+          { label: 'Request References', icon: 'mail' },
+          { label: 'Review References', icon: 'document' },
+          { label: 'Background Check', icon: 'shield' },
+          { label: 'Review Background', icon: 'document' },
+        ],
+      },
+      {
+        title: 'Actions',
+        accent: true,
+        items: [
+          { label: 'AI Hiring Recommendation', icon: 'sparkles' },
+          { label: 'AI Decision Summary', icon: 'document' },
+          { label: 'AI Confidence Breakdown', icon: 'target' },
+          { label: 'AI Risk Analysis', icon: 'alert' },
+          { label: 'AI Consensus Analysis', icon: 'users' },
+          { label: 'AI Compare Finalists', icon: 'compare' },
+        ],
+      },
+      {
+        title: 'More Actions ( )',
+        items: [
+          { label: 'View Profile', icon: 'eye' },
+          { label: 'Compare Candidate', icon: 'compare' },
+          { label: 'Put On Hold', icon: 'pause' },
+          { label: 'View Feedback', icon: 'document' },
+          { label: 'View Note', icon: 'document' },
+          { label: 'Add Note', icon: 'edit' },
+          { label: 'Add Feedback', icon: 'edit' },
+          { label: 'Reject Candidate', icon: 'close', tone: 'danger' },
+          { label: 'Activity Log', icon: 'clock' },
+        ],
+      },
+    ],
+  },
 }
-
-const pipelineStageCandidates = {
-  applied: [
-    { name: 'Ava Martinez', role: 'Product Designer', source: 'Dribbble', match: '92% match', note: 'Added 2 days ago' },
-    { name: 'Liam Anderson', role: 'UX Designer', source: 'Behance', match: '88% match', note: 'Added 3 days ago' },
-    { name: 'Noah Williams', role: 'Product Designer', source: 'LinkedIn', match: '78% match', note: 'Added 5 days ago' },
-  ],
-  screening: [
-    { name: 'Isabella Chen', role: 'UX Designer', source: 'Airbnb', match: '90% match', note: 'Review pending' },
-    { name: 'James Wilson', role: 'Product Designer', source: 'Google', match: '85% match', note: 'Review pending' },
-    { name: 'Mia Brown', role: 'UX Designer', source: 'Meta', match: '80% match', note: 'Review pending' },
-  ],
-  interview: [
-    { name: 'Ethan Johnson', role: 'Senior UX Designer', source: 'Spotify', match: '93% match', note: 'Interview tomorrow' },
-    { name: 'Olivia Davis', role: 'UX Designer', source: 'Shopify', match: '91% match', note: 'Interview in 3 days' },
-    { name: 'Benjamin Lee', role: 'Product Designer', source: 'Adobe', match: '78% match', note: 'Interview in 3 days' },
-  ],
-  shortlisted: [
-    { name: 'Ethan Johnson', role: 'Senior UX Designer', source: 'Spotify', match: '93% match', note: 'Interview tomorrow' },
-    { name: 'Olivia Davis', role: 'UX Designer', source: 'Shopify', match: '91% match', note: 'Interview in 3 days' },
-    { name: 'Benjamin Lee', role: 'Product Designer', source: 'Adobe', match: '78% match', note: 'Interview in 3 days' },
-  ],
-  assessment: [
-    { name: 'Charlotte Taylor', role: 'UX Designer', source: 'Microsoft', match: '92% match', note: 'Assessment due tomorrow' },
-    { name: 'Daniel Harris', role: 'Product Designer', source: 'Amazon', match: '84% match', note: 'Assessment due in 2 days' },
-  ],
-  validation: [
-    { name: 'Amelia Clark', role: 'Senior UX Designer', source: 'Monzo', match: '95% match', note: 'Offer sent' },
-    { name: 'Lucas Rodriguez', role: 'UX Designer', source: 'Revolut', match: '89% match', note: 'Offer sent' },
-  ],
-  offer: [
-    { name: 'Amelia Clark', role: 'Senior UX Designer', source: 'Monzo', match: '95% match', note: 'Offer sent' },
-    { name: 'Lucas Rodriguez', role: 'UX Designer', source: 'Revolut', match: '89% match', note: 'Offer sent' },
-  ],
-  hired: [
-    { name: 'Grace Hall', role: 'Senior UX Designer', source: 'Wise', match: '', note: 'Joined 2 days ago' },
-  ],
-}
-
-function normalizePipelineStage(label = '') {
-  return label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-}
+const pipelineBoardTemplate = [
+  {
+    slug: 'applied',
+    title: 'NEW (APPLIED)',
+    countLabel: '142',
+    tone: 'slate',
+    selectAllChecked: false,
+    cards: [
+      { name: 'Ava Martinez', role: 'Product Designer', match: '92% match', matchTone: 'green', note: 'Added 2 days ago', noteTone: 'slate' },
+      { name: 'Liam Anderson', role: 'UX Designer', match: '88% match', matchTone: 'green', note: 'Added 1 day ago', noteTone: 'slate' },
+      { name: 'Noah Williams', role: 'Product Designer', match: '76% match', matchTone: 'orange', note: 'Added 5 days ago', noteTone: 'slate' },
+    ],
+  },
+  {
+    slug: 'screening',
+    title: 'QUALIFIED',
+    countLabel: '54',
+    tone: 'pink',
+    selectAllChecked: false,
+    cards: [
+      { name: 'Isabella Chen', role: 'UX Designer', match: '90% match', matchTone: 'green', note: 'Review pending', noteTone: 'orange', selected: true, hasAiScreeningSummary: true },
+      { name: 'James Wilson', role: 'Product Designer', match: '85% match', matchTone: 'green', note: 'Review pending', noteTone: 'orange', selected: true, hasAiScreeningSummary: false },
+    ],
+  },
+  {
+    slug: 'interview',
+    title: 'SHORTLISTED',
+    countLabel: '18',
+    tone: 'violet',
+    selectAllChecked: true,
+    cards: [
+      { name: 'Ethan Johnson', role: 'Senior UX Designer', match: '93% match', matchTone: 'green', note: 'Interview tomorrow', noteTone: 'blue', selected: true, hasAssignedInterviewPanel: true, hasInterviewPlanConfigured: true },
+      { name: 'Olivia Davis', role: 'UX Designer', match: '91% match', matchTone: 'green', note: 'Interview in 3 days', noteTone: 'blue', selected: true, hasInterviewPlanConfigured: false },
+      { name: 'Benjamin Lee', role: 'Product Designer', match: '78% match', matchTone: 'green', note: 'Interview in 3 days', noteTone: 'blue', selected: true, hasInterviewPlanConfigured: true },
+    ],
+  },
+  {
+    slug: 'assessment',
+    title: 'ASSESSMENT',
+    countLabel: '10',
+    tone: 'blue',
+    selectAllChecked: false,
+    cards: [
+      { name: 'Charlotte Taylor', role: 'UX Designer', match: '92% match', matchTone: 'green', note: 'Assessment due tomorrow', noteTone: 'orange' },
+      { name: 'Daniel Harris', role: 'Product Designer', match: '84% match', matchTone: 'green', note: 'Assessment due in 2 days', noteTone: 'orange' },
+    ],
+  },
+  {
+    slug: 'validation',
+    title: 'DECISION',
+    countLabel: '5',
+    tone: 'violet',
+    selectAllChecked: false,
+    cards: [
+      { name: 'Amelia Clark', role: 'Senior UX Designer', match: '95% match', matchTone: 'green', note: 'References complete', noteTone: 'green' },
+      { name: 'Lucas Rodriguez', role: 'UX Designer', match: '89% match', matchTone: 'green', note: 'Background check clear', noteTone: 'blue' },
+    ],
+  },
+  {
+    slug: 'offer',
+    title: 'OFFER',
+    countLabel: '5',
+    tone: 'green',
+    selectAllChecked: false,
+    cards: [
+      { name: 'Grace Hall', role: 'Senior UX Designer', match: '', matchTone: 'green', note: 'Offer sent', noteTone: 'green' },
+      { name: 'Mason White', role: 'UX Designer', match: '', matchTone: 'green', note: 'Awaiting approval', noteTone: 'orange' },
+    ],
+  },
+  {
+    slug: 'hired',
+    title: 'HIRED',
+    countLabel: '5',
+    tone: 'green',
+    selectAllChecked: false,
+    cards: [
+      { name: 'Ethan Scott', role: 'UX Designer', match: '', matchTone: 'green', note: 'Starts in 7 days', noteTone: 'blue' },
+      { name: 'Sophie Moore', role: 'UX Designer', match: '', matchTone: 'green', note: 'Onboarding', noteTone: 'blue' },
+    ],
+  },
+]
 
 function createPipelineBoard() {
-  return (job.value?.pipeline ?? []).map((stage, stageIndex) => {
-    const slug = normalizePipelineStage(stage.label)
-    const preset = pipelineStagePresets[slug] ?? { average: '2.0 avg. days', health: 'Active', tone: 'green' }
-    const seededCards = (pipelineStageCandidates[slug] ?? []).slice(0, Math.max(0, Math.min(stage.value, 3)))
-
-    return {
-      slug,
-      title: stage.label,
-      count: stage.value ?? 0,
-      average: preset.average,
-      health: preset.health,
-      tone: preset.tone,
-      cards: seededCards.map((candidate, candidateIndex) => ({
-        id: `${slug}-${stageIndex}-${candidateIndex}`,
-        ...candidate,
-      })),
-    }
-  })
+  return pipelineBoardTemplate.map((column, columnIndex) => ({
+    ...column,
+    cards: column.cards.map((candidate, candidateIndex) => ({
+      id: `${column.slug}-${columnIndex}-${candidateIndex}`,
+      ...candidate,
+    })),
+  }))
 }
 
 const pipelineBoard = ref(createPipelineBoard())
@@ -125,10 +598,137 @@ watch(job, () => {
   dragOverColumnSlug.value = ''
   draggedColumnSlug.value = ''
   columnDragOverSlug.value = ''
+  activeStageMenuCandidateId.value = ''
+  activeStageMenuColumnSlug.value = ''
+  addNoteCandidateId.value = ''
+  addNoteOpen.value = false
+  viewNotesCandidateId.value = ''
+  viewNotesOpen.value = false
+  addTagsCandidateId.value = ''
+  addTagsOpen.value = false
+  activityLogCandidateId.value = ''
+  activityLogOpen.value = false
+  archiveCandidateCandidateId.value = ''
+  archiveCandidateOpen.value = false
+  aiCandidateRankingCandidateId.value = ''
+  aiCandidateRankingOpen.value = false
+  aiMatchAnalysisCandidateId.value = ''
+  aiMatchAnalysisOpen.value = false
+  aiInterviewGapAnalysisCandidateId.value = ''
+  aiInterviewGapAnalysisOpen.value = false
+  aiInterviewReadinessCandidateId.value = ''
+  aiInterviewReadinessOpen.value = false
+  aiHiringSuccessPredictionCandidateId.value = ''
+  aiHiringSuccessPredictionOpen.value = false
+  aiQualificationCandidateId.value = ''
+  aiQualificationOpen.value = false
+  configureInterviewKitCandidateId.value = ''
+  configureInterviewKitOpen.value = false
+  aiScreeningSummaryCandidateId.value = ''
+  aiScreeningSummaryOpen.value = false
+  aiRiskDetectionCandidateId.value = ''
+  aiRiskDetectionOpen.value = false
+  suggestedNextActionCandidateId.value = ''
+  suggestedNextActionOpen.value = false
+  finalFeedbackReviewCandidateId.value = ''
+  finalFeedbackReviewOpen.value = false
+  aiAssessmentInsightsCandidateId.value = ''
+  aiAssessmentInsightsOpen.value = false
+  aiFeedbackQualityCandidateId.value = ''
+  aiFeedbackQualityOpen.value = false
+  aiScoreCalibrationCandidateId.value = ''
+  aiScoreCalibrationOpen.value = false
+  aiScorecardBiasCandidateId.value = ''
+  aiScorecardBiasOpen.value = false
+  aiStageRecommendationCandidateId.value = ''
+  aiStageRecommendationOpen.value = false
+  aiStrengthsGapsCandidateId.value = ''
+  aiStrengthsGapsOpen.value = false
+  addToTalentPoolCandidateId.value = ''
+  addToTalentPoolOpen.value = false
+  assignAssessmentCandidateId.value = ''
+  assignAssessmentOpen.value = false
+  addAssessmentLibraryOpen.value = false
+  assignInterviewPanelCandidateId.value = ''
+  assignInterviewPanelOpen.value = false
+  checkInterviewerWorkloadCandidateId.value = ''
+  checkInterviewerWorkloadOpen.value = false
+  interviewPlanSequenceCandidateId.value = ''
+  interviewPlanSequenceOpen.value = false
+  interviewPlanSequenceInitialView.value = 'auto'
+  assignInterviewKitCandidateId.value = ''
+  assignInterviewKitOpen.value = false
+  assignHiringManagerCandidateId.value = ''
+  assignHiringManagerOpen.value = false
+  autoDqCandidateId.value = ''
+  autoDqOpen.value = false
+  confirmAvailabilityCandidateId.value = ''
+  confirmAvailabilityOpen.value = false
+  confirmInterestCandidateId.value = ''
+  confirmInterestOpen.value = false
+  confirmSalaryAlignmentCandidateId.value = ''
+  confirmSalaryAlignmentOpen.value = false
+  feedbackRequestCandidateId.value = ''
+  feedbackRequestOpen.value = false
+  sendReminderCandidateId.value = ''
+  sendReminderOpen.value = false
+  assessmentReviewCandidateId.value = ''
+  assessmentReviewOpen.value = false
+  candidateComparisonCandidateId.value = ''
+  candidateComparisonOpen.value = false
+  reviewerCalibrationCandidateId.value = ''
+  reviewerCalibrationOpen.value = false
+  trackAssessmentProgressCandidateId.value = ''
+  trackAssessmentProgressOpen.value = false
+  interviewScorecardCandidateId.value = ''
+  interviewScorecardOpen.value = false
+  feedbackStatusCandidateId.value = ''
+  feedbackStatusOpen.value = false
+  feedbackStatusInitialTab.value = 'status'
+  putOnHoldCandidateId.value = ''
+  putOnHoldOpen.value = false
+  requestSalaryCandidateId.value = ''
+  requestSalaryOpen.value = false
+  requestHmDecisionCandidateId.value = ''
+  requestHmDecisionOpen.value = false
+  decisionReviewCandidateId.value = ''
+  decisionReviewOpen.value = false
+  rejectCandidateCandidateId.value = ''
+  rejectCandidateOpen.value = false
+  scheduleHmReviewCandidateId.value = ''
+  scheduleHmReviewOpen.value = false
+  scheduleScreeningCandidateId.value = ''
+  scheduleScreeningOpen.value = false
+  sendEmailCandidateId.value = ''
+  sendEmailOpen.value = false
+  shareCandidateCandidateId.value = ''
+  shareCandidateOpen.value = false
 })
 
 const pipelineColumns = computed(() => pipelineBoard.value)
-const visiblePipelineCandidateCount = computed(() => pipelineColumns.value.reduce((total, column) => total + column.count, 0))
+const visiblePipelineCandidateCount = computed(() => boardVisibleCandidateTotal)
+const activeStageMenuCandidate = computed(() => findCandidateById(activeStageMenuCandidateId.value))
+const activeStageMenuConfig = computed(() => {
+  const baseConfig = stageMenuConfigs[activeStageMenuColumnSlug.value] ?? stageMenuConfigs.applied
+
+  return {
+    ...baseConfig,
+    sections: baseConfig.sections.map((section) => ({
+      ...section,
+      items: section.items.filter((item) => (
+        item.label !== 'AI Screening Summary' || Boolean(activeStageMenuCandidate.value?.hasAiScreeningSummary)
+      )),
+    })),
+  }
+})
+
+function hasStageMenu(columnSlug) {
+  return columnSlug === 'applied'
+    || columnSlug === 'screening'
+    || columnSlug === 'interview'
+    || columnSlug === 'assessment'
+    || columnSlug === 'validation'
+}
 
 function onCandidateDragStart(columnSlug, candidateId) {
   draggedFromColumnSlug.value = columnSlug
@@ -204,8 +804,6 @@ function onColumnDrop(columnSlug) {
   }
 
   targetColumn.cards.push(candidate)
-  sourceColumn.count = Math.max(sourceColumn.cards.length, sourceColumn.count - 1)
-  targetColumn.count += 1
 
   onCandidateDragEnd()
 }
@@ -221,6 +819,1837 @@ function onColumnHandleDragStart(columnSlug) {
 function onColumnDragEnd() {
   draggedColumnSlug.value = ''
   columnDragOverSlug.value = ''
+}
+
+function updateStageMenuPosition(anchorRect) {
+  const menuWidth = 292
+  const viewportPadding = 16
+  const preferredLeft = anchorRect.right - menuWidth
+  const clampedLeft = Math.max(viewportPadding, Math.min(preferredLeft, window.innerWidth - menuWidth - viewportPadding))
+  const clampedTop = Math.max(96, Math.min(anchorRect.top - 6, window.innerHeight - 120))
+
+  stageMenuPosition.value = {
+    top: clampedTop,
+    left: clampedLeft,
+  }
+}
+
+function toggleStageMenu(candidateId, columnSlug, event) {
+  if (activeStageMenuCandidateId.value === candidateId) {
+    closeStageMenu()
+    return
+  }
+
+  const anchor = event?.currentTarget
+
+  if (anchor instanceof Element) {
+    updateStageMenuPosition(anchor.getBoundingClientRect())
+  }
+
+  activeStageMenuColumnSlug.value = columnSlug
+  activeStageMenuCandidateId.value = candidateId
+}
+
+function closeStageMenu() {
+  activeStageMenuCandidateId.value = ''
+  activeStageMenuColumnSlug.value = ''
+}
+
+function findCandidateById(candidateId) {
+  for (const column of pipelineBoard.value) {
+    const candidate = column.cards.find((item) => item.id === candidateId)
+
+    if (candidate) {
+      return candidate
+    }
+  }
+
+  return null
+}
+
+function moveCandidateToColumn(candidateId, targetColumnSlug) {
+  if (!candidateId) {
+    return false
+  }
+
+  const sourceColumn = pipelineBoard.value.find((column) => column.cards.some((candidate) => candidate.id === candidateId))
+  const targetColumn = pipelineBoard.value.find((column) => column.slug === targetColumnSlug)
+
+  if (!sourceColumn || !targetColumn || sourceColumn.slug === targetColumnSlug) {
+    return false
+  }
+
+  const candidateIndex = sourceColumn.cards.findIndex((candidate) => candidate.id === candidateId)
+
+  if (candidateIndex === -1) {
+    return false
+  }
+
+  const [candidate] = sourceColumn.cards.splice(candidateIndex, 1)
+
+  if (!candidate) {
+    return false
+  }
+
+  targetColumn.cards.unshift(candidate)
+  closeStageMenu()
+  return true
+}
+
+function setCandidateInterviewPanelAssigned(candidateId, assigned = true) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  candidate.hasAssignedInterviewPanel = assigned
+}
+
+function setCandidateInterviewSequenceAssigned(candidateId, assigned = true) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  candidate.hasAssignedInterviewSequence = assigned
+}
+
+function getCandidateStageById(candidateId, fallback = 'Interview') {
+  for (const column of pipelineBoard.value) {
+    const candidate = column.cards.find((item) => item.id === candidateId)
+
+    if (candidate) {
+      if (column.slug === 'applied') return 'Applied'
+      if (column.slug === 'screening') return 'Qualified'
+      if (column.slug === 'interview') return 'Interview'
+      if (column.slug === 'assessment') return 'Assessment'
+      if (column.slug === 'validation') return 'Decision'
+      if (column.slug === 'offer') return 'Offer'
+      if (column.slug === 'hired') return 'Hired'
+    }
+  }
+
+  return fallback
+}
+
+const selectedScheduleCandidate = computed(() => (
+  findCandidateById(scheduleScreeningCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'applied')?.cards[0]
+  ?? null
+))
+
+const selectedConfirmInterestCandidate = computed(() => (
+  findCandidateById(confirmInterestCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'applied')?.cards[0]
+  ?? null
+))
+
+const selectedConfirmAvailabilityCandidate = computed(() => (
+  findCandidateById(confirmAvailabilityCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'screening')?.cards[0]
+  ?? null
+))
+
+const selectedConfirmSalaryAlignmentCandidate = computed(() => (
+  findCandidateById(confirmSalaryAlignmentCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'screening')?.cards[0]
+  ?? null
+))
+
+const selectedAutoDqCandidate = computed(() => (
+  findCandidateById(autoDqCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'applied')?.cards[0]
+  ?? null
+))
+
+const selectedTalentPoolCandidate = computed(() => (
+  findCandidateById(addToTalentPoolCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'applied')?.cards[0]
+  ?? null
+))
+
+const selectedAiAssessmentInsightsCandidate = computed(() => (
+  findCandidateById(aiAssessmentInsightsCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]
+  ?? pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]
+  ?? null
+))
+
+const selectedAiFeedbackQualityCandidate = computed(() => (
+  findCandidateById(aiFeedbackQualityCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]
+  ?? pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]
+  ?? null
+))
+
+const selectedAiScoreCalibrationCandidate = computed(() => (
+  findCandidateById(aiScoreCalibrationCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]
+  ?? pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]
+  ?? null
+))
+
+const selectedAiScorecardBiasCandidate = computed(() => (
+  findCandidateById(aiScorecardBiasCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]
+  ?? pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]
+  ?? null
+))
+
+const selectedAiStageRecommendationCandidate = computed(() => (
+  findCandidateById(aiStageRecommendationCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]
+  ?? pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]
+  ?? null
+))
+
+const selectedAiStrengthsGapsCandidate = computed(() => (
+  findCandidateById(aiStrengthsGapsCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]
+  ?? pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]
+  ?? null
+))
+
+const selectedAssignHiringManagerCandidate = computed(() => (
+  findCandidateById(assignHiringManagerCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'screening')?.cards[0]
+  ?? null
+))
+
+const selectedAssignAssessmentCandidate = computed(() => (
+  findCandidateById(assignAssessmentCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]
+  ?? pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]
+  ?? null
+))
+
+const selectedAssignInterviewPanelCandidate = computed(() => (
+  findCandidateById(assignInterviewPanelCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]
+  ?? null
+))
+
+const selectedCheckInterviewerWorkloadCandidate = computed(() => (
+  findCandidateById(checkInterviewerWorkloadCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]
+  ?? null
+))
+
+const selectedInterviewPlanSequenceCandidate = computed(() => (
+  findCandidateById(interviewPlanSequenceCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]
+  ?? null
+))
+
+const selectedAssignInterviewKitCandidate = computed(() => (
+  findCandidateById(assignInterviewKitCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]
+  ?? null
+))
+
+const selectedRequestSalaryCandidate = computed(() => (
+  findCandidateById(requestSalaryCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'applied')?.cards[0]
+  ?? null
+))
+
+const selectedRequestHmDecisionCandidate = computed(() => (
+  findCandidateById(requestHmDecisionCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'screening')?.cards[0]
+  ?? null
+))
+
+const selectedDecisionReviewCandidate = computed(() => (
+  findCandidateById(decisionReviewCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]
+  ?? null
+))
+
+const selectedPutOnHoldCandidate = computed(() => (
+  findCandidateById(putOnHoldCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'applied')?.cards[0]
+  ?? null
+))
+
+const selectedEmailCandidate = computed(() => (
+  findCandidateById(sendEmailCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'applied')?.cards[0]
+  ?? null
+))
+
+const selectedAiMatchCandidate = computed(() => (
+  findCandidateById(aiMatchAnalysisCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'applied')?.cards[0]
+  ?? null
+))
+
+const selectedAiInterviewGapAnalysisCandidate = computed(() => (
+  findCandidateById(aiInterviewGapAnalysisCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]
+  ?? null
+))
+
+const selectedAiQualificationCandidate = computed(() => (
+  findCandidateById(aiQualificationCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'screening')?.cards[0]
+  ?? null
+))
+
+const selectedAiInterviewReadinessCandidate = computed(() => (
+  findCandidateById(aiInterviewReadinessCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'screening')?.cards[0]
+  ?? null
+))
+
+const selectedConfigureInterviewKitCandidate = computed(() => (
+  findCandidateById(configureInterviewKitCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]
+  ?? null
+))
+
+const selectedAiHiringSuccessPredictionCandidate = computed(() => (
+  findCandidateById(aiHiringSuccessPredictionCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'screening')?.cards[0]
+  ?? null
+))
+
+const selectedAiScreeningSummaryCandidate = computed(() => (
+  findCandidateById(aiScreeningSummaryCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'screening')?.cards.find((candidate) => candidate.hasAiScreeningSummary)
+  ?? pipelineBoard.value.find((column) => column.slug === 'screening')?.cards[0]
+  ?? null
+))
+
+const selectedAiCandidateRankingCandidate = computed(() => (
+  findCandidateById(aiCandidateRankingCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'applied')?.cards[0]
+  ?? null
+))
+
+const selectedAiCandidateRankingStage = computed(() => getCandidateStageById(aiCandidateRankingCandidateId.value))
+
+const selectedSuggestedNextActionCandidate = computed(() => (
+  findCandidateById(suggestedNextActionCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'applied')?.cards[0]
+  ?? null
+))
+
+const selectedSuggestedNextActionStage = computed(() => getCandidateStageById(suggestedNextActionCandidateId.value))
+
+const selectedFinalFeedbackReviewCandidate = computed(() => (
+  findCandidateById(finalFeedbackReviewCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]
+  ?? null
+))
+
+const selectedCreateHiringDecisionCandidate = computed(() => (
+  findCandidateById(createHiringDecisionCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]
+  ?? null
+))
+
+const selectedAiRiskDetectionCandidate = computed(() => (
+  findCandidateById(aiRiskDetectionCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'applied')?.cards[0]
+  ?? null
+))
+
+const selectedAiRiskDetectionStage = computed(() => getCandidateStageById(aiRiskDetectionCandidateId.value))
+
+const selectedAddNoteCandidate = computed(() => (
+  findCandidateById(addNoteCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'applied')?.cards[0]
+  ?? null
+))
+
+const selectedViewNotesCandidate = computed(() => (
+  findCandidateById(viewNotesCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]
+  ?? null
+))
+
+const selectedAddNoteStage = computed(() => `${getCandidateStageById(addNoteCandidateId.value)} Stage`)
+const selectedViewNotesStage = computed(() => `${getCandidateStageById(viewNotesCandidateId.value)} Stage`)
+
+const selectedShareCandidate = computed(() => (
+  findCandidateById(shareCandidateCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'applied')?.cards[0]
+  ?? null
+))
+
+const selectedArchiveCandidate = computed(() => (
+  findCandidateById(archiveCandidateCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'applied')?.cards[0]
+  ?? null
+))
+
+const selectedActivityLogCandidate = computed(() => (
+  findCandidateById(activityLogCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'applied')?.cards[0]
+  ?? null
+))
+
+const selectedRejectCandidate = computed(() => (
+  findCandidateById(rejectCandidateCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'applied')?.cards[0]
+  ?? null
+))
+
+const selectedRejectCandidateStage = computed(() => getCandidateStageById(rejectCandidateCandidateId.value))
+const selectedScheduleHmReviewCandidate = computed(() => (
+  findCandidateById(scheduleHmReviewCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'screening')?.cards[0]
+  ?? null
+))
+
+const selectedFeedbackRequestCandidate = computed(() => (
+  findCandidateById(feedbackRequestCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]
+  ?? null
+))
+
+const selectedFinalFeedbackRequestCandidate = computed(() => (
+  findCandidateById(finalFeedbackRequestCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]
+  ?? null
+))
+
+const selectedSendReminderCandidate = computed(() => (
+  findCandidateById(sendReminderCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]
+  ?? null
+))
+
+const selectedAssessmentReviewCandidate = computed(() => (
+  findCandidateById(assessmentReviewCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]
+  ?? null
+))
+
+const selectedCandidateComparisonCandidate = computed(() => (
+  findCandidateById(candidateComparisonCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]
+  ?? null
+))
+
+const selectedReviewerCalibrationCandidate = computed(() => (
+  findCandidateById(reviewerCalibrationCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]
+  ?? null
+))
+
+const selectedReviewerCalibrationCount = computed(() => {
+  const candidateName = selectedReviewerCalibrationCandidate.value?.name
+
+  if (candidateName === 'Daniel Harris') {
+    return 4
+  }
+
+  return 1
+})
+
+const selectedTrackAssessmentProgressCandidate = computed(() => (
+  findCandidateById(trackAssessmentProgressCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]
+  ?? null
+))
+
+const selectedInterviewScorecardCandidate = computed(() => (
+  findCandidateById(interviewScorecardCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]
+  ?? pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]
+  ?? null
+))
+
+const selectedFeedbackStatusCandidate = computed(() => (
+  findCandidateById(feedbackStatusCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]
+  ?? null
+))
+
+function openScheduleHmReview(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  scheduleHmReviewCandidateId.value = candidate.id
+  scheduleHmReviewOpen.value = true
+  closeStageMenu()
+}
+
+function closeScheduleHmReview() {
+  scheduleHmReviewOpen.value = false
+}
+
+function openRequestFeedback(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  feedbackRequestCandidateId.value = candidate.id
+  feedbackRequestOpen.value = true
+  closeStageMenu()
+}
+
+function closeRequestFeedback() {
+  feedbackRequestOpen.value = false
+}
+
+function openRequestFinalFeedback(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  finalFeedbackRequestCandidateId.value = candidate.id
+  finalFeedbackRequestOpen.value = true
+  closeStageMenu()
+}
+
+function closeRequestFinalFeedback() {
+  finalFeedbackRequestOpen.value = false
+}
+
+function openSendReminder(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  sendReminderCandidateId.value = candidate.id
+  sendReminderOpen.value = true
+  closeStageMenu()
+}
+
+function closeSendReminder() {
+  sendReminderOpen.value = false
+}
+
+function submitRequestFeedback() {
+  const candidateId = feedbackRequestCandidateId.value
+
+  feedbackRequestOpen.value = false
+
+  if (!candidateId) {
+    return
+  }
+
+  feedbackStatusCandidateId.value = candidateId
+  feedbackStatusInitialTab.value = 'status'
+  feedbackStatusOpen.value = true
+}
+
+function openViewFeedbackStatus(candidateId = activeStageMenuCandidateId.value, tab = 'status') {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  feedbackStatusCandidateId.value = candidate.id
+  feedbackStatusInitialTab.value = tab === 'insights' ? 'insights' : 'status'
+  feedbackStatusOpen.value = true
+  closeStageMenu()
+}
+
+function openAssessmentReview(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  assessmentReviewCandidateId.value = candidate.id
+  assessmentReviewOpen.value = true
+  closeStageMenu()
+}
+
+function closeAssessmentReview() {
+  assessmentReviewOpen.value = false
+}
+
+function openCandidateComparison(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  candidateComparisonCandidateId.value = candidate.id
+  candidateComparisonOpen.value = true
+  closeStageMenu()
+}
+
+function closeCandidateComparison() {
+  candidateComparisonOpen.value = false
+}
+
+function openReviewerCalibration(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  reviewerCalibrationCandidateId.value = candidate.id
+  reviewerCalibrationOpen.value = true
+  closeStageMenu()
+}
+
+function closeReviewerCalibration() {
+  reviewerCalibrationOpen.value = false
+}
+
+function openTrackAssessmentProgress(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  trackAssessmentProgressCandidateId.value = candidate.id
+  trackAssessmentProgressOpen.value = true
+  closeStageMenu()
+}
+
+function closeTrackAssessmentProgress() {
+  trackAssessmentProgressOpen.value = false
+}
+
+function openInterviewScorecard(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  interviewScorecardCandidateId.value = candidate.id
+  interviewScorecardOpen.value = true
+  closeStageMenu()
+}
+
+function closeInterviewScorecard() {
+  interviewScorecardOpen.value = false
+}
+
+function closeViewFeedbackStatus() {
+  feedbackStatusOpen.value = false
+  feedbackStatusInitialTab.value = 'status'
+}
+
+function openScheduleScreening(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  scheduleScreeningCandidateId.value = candidate.id
+  scheduleScreeningOpen.value = true
+  closeStageMenu()
+}
+
+function closeScheduleScreening() {
+  scheduleScreeningOpen.value = false
+}
+
+function openAiCandidateRanking(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  aiCandidateRankingCandidateId.value = candidate.id
+  aiCandidateRankingOpen.value = true
+  closeStageMenu()
+}
+
+function closeAiCandidateRanking() {
+  aiCandidateRankingOpen.value = false
+}
+
+function openAiMatchAnalysis(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  aiMatchAnalysisCandidateId.value = candidate.id
+  aiMatchAnalysisOpen.value = true
+  closeStageMenu()
+}
+
+function closeAiMatchAnalysis() {
+  aiMatchAnalysisOpen.value = false
+}
+
+function openAiInterviewGapAnalysis(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  aiInterviewGapAnalysisCandidateId.value = candidate.id
+  aiInterviewGapAnalysisOpen.value = true
+  closeStageMenu()
+}
+
+function closeAiInterviewGapAnalysis() {
+  aiInterviewGapAnalysisOpen.value = false
+}
+
+function openAiInterviewReadiness(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  aiInterviewReadinessCandidateId.value = candidate.id
+  aiInterviewReadinessOpen.value = true
+  closeStageMenu()
+}
+
+function closeAiInterviewReadiness() {
+  aiInterviewReadinessOpen.value = false
+}
+
+function openAiHiringSuccessPrediction(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  aiHiringSuccessPredictionCandidateId.value = candidate.id
+  aiHiringSuccessPredictionOpen.value = true
+  closeStageMenu()
+}
+
+function closeAiHiringSuccessPrediction() {
+  aiHiringSuccessPredictionOpen.value = false
+}
+
+function openAiQualification(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  aiQualificationCandidateId.value = candidate.id
+  aiQualificationOpen.value = true
+  closeStageMenu()
+}
+
+function closeAiQualification() {
+  aiQualificationOpen.value = false
+}
+
+function openAiScreeningSummary(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate?.hasAiScreeningSummary) {
+    return
+  }
+
+  aiScreeningSummaryCandidateId.value = candidate.id
+  aiScreeningSummaryOpen.value = true
+  closeStageMenu()
+}
+
+function closeAiScreeningSummary() {
+  aiScreeningSummaryOpen.value = false
+}
+
+function handleScreeningScheduled(candidateId, payload) {
+  if (!payload?.summaryAvailable) {
+    return
+  }
+
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  candidate.hasAiScreeningSummary = true
+}
+
+function openAiRiskDetection(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  aiRiskDetectionCandidateId.value = candidate.id
+  aiRiskDetectionOpen.value = true
+  closeStageMenu()
+}
+
+function closeAiRiskDetection() {
+  aiRiskDetectionOpen.value = false
+}
+
+function openSuggestedNextAction(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  suggestedNextActionCandidateId.value = candidate.id
+  suggestedNextActionOpen.value = true
+  closeStageMenu()
+}
+
+function closeSuggestedNextAction() {
+  suggestedNextActionOpen.value = false
+}
+
+async function openSuggestedNextActionFromMenu(candidateId = activeStageMenuCandidateId.value) {
+  openSuggestedNextAction(candidateId)
+}
+
+function openFinalFeedbackReview(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  finalFeedbackReviewCandidateId.value = candidate.id
+  finalFeedbackReviewOpen.value = true
+  closeStageMenu()
+}
+
+function closeFinalFeedbackReview() {
+  finalFeedbackReviewOpen.value = false
+}
+
+function openCreateHiringDecision(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  createHiringDecisionCandidateId.value = candidate.id
+  createHiringDecisionOpen.value = true
+  closeStageMenu()
+}
+
+function closeCreateHiringDecision() {
+  createHiringDecisionOpen.value = false
+}
+
+function openAddNote(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  addNoteCandidateId.value = candidate.id
+  addNoteOpen.value = true
+  closeStageMenu()
+}
+
+function closeAddNote() {
+  addNoteOpen.value = false
+}
+
+function openViewNotes(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  viewNotesCandidateId.value = candidate.id
+  viewNotesOpen.value = true
+  closeStageMenu()
+}
+
+function closeViewNotes() {
+  viewNotesOpen.value = false
+}
+
+async function openAddNoteFromViewNotes() {
+  const candidateId = viewNotesCandidateId.value
+
+  viewNotesOpen.value = false
+  await nextTick()
+  openAddNote(candidateId)
+}
+
+function openAddTags(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  addTagsCandidateId.value = candidate.id
+  addTagsOpen.value = true
+  closeStageMenu()
+}
+
+function closeAddTags() {
+  addTagsOpen.value = false
+}
+
+function openActivityLog(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  activityLogCandidateId.value = candidate.id
+  activityLogOpen.value = true
+  closeStageMenu()
+}
+
+function closeActivityLog() {
+  activityLogOpen.value = false
+}
+
+function openArchiveCandidate(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  archiveCandidateCandidateId.value = candidate.id
+  archiveCandidateOpen.value = true
+  closeStageMenu()
+}
+
+function closeArchiveCandidate() {
+  archiveCandidateOpen.value = false
+}
+
+function openPutOnHold(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  putOnHoldCandidateId.value = candidate.id
+  putOnHoldOpen.value = true
+  closeStageMenu()
+}
+
+function closePutOnHold() {
+  putOnHoldOpen.value = false
+}
+
+function openShareCandidate(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  shareCandidateCandidateId.value = candidate.id
+  shareCandidateOpen.value = true
+  closeStageMenu()
+}
+
+function closeShareCandidate() {
+  shareCandidateOpen.value = false
+}
+
+function openRejectCandidate(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  rejectCandidateCandidateId.value = candidate.id
+  rejectCandidateOpen.value = true
+  closeStageMenu()
+}
+
+function closeRejectCandidate() {
+  rejectCandidateOpen.value = false
+}
+
+function openConfirmInterest(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  confirmInterestCandidateId.value = candidate.id
+  confirmInterestOpen.value = true
+  closeStageMenu()
+}
+
+function closeConfirmInterest() {
+  confirmInterestOpen.value = false
+}
+
+function openConfirmAvailability(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  confirmAvailabilityCandidateId.value = candidate.id
+  confirmAvailabilityOpen.value = true
+  closeStageMenu()
+}
+
+function closeConfirmAvailability() {
+  confirmAvailabilityOpen.value = false
+}
+
+function openConfirmSalaryAlignment(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  confirmSalaryAlignmentCandidateId.value = candidate.id
+  confirmSalaryAlignmentOpen.value = true
+  closeStageMenu()
+}
+
+function closeConfirmSalaryAlignment() {
+  confirmSalaryAlignmentOpen.value = false
+}
+
+function openAutoDq(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  autoDqCandidateId.value = candidate.id
+  autoDqOpen.value = true
+  closeStageMenu()
+}
+
+function closeAutoDq() {
+  autoDqOpen.value = false
+}
+
+function openAddToTalentPool(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  addToTalentPoolCandidateId.value = candidate.id
+  addToTalentPoolOpen.value = true
+  closeStageMenu()
+}
+
+function closeAddToTalentPool() {
+  addToTalentPoolOpen.value = false
+}
+
+function openAiAssessmentInsights(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  aiAssessmentInsightsCandidateId.value = candidate.id
+  aiAssessmentInsightsOpen.value = true
+  closeStageMenu()
+}
+
+function closeAiAssessmentInsights() {
+  aiAssessmentInsightsOpen.value = false
+}
+
+function openAiFeedbackQuality(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  aiFeedbackQualityCandidateId.value = candidate.id
+  aiFeedbackQualityOpen.value = true
+  closeStageMenu()
+}
+
+function closeAiFeedbackQuality() {
+  aiFeedbackQualityOpen.value = false
+}
+
+function openAiScoreCalibration(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  aiScoreCalibrationCandidateId.value = candidate.id
+  aiScoreCalibrationOpen.value = true
+  closeStageMenu()
+}
+
+function closeAiScoreCalibration() {
+  aiScoreCalibrationOpen.value = false
+}
+
+function openAiScorecardBiasDetection(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  aiScorecardBiasCandidateId.value = candidate.id
+  aiScorecardBiasOpen.value = true
+  closeStageMenu()
+}
+
+function closeAiScorecardBiasDetection() {
+  aiScorecardBiasOpen.value = false
+}
+
+function openAiStageRecommendation(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  aiStageRecommendationCandidateId.value = candidate.id
+  aiStageRecommendationOpen.value = true
+  closeStageMenu()
+}
+
+function closeAiStageRecommendation() {
+  aiStageRecommendationOpen.value = false
+}
+
+function openAiStrengthsGaps(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  aiStrengthsGapsCandidateId.value = candidate.id
+  aiStrengthsGapsOpen.value = true
+  closeStageMenu()
+}
+
+function closeAiStrengthsGaps() {
+  aiStrengthsGapsOpen.value = false
+}
+
+function openAssignHiringManager(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  assignHiringManagerCandidateId.value = candidate.id
+  assignHiringManagerOpen.value = true
+  closeStageMenu()
+}
+
+function closeAssignHiringManager() {
+  assignHiringManagerOpen.value = false
+}
+
+function openAssignAssessment(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  assignAssessmentCandidateId.value = candidate.id
+  assignAssessmentOpen.value = true
+  closeStageMenu()
+}
+
+function closeAssignAssessment() {
+  assignAssessmentOpen.value = false
+}
+
+function openAddAssessmentLibrary() {
+  assignAssessmentOpen.value = false
+  addAssessmentLibraryOpen.value = true
+}
+
+function closeAddAssessmentLibrary() {
+  addAssessmentLibraryOpen.value = false
+
+  if (assignAssessmentCandidateId.value) {
+    assignAssessmentOpen.value = true
+  }
+}
+
+function handleAssessmentLibrarySubmit() {
+  addAssessmentLibraryOpen.value = false
+
+  if (assignAssessmentCandidateId.value) {
+    assignAssessmentOpen.value = true
+  }
+}
+
+function handleAssignAssessmentSubmit() {
+  const candidateId = assignAssessmentCandidateId.value
+
+  assignAssessmentOpen.value = false
+
+  if (!candidateId) {
+    return
+  }
+
+  moveCandidateToColumn(candidateId, 'assessment')
+}
+
+function openAssignInterviewPanel(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  assignInterviewPanelCandidateId.value = candidate.id
+  assignInterviewPanelOpen.value = true
+  closeStageMenu()
+}
+
+function closeAssignInterviewPanel() {
+  assignInterviewPanelOpen.value = false
+}
+
+function openCheckInterviewerWorkload(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  checkInterviewerWorkloadCandidateId.value = candidate.id
+  checkInterviewerWorkloadOpen.value = true
+  closeStageMenu()
+}
+
+function closeCheckInterviewerWorkload() {
+  checkInterviewerWorkloadOpen.value = false
+}
+
+function openInterviewPlanSequence(candidateId = activeStageMenuCandidateId.value, initialView = 'auto') {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  interviewPlanSequenceCandidateId.value = candidate.id
+  interviewPlanSequenceInitialView.value = initialView
+  interviewPlanSequenceOpen.value = true
+  closeStageMenu()
+}
+
+function closeInterviewPlanSequence() {
+  interviewPlanSequenceOpen.value = false
+  interviewPlanSequenceInitialView.value = 'auto'
+}
+
+function openAssignInterviewKit(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  assignInterviewKitCandidateId.value = candidate.id
+  assignInterviewKitOpen.value = true
+  closeStageMenu()
+}
+
+function closeAssignInterviewKit() {
+  assignInterviewKitOpen.value = false
+}
+
+async function openConfigureInterviewKitFromAssign() {
+  const candidateId = assignInterviewKitCandidateId.value
+
+  assignInterviewKitOpen.value = false
+  await nextTick()
+
+  if (candidateId) {
+    configureInterviewKitCandidateId.value = candidateId
+    configureInterviewKitOpen.value = true
+  }
+}
+
+function openConfigureInterviewKit(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  configureInterviewKitCandidateId.value = candidate.id
+  configureInterviewKitOpen.value = true
+  closeStageMenu()
+}
+
+function closeConfigureInterviewKit() {
+  configureInterviewKitOpen.value = false
+}
+
+function openRequestSalary(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  requestSalaryCandidateId.value = candidate.id
+  requestSalaryOpen.value = true
+  closeStageMenu()
+}
+
+function closeRequestSalary() {
+  requestSalaryOpen.value = false
+}
+
+function openRequestHmDecision(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  requestHmDecisionCandidateId.value = candidate.id
+  requestHmDecisionOpen.value = true
+  closeStageMenu()
+}
+
+function closeRequestHmDecision() {
+  requestHmDecisionOpen.value = false
+}
+
+function openDecisionReview(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  decisionReviewCandidateId.value = candidate.id
+  decisionReviewOpen.value = true
+  closeStageMenu()
+}
+
+function closeDecisionReview() {
+  decisionReviewOpen.value = false
+}
+
+function openSendEmail(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  sendEmailCandidateId.value = candidate.id
+  sendEmailOpen.value = true
+  closeStageMenu()
+}
+
+function closeSendEmail() {
+  sendEmailOpen.value = false
+}
+
+function openCompareCandidatesView() {
+  activeBoardView.value = 'compare'
+}
+
+function handleStageMenuAction(actionLabel) {
+  if (actionLabel === 'Move to Qualified') {
+    moveCandidateToColumn(activeStageMenuCandidateId.value, 'screening')
+    return
+  }
+
+  if (actionLabel === 'Move to Shortlisted') {
+    moveCandidateToColumn(activeStageMenuCandidateId.value, 'interview')
+    return
+  }
+
+  if (actionLabel === 'Schedule Interview') {
+    openScheduleHmReview()
+    return
+  }
+
+  if (actionLabel === 'Move to Assessment') {
+    moveCandidateToColumn(activeStageMenuCandidateId.value, 'assessment')
+    return
+  }
+
+  if (actionLabel === 'Move to Validation') {
+    moveCandidateToColumn(activeStageMenuCandidateId.value, 'validation')
+    return
+  }
+
+  if (actionLabel === 'Move to Offer') {
+    moveCandidateToColumn(activeStageMenuCandidateId.value, 'offer')
+    return
+  }
+
+  if (actionLabel === 'Schedule Screening') {
+    openScheduleScreening()
+    return
+  }
+
+  if (actionLabel === 'Schedule HM Review') {
+    openScheduleHmReview()
+    return
+  }
+
+  if (actionLabel === 'Schedule Final Meeting') {
+    openScheduleHmReview()
+    return
+  }
+
+  if (actionLabel === 'Request HM Review') {
+    openRequestHmDecision()
+    return
+  }
+
+  if (actionLabel === 'Send Email') {
+    openSendEmail()
+    return
+  }
+
+  if (actionLabel === 'Confirm Interest') {
+    openConfirmInterest()
+    return
+  }
+
+  if (actionLabel === 'Request Salary Expectations') {
+    openRequestSalary()
+    return
+  }
+
+  if (actionLabel === 'Auto DQ / Knockout') {
+    openAutoDq()
+    return
+  }
+
+  if (actionLabel === 'Add to Talent Pool') {
+    openAddToTalentPool()
+    return
+  }
+
+  if (actionLabel === 'Assign Hiring Manager') {
+    openAssignHiringManager()
+    return
+  }
+
+  if (actionLabel === 'Assign Interview Panel') {
+    openAssignInterviewPanel()
+    return
+  }
+
+  if (actionLabel === 'Assign Interview Kit') {
+    openAssignInterviewKit()
+    return
+  }
+
+  if (actionLabel === 'Request Candidate Availability') {
+    openConfirmAvailability()
+    return
+  }
+
+  if (actionLabel === 'Interview Plan & Sequence') {
+    openInterviewPlanSequence(activeStageMenuCandidateId.value, 'recommend')
+    return
+  }
+
+  if (actionLabel === 'Check Interviewer Workload') {
+    openCheckInterviewerWorkload()
+    return
+  }
+
+  if (actionLabel === 'Assign Assessment') {
+    openAssignAssessment()
+    return
+  }
+
+  if (actionLabel === 'Confirm Availability') {
+    openConfirmAvailability()
+    return
+  }
+
+  if (actionLabel === 'Confirm Salary Alignment') {
+    openConfirmSalaryAlignment()
+    return
+  }
+
+  if (actionLabel === 'Conduct Screening Call') {
+    openScheduleScreening()
+    return
+  }
+
+  if (actionLabel === 'Add Notes & Tags') {
+    openAddNote()
+    return
+  }
+
+  if (actionLabel === 'AI Match Analysis') {
+    openAiMatchAnalysis()
+    return
+  }
+
+  if (actionLabel === 'AI Candidate Ranking') {
+    openAiCandidateRanking()
+    return
+  }
+
+  if (actionLabel === 'AI Risk Detection') {
+    openAiRiskDetection()
+    return
+  }
+
+  if (actionLabel === 'AI Interview Readiness') {
+    openAiInterviewReadiness()
+    return
+  }
+
+  if (actionLabel === 'AI Interview Gap Analysis') {
+    openAiInterviewGapAnalysis()
+    return
+  }
+
+  if (actionLabel === 'AI Interview Panel Review') {
+    openInterviewPlanSequence(activeStageMenuCandidateId.value, 'review')
+    return
+  }
+
+  if (actionLabel === 'AI Interview Kit Review') {
+    openConfigureInterviewKit()
+    return
+  }
+
+  if (actionLabel === 'AI Qualification Score') {
+    openAiQualification()
+    return
+  }
+
+  if (actionLabel === 'AI Hiring Success Prediction') {
+    openAiHiringSuccessPrediction()
+    return
+  }
+
+  if (actionLabel === 'AI Screening Summary') {
+    openAiScreeningSummary()
+    return
+  }
+
+  if (actionLabel === 'Recommended Next Step') {
+    openSuggestedNextActionFromMenu(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'AI Hiring Manager Match') {
+    openAiCandidateRanking()
+    return
+  }
+
+  if (actionLabel === 'Suggested Next Action') {
+    openSuggestedNextActionFromMenu(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'Request Feedback') {
+    openRequestFeedback()
+    return
+  }
+
+  if (actionLabel === 'Request Final Feedback') {
+    openRequestFinalFeedback()
+    return
+  }
+
+  if (actionLabel === 'Assessment Review') {
+    openAssessmentReview(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'Review Final Feedback') {
+    openFinalFeedbackReview(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'Create Hiring Decision') {
+    openCreateHiringDecision(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'Decision Review' || actionLabel === 'Hiring Committee Review') {
+    openDecisionReview(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'Select Backup Candidate') {
+    openCandidateComparison(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'Track Assessment Progress') {
+    openTrackAssessmentProgress(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'View Interview Scorecards') {
+    openInterviewScorecard(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'View Feedback Status') {
+    openViewFeedbackStatus(activeStageMenuCandidateId.value, 'status')
+    return
+  }
+
+  if (actionLabel === 'Send Reminder') {
+    openSendReminder()
+    return
+  }
+
+  if (actionLabel === 'Add Note') {
+    openAddNote()
+    return
+  }
+
+  if (actionLabel === 'Add Internal Feedback') {
+    openCompleteFeedbackModal(activeStageMenuCandidateId.value || undefined)
+    closeStageMenu()
+    return
+  }
+
+  if (actionLabel === 'Add Tags') {
+    openAddTags()
+    return
+  }
+
+  if (actionLabel === 'View Note' || actionLabel === 'View Notes') {
+    openViewNotes()
+    return
+  }
+
+  if (actionLabel === 'Compare Candidate') {
+    openCompareCandidatesView()
+    closeStageMenu()
+    return
+  }
+
+  if (actionLabel === 'Candidate Comparison') {
+    openCandidateComparison(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'Reviewer Calibration') {
+    openReviewerCalibration(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'Add Feedback') {
+    openCompleteFeedbackModal()
+    closeStageMenu()
+    return
+  }
+
+  if (actionLabel === 'Submit Feedback') {
+    openCompleteFeedbackModal(activeStageMenuCandidateId.value || undefined)
+    closeStageMenu()
+    return
+  }
+
+  if (actionLabel === 'View Feedback') {
+    openViewFeedbackStatus(activeStageMenuCandidateId.value, 'status')
+    return
+  }
+
+  if (actionLabel === 'AI Assessment Insights') {
+    openAiAssessmentInsights(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'AI Strengths & Gaps') {
+    openAiStrengthsGaps(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'AI Feedback Quality') {
+    openAiFeedbackQuality(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'AI Hiring Recommendation') {
+    openSuggestedNextActionFromMenu(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'AI Decision Summary') {
+    openSuggestedNextActionFromMenu(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'AI Confidence Breakdown' || actionLabel === 'AI Consensus Analysis') {
+    openAiScoreCalibration(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'AI Risk Analysis') {
+    openAiRiskDetection(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'AI Compare Finalists') {
+    openCandidateComparison(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'AI Stage Recommendation') {
+    openAiStageRecommendation(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'AI Scorecard Bias Detection') {
+    openAiScorecardBiasDetection(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'AI Score Calibration') {
+    openAiScoreCalibration(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'Share Candidate') {
+    openShareCandidate()
+    return
+  }
+
+  if (actionLabel === 'Put On Hold') {
+    openPutOnHold()
+    return
+  }
+
+  if (actionLabel === 'Archive Candidate') {
+    openArchiveCandidate()
+    return
+  }
+
+  if (actionLabel === 'Activity Log') {
+    openActivityLog()
+    return
+  }
+
+  if (actionLabel === 'Assessment History') {
+    openActivityLog()
+    return
+  }
+
+  if (actionLabel === 'Reject Candidate') {
+    openRejectCandidate()
+    return
+  }
+
+  closeStageMenu()
+}
+
+function handleStageMenuDocumentClick(event) {
+  const target = event.target
+
+  if (!(target instanceof Element)) {
+    return
+  }
+
+  if (target.closest('.job-pipeline-stage-menu-anchor') || target.closest('.job-pipeline-stage-menu')) {
+    return
+  }
+
+  closeStageMenu()
+}
+
+function handleStageMenuViewportChange(event) {
+  const target = event?.target
+
+  if (target instanceof Element && target.closest('.job-pipeline-stage-menu')) {
+    return
+  }
+
+  closeStageMenu()
 }
 
 const recruiterTabs = ['Pipeline', 'Candidates', 'Hiring Team', 'Analytics', 'More']
@@ -849,6 +3278,7 @@ const selectedFeedbackCandidateId = ref('ethan-miller')
 const reviewFeedbackSelected = ref(reviewFeedbackCandidates.map((candidate) => candidate.id))
 const feedbackRecommendation = ref('strong-hire')
 const feedbackNotes = ref('')
+const feedbackAssistantExpanded = ref(false)
 const feedbackRatings = ref(
   feedbackEvaluationTemplate.reduce((accumulator, item) => {
     accumulator[item.key] = item.rating
@@ -883,6 +3313,13 @@ const feedbackEvaluationRows = computed(() =>
   })),
 )
 
+const feedbackAssistantQualityItems = [
+  { label: 'Strength Coverage', value: 'Good', tone: 'green' },
+  { label: 'Evidence Coverage', value: 'Missing examples', tone: 'orange' },
+  { label: 'Clarity', value: 'Strong', tone: 'green' },
+  { label: 'Bias Detection', value: 'No issues found', tone: 'green' },
+]
+
 const feedbackNoteCount = computed(() => feedbackNotes.value.length)
 
 function openReviewFeedbackModal() {
@@ -892,6 +3329,7 @@ function openReviewFeedbackModal() {
 
 function openCompleteFeedbackModal(candidateId = 'ethan-miller') {
   selectedFeedbackCandidateId.value = candidateId
+  feedbackAssistantExpanded.value = false
   reviewFeedbackModal.value = 'complete'
 }
 
@@ -908,6 +3346,10 @@ function updateFeedbackRating(key, rating) {
     ...feedbackRatings.value,
     [key]: rating,
   }
+}
+
+function toggleFeedbackAssistant() {
+  feedbackAssistantExpanded.value = !feedbackAssistantExpanded.value
 }
 
 function toggleReviewFeedbackCandidate(candidateId) {
@@ -939,7 +3381,7 @@ function openSelectedFeedbackFlow() {
 
 function handleManagerAction(item) {
   if (item.action === 'review-feedback') {
-    openReviewFeedbackModal()
+    openViewFeedbackStatus()
     return
   }
 
@@ -952,6 +3394,15 @@ function toneClass(tone) {
   return tone ? `is-${tone}` : ''
 }
 
+function candidateInitials(name = '') {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('')
+}
+
 function timelineNodeStyle(index, total) {
   const position = total <= 1 ? 0 : (index / (total - 1)) * 100
   return { left: `${position}%` }
@@ -960,6 +3411,18 @@ function timelineNodeStyle(index, total) {
 function goBack() {
   emit('back')
 }
+
+onMounted(() => {
+  document.addEventListener('pointerdown', handleStageMenuDocumentClick)
+  window.addEventListener('resize', handleStageMenuViewportChange)
+  document.addEventListener('scroll', handleStageMenuViewportChange, true)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', handleStageMenuDocumentClick)
+  window.removeEventListener('resize', handleStageMenuViewportChange)
+  document.removeEventListener('scroll', handleStageMenuViewportChange, true)
+})
 </script>
 
 <template>
@@ -1140,6 +3603,10 @@ function goBack() {
                 <h2>{{ activeBoardView === 'timeline' ? 'Timeline' : activeBoardView === 'workload' ? 'Workload' : activeBoardView === 'compare' ? 'Compare' : 'Pipeline' }}</h2>
                 <span v-if="activeBoardView === 'compare'">{{ compareCandidates.length }} selected</span>
                 <span v-else-if="activeBoardView !== 'workload'">{{ visiblePipelineCandidateCount }} candidates</span>
+                <label v-if="activeBoardView === 'board'" class="job-pipeline-board-select-all">
+                  <span class="job-pipeline-fake-check" />
+                  <span>Select all {{ visiblePipelineCandidateCount }} candidates</span>
+                </label>
               </div>
 
               <div class="job-pipeline-board-controls">
@@ -1154,6 +3621,10 @@ function goBack() {
                     {{ view.label }}
                   </button>
                 </div>
+                <button v-if="activeBoardView === 'board'" class="job-pipeline-bulk-action" type="button">
+                  <span>Bulk actions</span>
+                  <AppIcon name="chevronDown" :size="13" />
+                </button>
                 <button class="job-pipeline-ghost" type="button">{{ activeBoardView === 'workload' ? 'Workload view' : activeBoardView === 'compare' ? 'Compare settings' : 'Pipeline settings' }}</button>
                 <button class="job-pipeline-icon-button" type="button" aria-label="Filter pipeline">
                   <AppIcon name="filter" :size="15" />
@@ -1178,55 +3649,84 @@ function goBack() {
                   @dragover.prevent="onColumnDragOver(column.slug)"
                   @drop.prevent="onColumnDrop(column.slug)"
                 >
+                  <button
+                    class="job-pipeline-column-bar job-pipeline-column-bar--handle"
+                    :class="toneClass(column.tone)"
+                    type="button"
+                    draggable="true"
+                    aria-label="Reorder column"
+                    @dragstart="onColumnHandleDragStart(column.slug)"
+                    @dragend="onColumnDragEnd"
+                  />
+
                   <div class="job-pipeline-column-head">
-                    <button
-                      class="job-pipeline-column-handle"
-                      type="button"
-                      draggable="true"
-                      aria-label="Reorder column"
-                      @dragstart="onColumnHandleDragStart(column.slug)"
-                      @dragend="onColumnDragEnd"
-                    >
-                      <span />
-                      <span />
-                      <span />
-                    </button>
                     <div class="job-pipeline-column-heading">
                       <strong>{{ column.title }}</strong>
-                      <small>{{ column.count }} candidates</small>
+                      <small>{{ column.countLabel }}</small>
                     </div>
+
                     <div class="job-pipeline-column-meta">
-                      <span>{{ column.average }}</span>
-                      <em :class="toneClass(column.tone)">{{ column.health }}</em>
+                      <span class="job-pipeline-fake-check" :class="{ 'is-checked': column.selectAllChecked }" />
+                      <em>SELECT ALL</em>
                     </div>
                   </div>
-
-                  <span class="job-pipeline-column-bar" :class="toneClass(column.tone)" />
 
                   <div class="job-pipeline-column-cards">
                     <article
                       v-for="candidate in column.cards"
                       :key="candidate.id"
                       class="job-pipeline-candidate-card"
-                      :class="{ 'is-dragging': draggedCandidateId === candidate.id }"
+                      :class="{
+                        'is-dragging': draggedCandidateId === candidate.id,
+                        'is-selected': candidate.selected,
+                        'is-menu-open': activeStageMenuCandidateId === candidate.id,
+                      }"
                       draggable="true"
                       @dragstart="onCandidateDragStart(column.slug, candidate.id)"
                       @dragend="onCandidateDragEnd"
                     >
-                      <div class="job-pipeline-candidate-top">
+                      <div class="job-pipeline-card-head">
+                        <span class="job-pipeline-fake-check" :class="{ 'is-checked': candidate.selected }" />
                         <span class="job-pipeline-candidate-avatar">
-                          <span aria-hidden="true" />
+                          <span aria-hidden="true">{{ candidateInitials(candidate.name) }}</span>
                         </span>
-                        <div>
+
+                        <div class="job-pipeline-candidate-top">
                           <strong>{{ candidate.name }}</strong>
                           <span>{{ candidate.role }}</span>
-                          <small>{{ candidate.source }}</small>
                         </div>
+
+                        <button
+                          v-if="hasStageMenu(column.slug)"
+                          class="job-pipeline-card-more job-pipeline-stage-menu-anchor"
+                          type="button"
+                          aria-label="Candidate actions"
+                          :aria-expanded="activeStageMenuCandidateId === candidate.id"
+                          @click.stop="toggleStageMenu(candidate.id, column.slug, $event)"
+                        >
+                          <AppIcon name="more" :size="14" />
+                        </button>
+                        <span v-else class="job-pipeline-card-more" aria-hidden="true">
+                          <AppIcon name="more" :size="14" />
+                        </span>
                       </div>
 
                       <div class="job-pipeline-candidate-bottom">
-                        <strong v-if="candidate.match">{{ candidate.match }}</strong>
-                        <small>{{ candidate.note }}</small>
+                        <strong v-if="candidate.match" :class="toneClass(candidate.matchTone)">{{ candidate.match }}</strong>
+                        <small :class="toneClass(candidate.noteTone)">{{ candidate.note }}</small>
+                      </div>
+
+                      <div class="job-pipeline-card-actions">
+                        <button type="button" aria-label="Email candidate">
+                          <AppIcon name="mail" :size="12" />
+                        </button>
+                        <button type="button" aria-label="AI actions">
+                          <AppIcon name="spark" :size="12" />
+                        </button>
+                        <span />
+                        <button type="button" aria-label="More candidate actions">
+                          <AppIcon name="more" :size="12" />
+                        </button>
                       </div>
                     </article>
                   </div>
@@ -2161,7 +4661,7 @@ function goBack() {
           <section class="job-pipeline-manager-panel">
             <div class="job-pipeline-manager-panel-head">
               <strong>Team feedback</strong>
-              <button type="button" @click="openReviewFeedbackModal">View all feedback</button>
+              <button type="button" @click="openViewFeedbackStatus()">View all feedback</button>
             </div>
 
             <div class="job-pipeline-manager-feedback-score">
@@ -2194,7 +4694,7 @@ function goBack() {
                 <span class="job-pipeline-candidate-avatar job-pipeline-candidate-avatar--tiny"><span aria-hidden="true" /></span>
               </div>
               <small>{{ hiringManagerFeedback.footer }}</small>
-              <button class="job-pipeline-inline-button job-pipeline-manager-inline" type="button" @click="openReviewFeedbackModal">Send reminder</button>
+              <button class="job-pipeline-inline-button job-pipeline-manager-inline" type="button" @click="openSendReminder()">Send reminder</button>
             </div>
           </section>
 
@@ -2530,6 +5030,95 @@ function goBack() {
             </div>
           </section>
 
+          <section class="job-pipeline-complete-feedback-section">
+            <button
+              class="job-pipeline-complete-feedback-ai-toggle"
+              :class="{ 'is-expanded': feedbackAssistantExpanded }"
+              type="button"
+              @click="toggleFeedbackAssistant"
+            >
+              <div class="job-pipeline-complete-feedback-ai-toggle__copy">
+                <span class="job-pipeline-complete-feedback-ai-toggle__icon">
+                  <AppIcon name="spark" :size="17" />
+                </span>
+                <div>
+                  <strong>AI Feedback Assistant</strong>
+                  <small>Get AI-powered suggestions to improve the quality and impact of your feedback.</small>
+                </div>
+              </div>
+
+              <div class="job-pipeline-complete-feedback-ai-toggle__action">
+                <span>{{ feedbackAssistantExpanded ? 'Hide Assistant' : 'Show Assistant' }}</span>
+                <AppIcon :name="feedbackAssistantExpanded ? 'chevronUp' : 'chevronDown'" :size="18" />
+              </div>
+            </button>
+
+            <div v-if="feedbackAssistantExpanded" class="job-pipeline-complete-feedback-ai-panel">
+              <div class="job-pipeline-complete-feedback-ai-grid">
+                <article class="job-pipeline-complete-feedback-ai-card">
+                  <strong>Feedback Quality</strong>
+                  <div class="job-pipeline-complete-feedback-ai-quality-list">
+                    <div v-for="item in feedbackAssistantQualityItems" :key="item.label" class="job-pipeline-complete-feedback-ai-quality-row">
+                      <span>
+                        <AppIcon :name="item.tone === 'orange' ? 'alert' : 'checkCircle'" :size="14" />
+                        {{ item.label }}
+                      </span>
+                      <em :class="toneClass(item.tone)">{{ item.value }}</em>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="job-pipeline-complete-feedback-ai-card">
+                  <strong>Suggested Improvements</strong>
+                  <h4>Missing Evidence</h4>
+                  <p>You mentioned strong leadership but did not provide an example.</p>
+                  <small>Suggested addition:</small>
+                  <blockquote>"Candidate successfully led cross-functional design initiatives that improved user engagement by 28%."</blockquote>
+                  <button type="button">Apply Suggestion</button>
+                </article>
+
+                <article class="job-pipeline-complete-feedback-ai-card">
+                  <strong>Improve Clarity</strong>
+                  <small>Original</small>
+                  <p>Strong communicator.</p>
+                  <small>Improved</small>
+                  <p>Candidate clearly articulated design decisions and stakeholder trade-offs in a clear and structured manner.</p>
+                  <button type="button">Apply Improvement</button>
+                </article>
+
+                <article class="job-pipeline-complete-feedback-ai-card">
+                  <strong>Suggested Summary</strong>
+                  <p>Based on your notes, the candidate demonstrated strong product thinking, stakeholder management and leadership potential. Their performance was consistently above expectations.</p>
+                  <button type="button">Insert Summary</button>
+                </article>
+              </div>
+
+              <div class="job-pipeline-complete-feedback-ai-insights">
+                <div>
+                  <AppIcon name="checkCircle" :size="15" />
+                  <span>Hiring Intelligence Insight</span>
+                  <small>This feedback aligns with 3 of 4 submitted reviews.</small>
+                </div>
+                <div>
+                  <AppIcon name="checkCircle" :size="15" />
+                  <small>No major reviewer conflicts detected.</small>
+                </div>
+              </div>
+
+              <div class="job-pipeline-complete-feedback-ai-footer">
+                <button type="button" class="job-pipeline-complete-feedback-ai-link">
+                  <AppIcon name="refresh" :size="15" />
+                  <span>Regenerate Suggestions</span>
+                </button>
+
+                <button type="button" class="job-pipeline-complete-feedback-ai-primary">
+                  <AppIcon name="shield" :size="15" />
+                  <span>Apply All Suggestions</span>
+                </button>
+              </div>
+            </div>
+          </section>
+
           <footer class="job-pipeline-feedback-modal-footer is-complete">
             <button class="job-pipeline-feedback-secondary-button" type="button" @click="closeFeedbackModal">
               <AppIcon name="document" :size="14" />
@@ -2547,6 +5136,508 @@ function goBack() {
         </section>
       </div>
     </div>
+
+    <Teleport to="body">
+      <div
+        v-if="activeStageMenuCandidateId"
+        class="job-pipeline-stage-menu"
+        :style="{
+          top: `${stageMenuPosition.top}px`,
+          left: `${stageMenuPosition.left}px`,
+        }"
+        @pointerdown.stop
+        @click.stop
+      >
+        <div class="job-pipeline-stage-menu__hero">
+          <span class="job-pipeline-stage-menu__badge" :style="{ background: activeStageMenuConfig.badgeStyle }">{{ activeStageMenuConfig.number }}</span>
+          <div>
+            <strong>{{ activeStageMenuConfig.title }}</strong>
+            <small>{{ activeStageMenuConfig.subtitle }}</small>
+          </div>
+        </div>
+
+        <section
+          v-for="section in activeStageMenuConfig.sections"
+          :key="section.title"
+          class="job-pipeline-stage-menu__section"
+        >
+          <h4 :class="{ 'is-accent': section.accent }">{{ section.title }}</h4>
+
+          <button
+            v-for="item in section.items"
+            :key="item.label"
+            class="job-pipeline-stage-menu__item"
+            :class="[toneClass(item.tone), { 'is-disabled': item.disabled }]"
+            type="button"
+            :disabled="item.disabled"
+            @click="handleStageMenuAction(item.label)"
+          >
+            <span class="job-pipeline-stage-menu__icon" :class="toneClass(item.tone)">
+              <AppIcon :name="item.icon" :size="13" />
+            </span>
+            <span>{{ item.label }}</span>
+          </button>
+        </section>
+      </div>
+    </Teleport>
+
+    <ScheduleScreeningOverlay
+      :open="scheduleScreeningOpen"
+      :candidate-name="selectedScheduleCandidate?.name"
+      :candidate-role="selectedScheduleCandidate?.role"
+      :candidate-stage="getCandidateStageById(scheduleScreeningCandidateId, 'Applied')"
+      @close="closeScheduleScreening"
+      @screening-scheduled="handleScreeningScheduled(scheduleScreeningCandidateId, $event)"
+    />
+
+    <ScheduleHiringManagerReviewOverlay
+      :open="scheduleHmReviewOpen"
+      :candidate-name="selectedScheduleHmReviewCandidate?.name"
+      :candidate-role="selectedScheduleHmReviewCandidate?.role"
+      :candidate-stage="getCandidateStageById(scheduleHmReviewCandidateId, 'Qualified')"
+      :candidate-match="selectedScheduleHmReviewCandidate?.match"
+      @close="closeScheduleHmReview"
+    />
+
+    <RequestHiringManagerDecisionOverlay
+      :open="requestHmDecisionOpen"
+      :candidate-name="selectedRequestHmDecisionCandidate?.name"
+      :candidate-role="selectedRequestHmDecisionCandidate?.role"
+      :candidate-stage="getCandidateStageById(requestHmDecisionCandidateId, 'Qualified')"
+      :candidate-match="selectedRequestHmDecisionCandidate?.match"
+      @close="closeRequestHmDecision"
+    />
+
+    <DecisionReviewOverlay
+      :open="decisionReviewOpen"
+      :candidate-name="selectedDecisionReviewCandidate?.name"
+      :candidate-role="selectedDecisionReviewCandidate?.role"
+      @close="closeDecisionReview"
+    />
+
+    <AICandidateRankingOverlay
+      :open="aiCandidateRankingOpen"
+      :candidate-name="selectedAiCandidateRankingCandidate?.name"
+      :candidate-role="selectedAiCandidateRankingCandidate?.role"
+      :candidate-stage="selectedAiCandidateRankingStage"
+      @close="closeAiCandidateRanking"
+      @compare-candidates="openCompareCandidatesView"
+    />
+
+    <AssignAssessmentOverlay
+      :open="assignAssessmentOpen"
+      :candidate-name="selectedAssignAssessmentCandidate?.name"
+      :candidate-role="selectedAssignAssessmentCandidate?.role"
+      :candidate-stage="getCandidateStageById(assignAssessmentCandidateId, 'Shortlisted')"
+      @close="closeAssignAssessment"
+      @assign-send="openAddAssessmentLibrary"
+      @assign-recommended="handleAssignAssessmentSubmit"
+      @customize-plan="closeAssignAssessment"
+      @open-library="openAddAssessmentLibrary"
+    />
+
+    <AddAssessmentLibraryOverlay
+      :open="addAssessmentLibraryOpen"
+      @close="closeAddAssessmentLibrary"
+      @add-to-plan="handleAssessmentLibrarySubmit"
+    />
+
+    <AIMatchAnalysisOverlay
+      :open="aiMatchAnalysisOpen"
+      :candidate-name="selectedAiMatchCandidate?.name"
+      :candidate-role="selectedAiMatchCandidate?.role"
+      @close="closeAiMatchAnalysis"
+      @schedule-screening="openScheduleScreening(aiMatchAnalysisCandidateId)"
+    />
+
+    <AIInterviewGapAnalysisOverlay
+      :open="aiInterviewGapAnalysisOpen"
+      :candidate-name="selectedAiInterviewGapAnalysisCandidate?.name"
+      :candidate-role="selectedAiInterviewGapAnalysisCandidate?.role"
+      :candidate-stage="getCandidateStageById(aiInterviewGapAnalysisCandidateId, 'Shortlisted')"
+      :has-interview-plan-configured="selectedAiInterviewGapAnalysisCandidate?.hasInterviewPlanConfigured !== false"
+      @close="closeAiInterviewGapAnalysis"
+      @apply-updates="closeAiInterviewGapAnalysis"
+      @generate-process="openInterviewPlanSequence(aiInterviewGapAnalysisCandidateId, 'recommend')"
+    />
+
+    <AIQualificationAnalysisOverlay
+      :open="aiQualificationOpen"
+      :candidate-name="selectedAiQualificationCandidate?.name"
+      :candidate-role="selectedAiQualificationCandidate?.role"
+      @close="closeAiQualification"
+      @assign-hiring-manager="openAssignHiringManager(aiQualificationCandidateId)"
+      @schedule-hm-review="openScheduleHmReview(aiQualificationCandidateId)"
+    />
+
+    <AIInterviewReadinessOverlay
+      :open="aiInterviewReadinessOpen"
+      :candidate-name="selectedAiInterviewReadinessCandidate?.name"
+      :candidate-role="selectedAiInterviewReadinessCandidate?.role"
+      :candidate-stage="getCandidateStageById(aiInterviewReadinessCandidateId, 'Qualified')"
+      @close="closeAiInterviewReadiness"
+      @share-team="openShareCandidate(aiInterviewReadinessCandidateId)"
+      @proceed="moveCandidateToColumn(aiInterviewReadinessCandidateId, 'interview')"
+    />
+
+    <ConfigureInterviewKitOverlay
+      :open="configureInterviewKitOpen"
+      :candidate-name="selectedConfigureInterviewKitCandidate?.name"
+      :candidate-role="selectedConfigureInterviewKitCandidate?.role"
+      :candidate-stage="getCandidateStageById(configureInterviewKitCandidateId, 'Shortlisted')"
+      @close="closeConfigureInterviewKit"
+      @view-kit="closeConfigureInterviewKit(); openAssignInterviewKit(configureInterviewKitCandidateId)"
+      @keep-current="closeConfigureInterviewKit"
+      @apply-fixes="closeConfigureInterviewKit"
+    />
+
+    <AIHiringSuccessPredictionOverlay
+      :open="aiHiringSuccessPredictionOpen"
+      :candidate-name="selectedAiHiringSuccessPredictionCandidate?.name"
+      :candidate-role="selectedAiHiringSuccessPredictionCandidate?.role"
+      :candidate-stage="getCandidateStageById(aiHiringSuccessPredictionCandidateId, 'Qualified')"
+      @close="closeAiHiringSuccessPrediction"
+      @add-note="openAddNote(aiHiringSuccessPredictionCandidateId)"
+      @share-prediction="openShareCandidate(aiHiringSuccessPredictionCandidateId)"
+      @move-shortlisted="moveCandidateToColumn(aiHiringSuccessPredictionCandidateId, 'interview')"
+    />
+
+    <AIScreeningSummaryOverlay
+      :open="aiScreeningSummaryOpen"
+      :candidate-name="selectedAiScreeningSummaryCandidate?.name"
+      :candidate-role="selectedAiScreeningSummaryCandidate?.role"
+      @close="closeAiScreeningSummary"
+      @add-notes="openAddNote(aiScreeningSummaryCandidateId)"
+      @open-feedback="openViewFeedbackStatus(aiScreeningSummaryCandidateId, 'status')"
+      @move-shortlisted="moveCandidateToColumn(aiScreeningSummaryCandidateId.value, 'interview')"
+    />
+
+    <AIRiskDetectionOverlay
+      :open="aiRiskDetectionOpen"
+      :candidate-name="selectedAiRiskDetectionCandidate?.name"
+      :candidate-role="selectedAiRiskDetectionCandidate?.role"
+      :candidate-stage="selectedAiRiskDetectionStage"
+      @close="closeAiRiskDetection"
+      @add-risk-note="openAddNote(aiRiskDetectionCandidateId)"
+      @continue-next-stage="openSuggestedNextAction(aiRiskDetectionCandidateId)"
+    />
+
+    <SuggestedNextActionOverlay
+      :open="suggestedNextActionOpen"
+      :candidate-name="selectedSuggestedNextActionCandidate?.name"
+      :candidate-role="selectedSuggestedNextActionCandidate?.role"
+      :candidate-stage="selectedSuggestedNextActionStage"
+      @close="closeSuggestedNextAction"
+      @schedule-screening="openScheduleScreening(suggestedNextActionCandidateId)"
+      @request-hm-review="openRequestHmDecision(suggestedNextActionCandidateId)"
+      @move-shortlisted="moveCandidateToColumn(suggestedNextActionCandidateId.value, 'interview')"
+      @move-validation="moveCandidateToColumn(suggestedNextActionCandidateId.value, 'validation')"
+      @assign-assessment="openAssignAssessment(suggestedNextActionCandidateId.value)"
+      @hold-candidate="openPutOnHold(suggestedNextActionCandidateId.value)"
+      @reject-candidate="openRejectCandidate(suggestedNextActionCandidateId.value)"
+      @add-note="openAddNote(suggestedNextActionCandidateId.value)"
+    />
+
+    <FinalFeedbackReviewOverlay
+      :open="finalFeedbackReviewOpen"
+      :candidate-name="selectedFinalFeedbackReviewCandidate?.name"
+      :candidate-role="selectedFinalFeedbackReviewCandidate?.role"
+      @close="closeFinalFeedbackReview"
+      @move-offer="moveCandidateToColumn(finalFeedbackReviewCandidateId.value, 'offer')"
+      @request-clarification="openRequestFeedback(finalFeedbackReviewCandidateId.value)"
+      @hold-decision="openPutOnHold(finalFeedbackReviewCandidateId.value)"
+      @reject-candidate="openRejectCandidate(finalFeedbackReviewCandidateId.value)"
+    />
+
+    <CreateHiringDecisionOverlay
+      :open="createHiringDecisionOpen"
+      :candidate-name="selectedCreateHiringDecisionCandidate?.name"
+      :candidate-role="selectedCreateHiringDecisionCandidate?.role"
+      @close="closeCreateHiringDecision"
+      @save-draft="closeCreateHiringDecision"
+      @save-decision="closeCreateHiringDecision"
+      @create-offer="closeCreateHiringDecision(); moveCandidateToColumn(createHiringDecisionCandidateId.value, 'offer')"
+    />
+
+    <AddNoteOverlay
+      :open="addNoteOpen"
+      :candidate-name="selectedAddNoteCandidate?.name"
+      :candidate-role="selectedAddNoteCandidate?.role"
+      :candidate-stage="selectedAddNoteStage"
+      @close="closeAddNote"
+    />
+
+    <ViewNotesOverlay
+      :open="viewNotesOpen"
+      :candidate-name="selectedViewNotesCandidate?.name"
+      :candidate-role="selectedViewNotesCandidate?.role"
+      :candidate-stage="selectedViewNotesStage"
+      @close="closeViewNotes"
+      @add-note="openAddNoteFromViewNotes"
+    />
+
+    <AddTagsOverlay
+      :open="addTagsOpen"
+      @close="closeAddTags"
+    />
+
+    <ShareCandidateOverlay
+      :open="shareCandidateOpen"
+      :candidate-name="selectedShareCandidate?.name"
+      :candidate-role="selectedShareCandidate?.role"
+      @close="closeShareCandidate"
+    />
+
+    <PutCandidateOnHoldOverlay
+      :open="putOnHoldOpen"
+      :candidate-name="selectedPutOnHoldCandidate?.name"
+      :candidate-role="selectedPutOnHoldCandidate?.role"
+      @close="closePutOnHold"
+    />
+
+    <ArchiveCandidateOverlay
+      :open="archiveCandidateOpen"
+      :candidate-name="selectedArchiveCandidate?.name"
+      :candidate-role="selectedArchiveCandidate?.role"
+      @close="closeArchiveCandidate"
+    />
+
+    <ActivityLogOverlay
+      :open="activityLogOpen"
+      :candidate-name="selectedActivityLogCandidate?.name"
+      :candidate-role="selectedActivityLogCandidate?.role"
+      @close="closeActivityLog"
+    />
+
+    <RejectCandidateOverlay
+      :open="rejectCandidateOpen"
+      :candidate-name="selectedRejectCandidate?.name"
+      :candidate-role="selectedRejectCandidate?.role"
+      :candidate-stage="selectedRejectCandidateStage"
+      @close="closeRejectCandidate"
+    />
+
+    <ConfirmAvailabilityOverlay
+      :open="confirmAvailabilityOpen"
+      :candidate-name="selectedConfirmAvailabilityCandidate?.name"
+      :candidate-role="selectedConfirmAvailabilityCandidate?.role"
+      :candidate-stage="getCandidateStageById(confirmAvailabilityCandidateId, 'Qualified')"
+      @close="closeConfirmAvailability"
+    />
+
+    <ConfirmSalaryAlignmentOverlay
+      :open="confirmSalaryAlignmentOpen"
+      :candidate-name="selectedConfirmSalaryAlignmentCandidate?.name"
+      :candidate-role="selectedConfirmSalaryAlignmentCandidate?.role"
+      :candidate-stage="getCandidateStageById(confirmSalaryAlignmentCandidateId, 'Qualified')"
+      @close="closeConfirmSalaryAlignment"
+    />
+
+    <ConfirmCandidateInterestOverlay
+      :open="confirmInterestOpen"
+      :candidate-name="selectedConfirmInterestCandidate?.name"
+      :candidate-role="selectedConfirmInterestCandidate?.role"
+      :candidate-match="selectedConfirmInterestCandidate?.match"
+      @close="closeConfirmInterest"
+    />
+
+    <RequestFeedbackOverlay
+      :open="feedbackRequestOpen"
+      :candidate-name="selectedFeedbackRequestCandidate?.name"
+      :candidate-role="selectedFeedbackRequestCandidate?.role"
+      :candidate-stage="getCandidateStageById(feedbackRequestCandidateId, 'Interview')"
+      @close="closeRequestFeedback"
+      @send-request="submitRequestFeedback"
+    />
+
+    <RequestFinalFeedbackOverlay
+      :open="finalFeedbackRequestOpen"
+      :candidate-name="selectedFinalFeedbackRequestCandidate?.name"
+      :candidate-role="selectedFinalFeedbackRequestCandidate?.role"
+      @close="closeRequestFinalFeedback"
+      @send-request="closeRequestFinalFeedback"
+    />
+
+    <SendReminderOverlay
+      :open="sendReminderOpen"
+      :candidate-name="selectedSendReminderCandidate?.name"
+      :candidate-role="selectedSendReminderCandidate?.role"
+      @close="closeSendReminder"
+      @send-reminder="closeSendReminder"
+    />
+
+    <ViewFeedbackStatusOverlay
+      :open="feedbackStatusOpen"
+      :candidate-name="selectedFeedbackStatusCandidate?.name"
+      :candidate-role="selectedFeedbackStatusCandidate?.role"
+      :candidate-stage="getCandidateStageById(feedbackStatusCandidateId, 'Shortlisted')"
+      :initial-tab="feedbackStatusInitialTab"
+      @close="closeViewFeedbackStatus"
+      @request-feedback="closeViewFeedbackStatus(); openRequestFeedback(feedbackStatusCandidateId)"
+    />
+
+    <AssessmentReviewOverlay
+      :open="assessmentReviewOpen"
+      :candidate-name="selectedAssessmentReviewCandidate?.name"
+      :candidate-role="selectedAssessmentReviewCandidate?.role"
+      :candidate-stage="getCandidateStageById(assessmentReviewCandidateId, 'Assessment')"
+      @close="closeAssessmentReview"
+    />
+
+    <CandidateComparisonOverlay
+      :open="candidateComparisonOpen"
+      :candidate-name="selectedCandidateComparisonCandidate?.name"
+      :candidate-role="selectedCandidateComparisonCandidate?.role"
+      @close="closeCandidateComparison"
+    />
+
+    <ReviewerCalibrationOverlay
+      :open="reviewerCalibrationOpen"
+      :candidate-name="selectedReviewerCalibrationCandidate?.name"
+      :candidate-role="selectedReviewerCalibrationCandidate?.role"
+      :reviewer-count="selectedReviewerCalibrationCount"
+      @close="closeReviewerCalibration"
+    />
+
+    <TrackAssessmentProgressOverlay
+      :open="trackAssessmentProgressOpen"
+      :candidate-name="selectedTrackAssessmentProgressCandidate?.name"
+      :candidate-role="selectedTrackAssessmentProgressCandidate?.role"
+      @close="closeTrackAssessmentProgress"
+    />
+
+    <InterviewScorecardOverlay
+      :open="interviewScorecardOpen"
+      :candidate-name="selectedInterviewScorecardCandidate?.name"
+      :candidate-role="selectedInterviewScorecardCandidate?.role"
+      @close="closeInterviewScorecard"
+    />
+
+    <AutoDQKnockoutOverlay
+      :open="autoDqOpen"
+      :candidate-name="selectedAutoDqCandidate?.name"
+      :candidate-role="selectedAutoDqCandidate?.role"
+      :candidate-match="selectedAutoDqCandidate?.match"
+      @close="closeAutoDq"
+    />
+
+    <AddToTalentPoolOverlay
+      :open="addToTalentPoolOpen"
+      :candidate-name="selectedTalentPoolCandidate?.name"
+      :candidate-role="selectedTalentPoolCandidate?.role"
+      :candidate-match="selectedTalentPoolCandidate?.match"
+      @close="closeAddToTalentPool"
+    />
+
+    <AIAssessmentInsightsOverlay
+      :open="aiAssessmentInsightsOpen"
+      :candidate-name="selectedAiAssessmentInsightsCandidate?.name"
+      :candidate-role="selectedAiAssessmentInsightsCandidate?.role"
+      :candidate-match="selectedAiAssessmentInsightsCandidate?.match"
+      @close="closeAiAssessmentInsights"
+    />
+
+    <AIFeedbackQualityOverlay
+      :open="aiFeedbackQualityOpen"
+      :candidate-name="selectedAiFeedbackQualityCandidate?.name"
+      :candidate-role="selectedAiFeedbackQualityCandidate?.role"
+      @close="closeAiFeedbackQuality"
+    />
+
+    <AIScoreCalibrationOverlay
+      :open="aiScoreCalibrationOpen"
+      :candidate-name="selectedAiScoreCalibrationCandidate?.name"
+      :candidate-role="selectedAiScoreCalibrationCandidate?.role"
+      @close="closeAiScoreCalibration"
+    />
+
+    <AIScorecardBiasDetectionOverlay
+      :open="aiScorecardBiasOpen"
+      :candidate-name="selectedAiScorecardBiasCandidate?.name"
+      :candidate-role="selectedAiScorecardBiasCandidate?.role"
+      @close="closeAiScorecardBiasDetection"
+    />
+
+    <AIStageRecommendationOverlay
+      :open="aiStageRecommendationOpen"
+      :candidate-name="selectedAiStageRecommendationCandidate?.name"
+      :candidate-role="selectedAiStageRecommendationCandidate?.role"
+      @close="closeAiStageRecommendation"
+    />
+
+    <AIStrengthsGapsOverlay
+      :open="aiStrengthsGapsOpen"
+      :candidate-name="selectedAiStrengthsGapsCandidate?.name"
+      :candidate-role="selectedAiStrengthsGapsCandidate?.role"
+      @close="closeAiStrengthsGaps"
+    />
+
+    <AssignHiringManagerOverlay
+      :open="assignHiringManagerOpen"
+      :candidate-name="selectedAssignHiringManagerCandidate?.name"
+      :candidate-role="selectedAssignHiringManagerCandidate?.role"
+      :candidate-stage="getCandidateStageById(assignHiringManagerCandidateId, 'Qualified')"
+      @close="closeAssignHiringManager"
+    />
+
+    <AssignInterviewPanelOverlay
+      :open="assignInterviewPanelOpen"
+      :candidate-name="selectedAssignInterviewPanelCandidate?.name"
+      :candidate-role="selectedAssignInterviewPanelCandidate?.role"
+      :candidate-stage="getCandidateStageById(assignInterviewPanelCandidateId, 'Shortlisted')"
+      :has-assigned-panel="Boolean(selectedAssignInterviewPanelCandidate?.hasAssignedInterviewPanel)"
+      @panel-assigned="setCandidateInterviewPanelAssigned(assignInterviewPanelCandidateId, true)"
+      @close="closeAssignInterviewPanel"
+    />
+
+    <CheckInterviewerWorkloadOverlay
+      :open="checkInterviewerWorkloadOpen"
+      :candidate-name="selectedCheckInterviewerWorkloadCandidate?.name"
+      :candidate-role="selectedCheckInterviewerWorkloadCandidate?.role"
+      :candidate-stage="getCandidateStageById(checkInterviewerWorkloadCandidateId, 'Shortlisted')"
+      @close="closeCheckInterviewerWorkload"
+      @use-current-panel="closeCheckInterviewerWorkload"
+      @view-replacements="closeCheckInterviewerWorkload"
+    />
+
+    <InterviewPlanSequenceOverlay
+      :open="interviewPlanSequenceOpen"
+      :candidate-name="selectedInterviewPlanSequenceCandidate?.name"
+      :candidate-role="selectedInterviewPlanSequenceCandidate?.role"
+      :candidate-stage="getCandidateStageById(interviewPlanSequenceCandidateId, 'Shortlisted')"
+      :has-assigned-sequence="Boolean(selectedInterviewPlanSequenceCandidate?.hasAssignedInterviewSequence)"
+      :initial-view="interviewPlanSequenceInitialView"
+      @sequence-assigned="setCandidateInterviewSequenceAssigned(interviewPlanSequenceCandidateId, true)"
+      @close="closeInterviewPlanSequence"
+    />
+
+    <AssignInterviewKitOverlay
+      :open="assignInterviewKitOpen"
+      :candidate-name="selectedAssignInterviewKitCandidate?.name"
+      :candidate-role="selectedAssignInterviewKitCandidate?.role"
+      :candidate-stage="getCandidateStageById(assignInterviewKitCandidateId, 'Shortlisted')"
+      @close="closeAssignInterviewKit"
+      @review-customize="openConfigureInterviewKitFromAssign"
+      @create-kit="closeAssignInterviewKit"
+      @assign-plan="closeAssignInterviewKit"
+    />
+
+    <RequestSalaryExpectationOverlay
+      :open="requestSalaryOpen"
+      :candidate-name="selectedRequestSalaryCandidate?.name"
+      :candidate-role="selectedRequestSalaryCandidate?.role"
+      :candidate-match="selectedRequestSalaryCandidate?.match"
+      @close="closeRequestSalary"
+    />
+
+    <SendCandidateEmailOverlay
+      :open="sendEmailOpen"
+      :candidate-name="selectedEmailCandidate?.name"
+      :candidate-role="selectedEmailCandidate?.role"
+      :candidate-stage="getCandidateStageById(sendEmailCandidateId, 'Interview')"
+      :candidate-match="selectedEmailCandidate?.match"
+      @close="closeSendEmail"
+    />
   </main>
 </template>
 
@@ -2603,6 +5694,7 @@ function goBack() {
 .job-pipeline-back,
 .job-pipeline-ghost,
 .job-pipeline-outline-accent,
+.job-pipeline-bulk-action,
 .job-pipeline-icon-button,
 .job-pipeline-view-button,
 .job-pipeline-tab,
@@ -2612,6 +5704,10 @@ function goBack() {
 .job-pipeline-copilot-card button,
 .job-pipeline-copilot-button,
 .job-pipeline-add-candidate,
+.job-pipeline-card-actions button,
+.job-pipeline-card-more,
+.job-pipeline-column-trigger,
+.job-pipeline-stage-menu__item,
 .job-pipeline-recommendation-card button,
 .job-pipeline-tip button {
   border: 0;
@@ -2622,6 +5718,7 @@ function goBack() {
 .job-pipeline-back,
 .job-pipeline-ghost,
 .job-pipeline-outline-accent,
+.job-pipeline-bulk-action,
 .job-pipeline-view-button {
   display: inline-flex;
   align-items: center;
@@ -2651,6 +5748,13 @@ function goBack() {
 .job-pipeline-outline-accent {
   color: #ff5aa7;
   border-color: #ffd2e7;
+}
+
+.job-pipeline-bulk-action {
+  color: #fff;
+  background: linear-gradient(90deg, #ff67ad 0%, #f15ea8 100%);
+  border-color: transparent;
+  box-shadow: 0 10px 18px rgba(241, 94, 168, 0.16);
 }
 
 .job-pipeline-actions,
@@ -3081,12 +6185,13 @@ function goBack() {
 .job-pipeline-board-panel {
   width: 100%;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .job-pipeline-board-title {
   gap: 12px;
   min-width: 0;
+  flex-wrap: wrap;
 }
 
 .job-pipeline-board-head {
@@ -3108,6 +6213,41 @@ function goBack() {
 .job-pipeline-board-title span {
   color: #9aa5b7;
   font-size: 0.8rem;
+}
+
+.job-pipeline-board-select-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #6f7c93;
+  font-size: 0.78rem;
+}
+
+.job-pipeline-fake-check {
+  width: 13px;
+  height: 13px;
+  border: 1px solid #d9e1ee;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  flex: 0 0 13px;
+}
+
+.job-pipeline-fake-check.is-checked {
+  border-color: #ff67ad;
+  background: linear-gradient(180deg, #ff78b8 0%, #f25ea8 100%);
+  box-shadow: 0 4px 10px rgba(242, 94, 168, 0.18);
+}
+
+.job-pipeline-fake-check.is-checked::after {
+  content: '';
+  width: 6px;
+  height: 3px;
+  border-left: 1.5px solid #fff;
+  border-bottom: 1.5px solid #fff;
+  transform: rotate(-45deg) translateY(-1px);
 }
 
 .job-pipeline-board-view-tabs {
@@ -3133,11 +6273,13 @@ function goBack() {
 }
 
 .job-pipeline-board-controls .job-pipeline-ghost,
+.job-pipeline-board-controls .job-pipeline-bulk-action,
 .job-pipeline-board-controls .job-pipeline-icon-button {
   height: 32px;
 }
 
-.job-pipeline-board-controls .job-pipeline-ghost {
+.job-pipeline-board-controls .job-pipeline-ghost,
+.job-pipeline-board-controls .job-pipeline-bulk-action {
   padding: 0 12px;
   font-size: 0.78rem;
 }
@@ -3164,18 +6306,18 @@ function goBack() {
 .job-pipeline-board {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: 172px;
-  gap: 8px;
+  grid-auto-columns: 268px;
+  gap: 14px;
   width: max-content;
   min-width: 0;
 }
 
 .job-pipeline-board-scroll {
-  margin-top: 16px;
+  margin-top: 18px;
   width: 100%;
   max-width: 100%;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
   padding-bottom: 8px;
   scrollbar-width: thin;
   scrollbar-color: #d18ad7 transparent;
@@ -5430,6 +8572,233 @@ function goBack() {
   font-size: 0.56rem;
 }
 
+.job-pipeline-complete-feedback-ai-toggle,
+.job-pipeline-complete-feedback-ai-toggle__copy,
+.job-pipeline-complete-feedback-ai-toggle__action,
+.job-pipeline-complete-feedback-ai-quality-row,
+.job-pipeline-complete-feedback-ai-insights,
+.job-pipeline-complete-feedback-ai-insights > div,
+.job-pipeline-complete-feedback-ai-footer,
+.job-pipeline-complete-feedback-ai-link,
+.job-pipeline-complete-feedback-ai-primary {
+  display: flex;
+}
+
+.job-pipeline-complete-feedback-ai-toggle {
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid #dfe6fb;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #f7f8ff 0%, #fbfcff 100%);
+  cursor: pointer;
+}
+
+.job-pipeline-complete-feedback-ai-toggle.is-expanded {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.job-pipeline-complete-feedback-ai-toggle__copy {
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+}
+
+.job-pipeline-complete-feedback-ai-toggle__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  color: #5b61f6;
+  background: #eef1ff;
+}
+
+.job-pipeline-complete-feedback-ai-toggle__copy strong,
+.job-pipeline-complete-feedback-ai-card strong {
+  display: block;
+  color: #39476a;
+  font-size: 0.78rem;
+}
+
+.job-pipeline-complete-feedback-ai-toggle__copy small {
+  display: block;
+  margin-top: 6px;
+  color: #7f8ba0;
+  font-size: 0.62rem;
+  line-height: 1.5;
+}
+
+.job-pipeline-complete-feedback-ai-toggle__action {
+  align-items: center;
+  gap: 8px;
+  color: #4f46e5;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.job-pipeline-complete-feedback-ai-panel {
+  border: 1px solid #dfe6fb;
+  border-top: 0;
+  border-radius: 0 0 16px 16px;
+  background: linear-gradient(180deg, #f7f8ff 0%, #fbfcff 100%);
+  padding: 18px 20px 20px;
+}
+
+.job-pipeline-complete-feedback-ai-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.job-pipeline-complete-feedback-ai-card {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #e4e9f6;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.job-pipeline-complete-feedback-ai-quality-list {
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.job-pipeline-complete-feedback-ai-quality-row {
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #50607b;
+  font-size: 0.62rem;
+}
+
+.job-pipeline-complete-feedback-ai-quality-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.job-pipeline-complete-feedback-ai-quality-row em {
+  font-size: 0.6rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.job-pipeline-complete-feedback-ai-card h4 {
+  margin: 14px 0 0;
+  color: #4f46e5;
+  font-size: 0.7rem;
+}
+
+.job-pipeline-complete-feedback-ai-card p,
+.job-pipeline-complete-feedback-ai-card small,
+.job-pipeline-complete-feedback-ai-card blockquote {
+  color: #66748d;
+  font-size: 0.6rem;
+  line-height: 1.55;
+}
+
+.job-pipeline-complete-feedback-ai-card p {
+  margin: 10px 0 0;
+}
+
+.job-pipeline-complete-feedback-ai-card small {
+  display: block;
+  margin-top: 14px;
+  color: #98a3b8;
+  text-transform: uppercase;
+}
+
+.job-pipeline-complete-feedback-ai-card blockquote {
+  margin: 10px 0 0;
+  padding: 0;
+  border: 0;
+  font-style: italic;
+}
+
+.job-pipeline-complete-feedback-ai-card button {
+  width: 100%;
+  margin-top: 16px;
+  min-height: 38px;
+  border: 1px solid #cfd8fb;
+  border-radius: 12px;
+  background: #fff;
+  color: #4f46e5;
+  font-size: 0.62rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.job-pipeline-complete-feedback-ai-insights {
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid #e4e9f6;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.job-pipeline-complete-feedback-ai-insights > div {
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: #64748b;
+  font-size: 0.6rem;
+}
+
+.job-pipeline-complete-feedback-ai-insights svg {
+  color: #22c55e;
+}
+
+.job-pipeline-complete-feedback-ai-insights span {
+  color: #39476a;
+  font-weight: 700;
+}
+
+.job-pipeline-complete-feedback-ai-insights small {
+  color: #7f8ba0;
+}
+
+.job-pipeline-complete-feedback-ai-footer {
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.job-pipeline-complete-feedback-ai-link,
+.job-pipeline-complete-feedback-ai-primary {
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  border-radius: 12px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.job-pipeline-complete-feedback-ai-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #4f46e5;
+}
+
+.job-pipeline-complete-feedback-ai-primary {
+  justify-content: center;
+  min-width: 204px;
+  padding: 0 18px;
+  border: 0;
+  color: #fff;
+  background: linear-gradient(135deg, #5448e5 0%, #5b61f6 100%);
+}
+
 .job-pipeline-workload-view {
   margin-top: 14px;
   display: grid;
@@ -6462,84 +9831,60 @@ function goBack() {
 
 .job-pipeline-column {
   position: relative;
-  min-width: 172px;
-  max-width: 172px;
-  padding: 7px;
-  border: 1px solid #e9eef6;
-  border-radius: 14px;
-  background: #fbfcff;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+  min-width: 268px;
+  max-width: 268px;
+  padding: 0 0 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  transition: transform 0.18s ease, opacity 0.18s ease;
 }
 
 .job-pipeline-column.is-focused {
-  box-shadow: 0 0 0 2px rgba(255, 90, 167, 0.18);
+  transform: translateY(-1px);
 }
 
 .job-pipeline-column.is-drop-target {
-  border-color: #ff8bc0;
-  background: #fff7fb;
-  box-shadow: 0 0 0 2px rgba(255, 90, 167, 0.12);
+  opacity: 0.92;
 }
 
 .job-pipeline-column.is-column-drop-target {
-  border-color: #7c6cff;
-  background: #f7f6ff;
-  box-shadow: 0 0 0 2px rgba(124, 108, 255, 0.14);
+  opacity: 0.92;
 }
 
 .job-pipeline-column-head {
   display: grid;
   gap: 8px;
-  padding-left: 24px;
-  align-items: flex-start;
-}
-
-.job-pipeline-column-handle {
-  position: absolute;
-  top: 11px;
-  left: 9px;
-  display: inline-grid;
-  grid-auto-flow: row;
-  gap: 3px;
-  align-content: start;
-  justify-items: center;
-  width: 18px;
-  padding: 3px 0;
-  border: 0;
-  background: transparent;
-  cursor: grab;
-  z-index: 1;
-}
-
-.job-pipeline-column-handle:active {
-  cursor: grabbing;
-}
-
-.job-pipeline-column-handle span {
-  display: block;
-  width: 4px;
-  height: 4px;
-  border-radius: 999px;
-  background: #bac5d7;
+  align-items: start;
 }
 
 .job-pipeline-column-heading,
 .job-pipeline-column-meta,
-.job-pipeline-candidate-top > div,
+.job-pipeline-candidate-top,
 .job-pipeline-candidate-bottom > * {
   min-width: 0;
 }
 
 .job-pipeline-column-heading {
-  display: grid;
-  gap: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.job-pipeline-column-trigger {
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
 }
 
 .job-pipeline-column-head strong {
   display: block;
   color: #162447;
-  font-size: 0.8rem;
+  font-size: 0.68rem;
   line-height: 1.18;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .job-pipeline-column-head small,
@@ -6551,43 +9896,193 @@ function goBack() {
 
 .job-pipeline-column-head small {
   white-space: nowrap;
+  font-weight: 700;
 }
 
 .job-pipeline-column-meta {
-  display: grid;
-  justify-items: start;
-  gap: 4px;
-  margin-top: 0;
-  text-align: left;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .job-pipeline-column-meta em {
   font-style: normal;
   font-weight: 700;
-  font-size: 0.66rem;
+  font-size: 0.58rem;
   line-height: 1.2;
   white-space: nowrap;
+  color: #ff71b5;
+  letter-spacing: 0.03em;
 }
 
-.job-pipeline-column-meta em.is-green {
-  color: #22b161;
+.job-pipeline-stage-menu {
+  position: fixed;
+  z-index: 1200;
+  width: 292px;
+  max-height: min(72vh, 760px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  padding: 14px;
+  border: 1px solid #e6ebf4;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 24px 56px rgba(15, 23, 42, 0.16);
+  backdrop-filter: blur(10px);
 }
 
-.job-pipeline-column-meta em.is-orange {
-  color: #ff922c;
+.job-pipeline-stage-menu::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: 18px;
+  width: 16px;
+  height: 16px;
+  border-top: 1px solid #e6ebf4;
+  border-left: 1px solid #e6ebf4;
+  background: rgba(255, 255, 255, 0.98);
+  transform: rotate(45deg);
 }
 
-.job-pipeline-column-meta em.is-pink {
-  color: #ff5aa7;
-  font-size: 0.72rem;
+.job-pipeline-stage-menu::-webkit-scrollbar {
+  width: 8px;
+}
+
+.job-pipeline-stage-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.job-pipeline-stage-menu::-webkit-scrollbar-thumb {
+  background: #d6ddec;
+  border-radius: 999px;
+}
+
+.job-pipeline-stage-menu__hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 4px 4px 14px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.job-pipeline-stage-menu__badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(180deg, #6d5cff 0%, #4f46e5 100%);
+  font-size: 1rem;
+  font-weight: 800;
+  flex: 0 0 34px;
+}
+
+.job-pipeline-stage-menu__hero strong {
+  display: block;
+  color: #25345a;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.job-pipeline-stage-menu__hero small {
+  display: block;
+  margin-top: 4px;
+  color: #98a4b6;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.job-pipeline-stage-menu__section {
+  margin-top: 14px;
+}
+
+.job-pipeline-stage-menu__section h4 {
+  margin: 0 0 8px;
+  color: #5a67ff;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.job-pipeline-stage-menu__section h4.is-accent {
+  color: #6b5cff;
+}
+
+.job-pipeline-stage-menu__item {
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 8px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  color: #58657c;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 12px;
+  transition: background-color 0.16s ease, color 0.16s ease;
+}
+
+.job-pipeline-stage-menu__item + .job-pipeline-stage-menu__item {
+  margin-top: 2px;
+}
+
+.job-pipeline-stage-menu__item:hover {
+  background: #f8faff;
+  color: #25345a;
+}
+
+.job-pipeline-stage-menu__item.is-danger {
+  color: #ef4444;
+}
+
+.job-pipeline-stage-menu__item.is-disabled {
+  color: #b8c1d2;
+  cursor: not-allowed;
+}
+
+.job-pipeline-stage-menu__item.is-disabled:hover {
+  background: transparent;
+  color: #b8c1d2;
+}
+
+.job-pipeline-stage-menu__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: #8a96ab;
+}
+
+.job-pipeline-stage-menu__icon.is-danger {
+  color: #ef4444;
+}
+
+.job-pipeline-stage-menu__item.is-disabled .job-pipeline-stage-menu__icon {
+  color: #c8d0de;
 }
 
 .job-pipeline-column-bar {
   display: block;
-  height: 4px;
-  margin-top: 12px;
+  height: 2px;
+  margin-bottom: 12px;
   border-radius: 999px;
-  background: #dfe6f2;
+  background: #d8e0ed;
+}
+
+.job-pipeline-column-bar--handle {
+  width: 100%;
+  padding: 0;
+  cursor: grab;
+}
+
+.job-pipeline-column-bar--handle:active {
+  cursor: grabbing;
 }
 
 .job-pipeline-column-bar.is-green {
@@ -6602,19 +10097,43 @@ function goBack() {
   background: #ff6b8f;
 }
 
+.job-pipeline-column-bar.is-violet {
+  background: #8d6cff;
+}
+
+.job-pipeline-column-bar.is-blue {
+  background: #6d94ff;
+}
+
+.job-pipeline-column-bar.is-slate {
+  background: #d7deea;
+}
+
 .job-pipeline-column-cards {
   display: grid;
-  gap: 7px;
-  margin-top: 8px;
+  gap: 10px;
+  margin-top: 14px;
 }
 
 .job-pipeline-candidate-card {
-  padding: 7px;
-  border: 1px solid #e8edf6;
-  border-radius: 11px;
+  position: relative;
+  min-height: 136px;
+  padding: 14px 14px 10px;
+  border: 1px solid #e3eaf4;
+  border-radius: 12px;
   background: #fff;
   cursor: grab;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+  box-shadow: 0 8px 18px rgba(20, 28, 48, 0.04);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease, border-color 0.18s ease;
+}
+
+.job-pipeline-candidate-card.is-selected {
+  border-color: #ff8fca;
+  box-shadow: 0 10px 20px rgba(255, 95, 170, 0.08);
+}
+
+.job-pipeline-candidate-card.is-menu-open {
+  z-index: 12;
 }
 
 .job-pipeline-candidate-card:active {
@@ -6627,34 +10146,32 @@ function goBack() {
   box-shadow: 0 10px 24px rgba(22, 36, 71, 0.12);
 }
 
-.job-pipeline-candidate-top {
+.job-pipeline-card-head {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
+  grid-template-columns: 16px 34px minmax(0, 1fr) 20px;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
 }
 
 .job-pipeline-candidate-avatar {
   display: inline-grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   overflow: hidden;
   background: linear-gradient(135deg, #ffd27a 0%, #2a725f 100%);
   color: #fff;
   white-space: nowrap;
-  flex: 0 0 26px;
+  flex: 0 0 34px;
 }
 
 .job-pipeline-candidate-avatar > span {
   display: block;
-  font-size: 0.44rem;
+  font-size: 0.58rem;
   font-weight: 700;
   line-height: 1;
-  letter-spacing: -0.05em;
   text-align: center;
-  transform: translateY(1px);
 }
 
 .job-pipeline-candidate-avatar.job-pipeline-candidate-avatar--small {
@@ -6675,16 +10192,22 @@ function goBack() {
   flex-basis: 18px;
 }
 
+.job-pipeline-candidate-top {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding-right: 6px;
+}
+
 .job-pipeline-candidate-top strong {
   display: block;
   color: #162447;
-  font-size: 0.68rem;
-  line-height: 1.25;
+  font-size: 0.9rem;
+  line-height: 1.12;
   overflow-wrap: anywhere;
 }
 
 .job-pipeline-candidate-top span,
-.job-pipeline-candidate-top small,
 .job-pipeline-candidate-bottom small,
 .job-pipeline-chart-copy {
   color: #7d889b;
@@ -6692,54 +10215,104 @@ function goBack() {
 
 .job-pipeline-candidate-top span {
   display: block;
-  margin-top: 1px;
-  font-size: 0.6rem;
+  margin-top: 0;
+  font-size: 0.8rem;
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
-.job-pipeline-candidate-top small {
-  display: block;
-  margin-top: 1px;
-  font-size: 0.56rem;
-  line-height: 1.3;
-  overflow-wrap: anywhere;
+.job-pipeline-card-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: #b1bccf;
+  cursor: pointer;
 }
 
 .job-pipeline-candidate-bottom {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 8px;
-  margin-top: 8px;
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  margin-top: 14px;
+  align-items: center;
 }
 
 .job-pipeline-candidate-bottom strong {
-  color: #22b161;
-  font-size: 0.62rem;
+  font-size: 0.78rem;
+  font-weight: 700;
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
 
+.job-pipeline-candidate-bottom strong.is-green {
+  color: #22b161;
+}
+
+.job-pipeline-candidate-bottom strong.is-orange {
+  color: #f59e0b;
+}
+
 .job-pipeline-candidate-bottom small {
-  color: #7c6cff;
   font-weight: 600;
-  font-size: 0.58rem;
+  font-size: 0.74rem;
   line-height: 1.35;
   text-align: right;
+  justify-self: end;
+  max-width: 122px;
   overflow-wrap: anywhere;
+}
+
+.job-pipeline-candidate-bottom small.is-slate {
+  color: #97a3b7;
+}
+
+.job-pipeline-candidate-bottom small.is-orange {
+  color: #f59e0b;
+}
+
+.job-pipeline-candidate-bottom small.is-blue {
+  color: #6290ff;
+}
+
+.job-pipeline-candidate-bottom small.is-green {
+  color: #22b161;
+}
+
+.job-pipeline-card-actions {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px dashed #edf1f7;
+}
+
+.job-pipeline-card-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: #ff7dbd;
+  cursor: pointer;
 }
 
 .job-pipeline-add-candidate {
   width: 100%;
-  height: 30px;
-  margin-top: 8px;
+  height: 28px;
+  margin-top: 6px;
   border: 1px dashed #d7deeb;
   border-radius: 10px;
-  color: #758298;
-  background: #fff;
+  color: #a1aec2;
+  background: transparent;
   cursor: pointer;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .job-pipeline-bottom-grid {
