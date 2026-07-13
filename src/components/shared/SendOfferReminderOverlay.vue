@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import AppIcon from './AppIcon.vue'
+import NitroSyncLogo from './NitroSyncLogo.vue'
 
 const props = defineProps({
   open: {
@@ -368,8 +369,7 @@ function submitReminder() {
 
               <article class="send-offer-reminder-preview-email">
                 <div class="send-offer-reminder-preview-email__brand">
-                  <span>N</span>
-                  <strong>NITROSYNC</strong>
+                  <NitroSyncLogo size="xs" :show-tagline="false" />
                 </div>
 
                 <div class="send-offer-reminder-preview-email__body">
@@ -1102,19 +1102,6 @@ function submitReminder() {
   gap: 10px;
   margin-bottom: 24px;
   color: #1f2c4f;
-}
-
-.send-offer-reminder-preview-email__brand span {
-  width: 28px;
-  height: 28px;
-  border-radius: 9px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  background: linear-gradient(135deg, #ff2d87 0%, #7c5cff 100%);
-  font-size: 0.95rem;
-  font-weight: 800;
 }
 
 .send-offer-reminder-preview-email__body {

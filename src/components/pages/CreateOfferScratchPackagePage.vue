@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import AppIcon from '../shared/AppIcon.vue'
+import NitroSyncLogo from '../shared/NitroSyncLogo.vue'
 import { getJobById } from '../../data/jobs'
 
 const props = defineProps({
@@ -176,9 +177,8 @@ const includedRows = [
               </div>
 
               <div class="offer-package-scratch-preview__mail">
-                <div class="offer-package-scratch-preview__brand">N</div>
+                <NitroSyncLogo size="xs" :show-tagline="false" />
                 <div>
-                  <strong>NitroSync</strong>
                   <small>to marvin.mckinney@email.com</small>
                 </div>
               </div>
@@ -649,22 +649,11 @@ const includedRows = [
 
 .offer-package-scratch-preview__mail {
   gap: 10px;
+  align-items: flex-start;
   margin-top: 14px;
   padding: 12px;
   border: 1px solid #edf1f8;
   border-radius: 14px;
-}
-
-.offer-package-scratch-preview__brand {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #ff2d87;
-  background: #fff0f7;
-  font-weight: 800;
 }
 
 .offer-package-scratch-preview__message {

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import AppIcon from '../shared/AppIcon.vue'
+import NitroSyncLogo from '../shared/NitroSyncLogo.vue'
 import { getJobById } from '../../data/jobs'
 
 const props = defineProps({
@@ -296,11 +297,10 @@ const successActionRows = [
 
               <div class="final-review-experience">
                 <div class="final-review-experience__frame">
-                  <div class="final-review-experience__top">
-                    <span>N</span>
-                    <strong>NitroSync</strong>
-                    <AppIcon name="sparkles" :size="12" />
-                  </div>
+                    <div class="final-review-experience__top">
+                      <NitroSyncLogo size="xs" :show-tagline="false" />
+                      <AppIcon name="sparkles" :size="12" />
+                    </div>
                   <div class="final-review-experience__body">
                     <h4>Hello {{ candidateFirstName }}</h4>
                     <p>We're excited to extend an offer.</p>
@@ -1134,7 +1134,7 @@ const successActionRows = [
 
 .final-review-experience__top {
   display: grid;
-  grid-template-columns: 24px 1fr auto;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 8px;
 }
@@ -1149,12 +1149,6 @@ const successActionRows = [
   color: #fff;
   background: linear-gradient(135deg, #ff4098 0%, #ff1f7c 100%);
   font-size: 0.76rem;
-  font-weight: 800;
-}
-
-.final-review-experience__top strong {
-  color: #1d2b49;
-  font-size: 0.74rem;
   font-weight: 800;
 }
 
@@ -2040,6 +2034,31 @@ const successActionRows = [
   }
 }
 
+@media (max-width: 1360px) {
+  .final-review-top-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .final-review-hero {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .final-review-hero__stats {
+    min-width: 0;
+  }
+
+  .final-review-flow,
+  .final-review-success__journey-flow {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .final-review-success__meta,
+  .final-review-success__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 1180px) {
   .final-review-hero,
   .final-review-main,
@@ -2061,6 +2080,7 @@ const successActionRows = [
     display: none;
   }
 
+  .final-review-top-grid,
   .final-review-success__journey-flow {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -2091,7 +2111,8 @@ const successActionRows = [
   .final-review-header__top,
   .final-review-footer,
   .final-review-footer__end,
-  .final-review-hero__stats {
+  .final-review-hero__stats,
+  .final-review-top-grid {
     display: grid;
     grid-template-columns: 1fr;
   }

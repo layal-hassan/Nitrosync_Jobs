@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import AppIcon from './AppIcon.vue'
+import NitroSyncLogo from './NitroSyncLogo.vue'
 
 const props = defineProps({
   open: {
@@ -128,7 +129,7 @@ onBeforeUnmount(() => {
         <div class="offer-preview-canvas" :class="{ 'is-mobile': deviceMode === 'mobile' }">
           <article class="offer-preview-sheet" :style="{ transform: `scale(${zoom / 100})` }">
             <div class="offer-preview-sheet__top">
-              <strong>NitroSync</strong>
+              <NitroSyncLogo size="xs" :show-tagline="false" />
               <small>May 15, 2025</small>
             </div>
 

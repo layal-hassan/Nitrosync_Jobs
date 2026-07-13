@@ -1,5 +1,6 @@
 <script setup>
 import AppIcon from '../../shared/AppIcon.vue'
+import NitroSyncLogo from '../../shared/NitroSyncLogo.vue'
 
 const approaches = [
   {
@@ -258,7 +259,7 @@ const sections = [
 
         <div class="phone-frame">
           <div class="phone-frame__brand">
-            <strong>NitroSync</strong>
+            <NitroSyncLogo size="xs" :show-tagline="false" />
           </div>
 
           <div class="phone-frame__job">

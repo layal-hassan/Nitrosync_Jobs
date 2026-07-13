@@ -735,12 +735,28 @@ onBeforeUnmount(() => {
   background: #fff0f7;
 }
 
-@media (max-width: 1120px) {
+@media (max-width: 1260px) {
   .share-hire-layout {
     grid-template-columns: 1fr;
   }
 
   .share-hire-audiences {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .share-hire-channels {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    background: #ebeff7;
+  }
+
+  .share-hire-channels button {
+    border-right: 0;
+  }
+
+  .share-hire-touch__actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

@@ -90,6 +90,16 @@ const stepContent = {
       { title: 'Validation', text: 'Screening logic is ready for activation in the pipeline.' },
     ],
   },
+  6: {
+    eyebrow: 'Step 6 of 8',
+    title: 'Pipeline Intelligence & Automation',
+    description: 'Define movement logic, approvals and automation rules before interviews begin.',
+    cards: [
+      { title: 'Movement Mode', text: 'AI-assisted progression with recruiter approval at critical checkpoints.' },
+      { title: 'Approvals', text: 'Hiring manager and finance approvals are configured for key transitions.' },
+      { title: 'Automation Readiness', text: 'Notifications, stage rules and fallback logic are ready.' },
+    ],
+  },
   7: {
     eyebrow: 'Step 7 of 8',
     title: 'Interview Kit',
@@ -113,6 +123,13 @@ const stepContent = {
 }
 
 const currentStepContent = computed(() => stepContent[activeStep.value] ?? null)
+const isLastStep = computed(() => activeStep.value === baseSteps.length)
+const nextStepNumber = computed(() => Math.min(activeStep.value + 1, baseSteps.length))
+const nextStepLabel = computed(() => (
+  isLastStep.value
+    ? 'Launch & Publish'
+    : steps.value.find((step) => step.id === nextStepNumber.value)?.label ?? 'Next Step'
+))
 
 const interviewPlanStages = [
   { id: 1, title: 'Recruiter Screen', duration: '30 min', purpose: 'Initial screening', focus: 'Motivation, Communication', owner: 'Sarah Parker', tone: 'green' },
@@ -445,7 +462,12 @@ const copilotHealth = [
         </button>
         <button class="ghost-button" type="button">Save draft</button>
         <button class="primary-button" type="button" @click="goToNextStep">
-          Continue to {{ Math.min(activeStep + 1, 8) }}. {{ steps[Math.min(activeStep, 7)].label }}
+          <template v-if="!isLastStep">
+            Continue to {{ nextStepNumber }}. {{ nextStepLabel }}
+          </template>
+          <template v-else>
+            Final step. {{ nextStepLabel }}
+          </template>
           <AppIcon name="chevronRight" :size="16" />
         </button>
       </div>
@@ -1285,7 +1307,12 @@ const copilotHealth = [
       <div class="bottom-actions__buttons">
         <button class="ghost-button ghost-button--small" type="button">Save draft</button>
         <button class="primary-button primary-button--small" type="button" @click="goToNextStep">
-          Continue to {{ Math.min(activeStep + 1, 8) }}. {{ steps[Math.min(activeStep, 7)].label }}
+          <template v-if="!isLastStep">
+            Continue to {{ nextStepNumber }}. {{ nextStepLabel }}
+          </template>
+          <template v-else>
+            Final step. {{ nextStepLabel }}
+          </template>
           <AppIcon name="chevronRight" :size="14" />
         </button>
       </div>

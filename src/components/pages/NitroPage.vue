@@ -1,5 +1,6 @@
 <script setup>
 import AppIcon from '../shared/AppIcon.vue'
+import NitroSyncLogo from '../shared/NitroSyncLogo.vue'
 
 const emit = defineEmits(['close'])
 
@@ -77,12 +78,9 @@ const activityItems = [
     <section class="nitro-shell">
       <header class="nitro-topbar">
         <div class="nitro-brand">
-          <div class="nitro-brand__mark">
-            <AppIcon name="sparkles" :size="20" />
-          </div>
+          <NitroSyncLogo size="sm" />
           <div class="nitro-brand__copy">
             <div class="nitro-brand__title-row">
-              <h1>Nitro</h1>
               <span>AI Assistant</span>
             </div>
             <p>Workforce Intelligence &amp; Automation Center</p>
@@ -315,34 +313,16 @@ const activityItems = [
 
 .nitro-brand {
   gap: 14px;
-}
-
-.nitro-brand__mark {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  background: linear-gradient(180deg, #7d6bff 0%, #6e5ef4 100%);
-  box-shadow: 0 14px 28px rgba(110, 94, 244, 0.2);
+  align-items: flex-start;
 }
 
 .nitro-brand__copy {
   display: grid;
-  gap: 2px;
+  gap: 6px;
 }
 
 .nitro-brand__title-row {
-  gap: 10px;
-}
-
-.nitro-brand__title-row h1 {
-  margin: 0;
-  color: #1f2947;
-  font-size: 22px;
-  font-weight: 800;
+  gap: 0;
 }
 
 .nitro-brand__title-row span {

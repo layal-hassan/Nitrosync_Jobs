@@ -315,7 +315,7 @@ onBeforeUnmount(() => {
   background: linear-gradient(135deg, #ff5cab 0%, #ff2d87 45%, #ff4b9b 100%);
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1180px) {
   .offer-marked-accepted-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

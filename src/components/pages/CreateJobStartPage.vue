@@ -61,7 +61,7 @@ function chooseOption(optionId) {
 
     <div class="create-job-start__content">
       <section class="create-job-hero">
-        <span class="create-job-hero__eyebrow">Step 0 of 8</span>
+        <span class="create-job-hero__eyebrow">Start of 8</span>
         <h1>Create Job</h1>
         <p>Let's start by creating your job. Choose how you want to get started.</p>
       </section>

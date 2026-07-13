@@ -837,7 +837,7 @@ onBeforeUnmount(() => {
   }
 }
 
-@media (max-width: 1080px) {
+@media (max-width: 1280px) {
   .official-hired-layout {
     grid-template-columns: 1fr;
   }
@@ -870,6 +870,27 @@ onBeforeUnmount(() => {
 
   .official-hired-ai__score {
     width: 100%;
+  }
+
+  .official-hired-highlight {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 980px) {
+  .official-hired-flow__steps {
+    grid-template-columns: 1fr;
+  }
+
+  .official-hired-flow__steps article {
+    width: auto;
+    justify-items: start;
+    text-align: left;
+  }
+
+  .official-hired-flow__steps i {
+    display: none;
   }
 }
 

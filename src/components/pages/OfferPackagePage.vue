@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import AppIcon from '../shared/AppIcon.vue'
+import NitroSyncLogo from '../shared/NitroSyncLogo.vue'
 
 const props = defineProps({
   jobId: {
@@ -316,9 +317,8 @@ const validationRows = [
 
               <div class="offer-delivery-preview">
                 <div class="offer-delivery-preview__brand">
-                  <span>N</span>
+                  <NitroSyncLogo size="xs" :show-tagline="false" />
                   <div>
-                    <strong>NitroSync</strong>
                     <small>To: {{ candidateEmail }}@email.com</small>
                     <small>Subject: Your offer from NitroSync</small>
                   </div>
@@ -757,18 +757,6 @@ const validationRows = [
   gap: 10px;
 }
 
-.offer-delivery-preview__brand > span {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  background: linear-gradient(135deg, #ff4098 0%, #ff1f7c 100%);
-  font-weight: 800;
-}
-
 .offer-delivery-preview__email {
   overflow: hidden;
   border: 1px solid #e7ecf6;
@@ -1193,6 +1181,28 @@ const validationRows = [
 
   .offer-delivery-sidebar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1360px) {
+  .offer-delivery-detail-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .offer-delivery-flow {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .offer-delivery-validation {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+
+  .offer-delivery-validation__score,
+  .offer-delivery-validation__status {
+    width: 100%;
+    justify-items: center;
   }
 }
 

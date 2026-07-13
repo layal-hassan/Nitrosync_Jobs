@@ -1243,6 +1243,12 @@ function confirmLaunchOffer() {
   outline-offset: 2px;
 }
 
+@media (max-width: 1360px) {
+  .launch-offer-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 1180px) {
   .launch-offer-steps,
   .launch-offer-layout {
@@ -1257,6 +1263,15 @@ function confirmLaunchOffer() {
   .launch-offer-modal__summary,
   .launch-offer-success__meta {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .launch-offer-included__list article {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .launch-offer-included__list strong {
+    text-align: left;
   }
 }
 

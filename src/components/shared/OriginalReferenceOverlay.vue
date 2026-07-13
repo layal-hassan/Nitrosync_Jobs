@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import AppIcon from './AppIcon.vue'
+import NitroSyncLogo from './NitroSyncLogo.vue'
 
 const props = defineProps({
   open: {
@@ -213,8 +214,7 @@ function closeOverlay() {
 
               <article class="original-reference-message">
                 <header>
-                  <span class="original-reference-brand">N</span>
-                  <strong>NitroSync</strong>
+                  <NitroSyncLogo size="xs" :show-tagline="false" />
                 </header>
 
                 <div class="original-reference-message__body">
@@ -608,23 +608,6 @@ function closeOverlay() {
   margin-bottom: 14px;
 }
 
-.original-reference-brand {
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #ff4fa2;
-  color: #fff;
-  font-size: 0.7rem;
-  font-weight: 800;
-}
-
-.original-reference-message header strong {
-  color: #243454;
-  font-size: 0.78rem;
-}
 
 .original-reference-message__body {
   display: grid;

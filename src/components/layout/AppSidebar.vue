@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { navigationSections } from '../../data/navigation'
 import AppIcon from '../shared/AppIcon.vue'
+import NitroSyncLogo from '../shared/NitroSyncLogo.vue'
 
 const props = defineProps({
   collapsed: {
@@ -48,8 +49,7 @@ function toggleGroup(id) {
   <aside class="sidebar" :class="{ collapsed, 'mobile-open': mobileOpen }">
     <div class="sidebar-top">
       <div class="brand">
-        <div class="brand-mark">n</div>
-        <strong v-if="!collapsed">nitrosync</strong>
+        <NitroSyncLogo :mode="collapsed ? 'mark' : 'full'" size="sm" />
       </div>
     </div>
 
@@ -133,29 +133,11 @@ function toggleGroup(id) {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  min-height: 34px;
 }
 
-.brand strong {
-  color: #17213f;
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  text-transform: lowercase;
-}
-
-.brand-mark {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  display: inline-flex;
-  align-items: center;
+.sidebar.collapsed .brand {
   justify-content: center;
-  color: #fff;
-  background: linear-gradient(180deg, #f55faf 0%, #ea4f9f 100%);
-  font-size: 16px;
-  font-weight: 800;
-  line-height: 1;
 }
 
 .nav {

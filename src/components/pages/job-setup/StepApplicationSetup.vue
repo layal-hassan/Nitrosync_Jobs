@@ -1,5 +1,6 @@
 ﻿<script setup>
 import AppIcon from '../../shared/AppIcon.vue'
+import NitroSyncLogo from '../../shared/NitroSyncLogo.vue'
 import linkedInIcon from '../../../assets/linkedin.svg'
 
 const approaches = [
@@ -228,12 +229,11 @@ const previewBenefits = [
         <button type="button">Mobile</button>
       </div>
 
-      <div class="preview-card">
-        <div class="preview-card__brand">
-          <div class="preview-card__logo">N</div>
-          <strong>NitroSync</strong>
-          <span>Apply in under 5 minutes</span>
-        </div>
+        <div class="preview-card">
+          <div class="preview-card__brand">
+            <NitroSyncLogo size="xs" :show-tagline="false" />
+            <span>Apply in under 5 minutes</span>
+          </div>
 
         <h3>Senior Accountant</h3>
         <div class="preview-card__meta">
@@ -837,23 +837,6 @@ const previewBenefits = [
 .preview-card__brand {
   gap: 10px;
   padding: 18px 20px 12px;
-}
-
-.preview-card__logo {
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  background: #ef4fa0;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.preview-card__brand strong {
-  font-size: 14px;
 }
 
 .preview-card__brand span {
