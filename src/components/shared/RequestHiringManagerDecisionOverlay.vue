@@ -289,7 +289,7 @@ watch(
 .hm-decision-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1500;
+  z-index: 2400;
   display: grid;
   place-items: center;
   overflow: auto;

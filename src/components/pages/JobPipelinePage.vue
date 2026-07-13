@@ -5,6 +5,7 @@ import AICandidateRankingOverlay from '../shared/AICandidateRankingOverlay.vue'
 import AIHiringSuccessPredictionOverlay from '../shared/AIHiringSuccessPredictionOverlay.vue'
 import AIAssessmentInsightsOverlay from '../shared/AIAssessmentInsightsOverlay.vue'
 import AIFeedbackQualityOverlay from '../shared/AIFeedbackQualityOverlay.vue'
+import AIHiringRecommendationOverlay from '../shared/AIHiringRecommendationOverlay.vue'
 import AIInterviewGapAnalysisOverlay from '../shared/AIInterviewGapAnalysisOverlay.vue'
 import AIInterviewReadinessOverlay from '../shared/AIInterviewReadinessOverlay.vue'
 import AIMatchAnalysisOverlay from '../shared/AIMatchAnalysisOverlay.vue'
@@ -14,7 +15,19 @@ import AIScoreCalibrationOverlay from '../shared/AIScoreCalibrationOverlay.vue'
 import AIScorecardBiasDetectionOverlay from '../shared/AIScorecardBiasDetectionOverlay.vue'
 import AIStageRecommendationOverlay from '../shared/AIStageRecommendationOverlay.vue'
 import AIStrengthsGapsOverlay from '../shared/AIStrengthsGapsOverlay.vue'
+import AICompareFinalistsOverlay from '../shared/AICompareFinalistsOverlay.vue'
 import AIRiskDetectionOverlay from '../shared/AIRiskDetectionOverlay.vue'
+import AIConsensusAnalysisOverlay from '../shared/AIConsensusAnalysisOverlay.vue'
+import AIOfferAcceptancePredictionOverlay from '../shared/AIOfferAcceptancePredictionOverlay.vue'
+import AIOfferInsightsOverlay from '../shared/AIOfferInsightsOverlay.vue'
+import AIMarketCompetitivenessOverlay from '../shared/AIMarketCompetitivenessOverlay.vue'
+import AINegotiationOfferStrategyOverlay from '../shared/AINegotiationOfferStrategyOverlay.vue'
+import AISalaryBenchmarkOverlay from '../shared/AISalaryBenchmarkOverlay.vue'
+import OfferAcceptedByCandidateOverlay from '../shared/OfferAcceptedByCandidateOverlay.vue'
+import OfferMarkedAcceptedOverlay from '../shared/OfferMarkedAcceptedOverlay.vue'
+import CandidateOfficiallyHiredOverlay from '../shared/CandidateOfficiallyHiredOverlay.vue'
+import ShareHireUpdateOverlay from '../shared/ShareHireUpdateOverlay.vue'
+import HireUpdateSharedOverlay from '../shared/HireUpdateSharedOverlay.vue'
 import ActivityLogOverlay from '../shared/ActivityLogOverlay.vue'
 import AssessmentReviewOverlay from '../shared/AssessmentReviewOverlay.vue'
 import AddToTalentPoolOverlay from '../shared/AddToTalentPoolOverlay.vue'
@@ -36,11 +49,16 @@ import InterviewScorecardOverlay from '../shared/InterviewScorecardOverlay.vue'
 import PutCandidateOnHoldOverlay from '../shared/PutCandidateOnHoldOverlay.vue'
 import RequestFeedbackOverlay from '../shared/RequestFeedbackOverlay.vue'
 import RequestFinalFeedbackOverlay from '../shared/RequestFinalFeedbackOverlay.vue'
+import ReferenceCollectionOverlay from '../shared/ReferenceCollectionOverlay.vue'
+import ReviewReferencesOverlay from '../shared/ReviewReferencesOverlay.vue'
 import RequestHiringManagerDecisionOverlay from '../shared/RequestHiringManagerDecisionOverlay.vue'
 import RequestSalaryExpectationOverlay from '../shared/RequestSalaryExpectationOverlay.vue'
 import RejectCandidateOverlay from '../shared/RejectCandidateOverlay.vue'
 import ScheduleHiringManagerReviewOverlay from '../shared/ScheduleHiringManagerReviewOverlay.vue'
 import ScheduleScreeningOverlay from '../shared/ScheduleScreeningOverlay.vue'
+import SendOfferReminderOverlay from '../shared/SendOfferReminderOverlay.vue'
+import OfferDeclinedByCandidateOverlay from '../shared/OfferDeclinedByCandidateOverlay.vue'
+import OfferMarkedDeclinedOverlay from '../shared/OfferMarkedDeclinedOverlay.vue'
 import SendReminderOverlay from '../shared/SendReminderOverlay.vue'
 import ShareCandidateOverlay from '../shared/ShareCandidateOverlay.vue'
 import SendCandidateEmailOverlay from '../shared/SendCandidateEmailOverlay.vue'
@@ -48,10 +66,21 @@ import SuggestedNextActionOverlay from '../shared/SuggestedNextActionOverlay.vue
 import FinalFeedbackReviewOverlay from '../shared/FinalFeedbackReviewOverlay.vue'
 import CreateHiringDecisionOverlay from '../shared/CreateHiringDecisionOverlay.vue'
 import DecisionReviewOverlay from '../shared/DecisionReviewOverlay.vue'
+import HiringCommitteeApprovalOverlay from '../shared/HiringCommitteeApprovalOverlay.vue'
 import ConfigureInterviewKitOverlay from '../shared/ConfigureInterviewKitOverlay.vue'
 import CandidateComparisonOverlay from '../shared/CandidateComparisonOverlay.vue'
+import SelectBackupCandidateOverlay from '../shared/SelectBackupCandidateOverlay.vue'
+import OfferReadinessChecklistOverlay from '../shared/OfferReadinessChecklistOverlay.vue'
+import OfferHistoryOverlay from '../shared/OfferHistoryOverlay.vue'
+import BackgroundCheckOverlay from '../shared/BackgroundCheckOverlay.vue'
+import ReviewBackgroundOverlay from '../shared/ReviewBackgroundOverlay.vue'
 import ReviewerCalibrationOverlay from '../shared/ReviewerCalibrationOverlay.vue'
+import TrackOfferAcceptanceOverlay from '../shared/TrackOfferAcceptanceOverlay.vue'
 import TrackAssessmentProgressOverlay from '../shared/TrackAssessmentProgressOverlay.vue'
+import ViewApprovalStatusOverlay from '../shared/ViewApprovalStatusOverlay.vue'
+import ViewApprovalWorkflowOverlay from '../shared/ViewApprovalWorkflowOverlay.vue'
+import ViewOfferOverlay from '../shared/ViewOfferOverlay.vue'
+import WithdrawOfferOverlay from '../shared/WithdrawOfferOverlay.vue'
 import ViewFeedbackStatusOverlay from '../shared/ViewFeedbackStatusOverlay.vue'
 import ViewNotesOverlay from '../shared/ViewNotesOverlay.vue'
 import { getJobById } from '../../data/jobs'
@@ -67,7 +96,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['back'])
+const emit = defineEmits(['back', 'open-offer'])
 
 const job = computed(() => getJobById(props.jobId))
 
@@ -109,6 +138,8 @@ const aiInterviewReadinessCandidateId = ref('')
 const aiInterviewReadinessOpen = ref(false)
 const aiHiringSuccessPredictionCandidateId = ref('')
 const aiHiringSuccessPredictionOpen = ref(false)
+const aiHiringRecommendationCandidateId = ref('')
+const aiHiringRecommendationOpen = ref(false)
 const aiQualificationCandidateId = ref('')
 const aiQualificationOpen = ref(false)
 const configureInterviewKitCandidateId = ref('')
@@ -117,6 +148,10 @@ const aiScreeningSummaryCandidateId = ref('')
 const aiScreeningSummaryOpen = ref(false)
 const aiRiskDetectionCandidateId = ref('')
 const aiRiskDetectionOpen = ref(false)
+const aiConsensusAnalysisCandidateId = ref('')
+const aiConsensusAnalysisOpen = ref(false)
+const aiCompareFinalistsCandidateId = ref('')
+const aiCompareFinalistsOpen = ref(false)
 const suggestedNextActionCandidateId = ref('')
 const suggestedNextActionOpen = ref(false)
 const finalFeedbackReviewCandidateId = ref('')
@@ -125,6 +160,8 @@ const createHiringDecisionCandidateId = ref('')
 const createHiringDecisionOpen = ref(false)
 const decisionReviewCandidateId = ref('')
 const decisionReviewOpen = ref(false)
+const committeeApprovalCandidateId = ref('')
+const committeeApprovalOpen = ref(false)
 const aiAssessmentInsightsCandidateId = ref('')
 const aiAssessmentInsightsOpen = ref(false)
 const aiFeedbackQualityCandidateId = ref('')
@@ -165,14 +202,58 @@ const feedbackRequestCandidateId = ref('')
 const feedbackRequestOpen = ref(false)
 const finalFeedbackRequestCandidateId = ref('')
 const finalFeedbackRequestOpen = ref(false)
+const referenceCollectionCandidateId = ref('')
+const referenceCollectionOpen = ref(false)
+const reviewReferencesCandidateId = ref('')
+const reviewReferencesOpen = ref(false)
+const sendOfferReminderCandidateId = ref('')
+const sendOfferReminderOpen = ref(false)
 const sendReminderCandidateId = ref('')
 const sendReminderOpen = ref(false)
 const assessmentReviewCandidateId = ref('')
 const assessmentReviewOpen = ref(false)
 const candidateComparisonCandidateId = ref('')
 const candidateComparisonOpen = ref(false)
+const backupCandidateCandidateId = ref('')
+const backupCandidateOpen = ref(false)
+const offerHistoryCandidateId = ref('')
+const offerHistoryOpen = ref(false)
+const approvalStatusCandidateId = ref('')
+const approvalStatusOpen = ref(false)
+const approvalWorkflowCandidateId = ref('')
+const approvalWorkflowOpen = ref(false)
+const aiOfferAcceptancePredictionCandidateId = ref('')
+const aiOfferAcceptancePredictionOpen = ref(false)
+const aiNegotiationOfferStrategyCandidateId = ref('')
+const aiNegotiationOfferStrategyOpen = ref(false)
+const aiOfferInsightsCandidateId = ref('')
+const aiOfferInsightsOpen = ref(false)
+const aiMarketCompetitivenessCandidateId = ref('')
+const aiMarketCompetitivenessOpen = ref(false)
+const aiSalaryBenchmarkCandidateId = ref('')
+const aiSalaryBenchmarkOpen = ref(false)
+const offerAcceptedByCandidateCandidateId = ref('')
+const offerAcceptedByCandidateOpen = ref(false)
+const offerMarkedAcceptedCandidateId = ref('')
+const offerMarkedAcceptedOpen = ref(false)
+const candidateOfficiallyHiredCandidateId = ref('')
+const candidateOfficiallyHiredOpen = ref(false)
+const shareHireUpdateOpen = ref(false)
+const hireUpdateSharedOpen = ref(false)
+const offerDeclinedByCandidateCandidateId = ref('')
+const offerDeclinedByCandidateOpen = ref(false)
+const offerMarkedDeclinedCandidateId = ref('')
+const offerMarkedDeclinedOpen = ref(false)
+const offerReadinessCandidateId = ref('')
+const offerReadinessOpen = ref(false)
+const backgroundCheckCandidateId = ref('')
+const backgroundCheckOpen = ref(false)
+const backgroundReviewCandidateId = ref('')
+const backgroundReviewOpen = ref(false)
 const reviewerCalibrationCandidateId = ref('')
 const reviewerCalibrationOpen = ref(false)
+const trackOfferAcceptanceCandidateId = ref('')
+const trackOfferAcceptanceOpen = ref(false)
 const trackAssessmentProgressCandidateId = ref('')
 const trackAssessmentProgressOpen = ref(false)
 const interviewScorecardCandidateId = ref('')
@@ -188,6 +269,10 @@ const requestHmDecisionCandidateId = ref('')
 const requestHmDecisionOpen = ref(false)
 const rejectCandidateCandidateId = ref('')
 const rejectCandidateOpen = ref(false)
+const viewOfferCandidateId = ref('')
+const viewOfferOpen = ref(false)
+const withdrawOfferCandidateId = ref('')
+const withdrawOfferOpen = ref(false)
 const scheduleHmReviewCandidateId = ref('')
 const scheduleHmReviewOpen = ref(false)
 const scheduleScreeningCandidateId = ref('')
@@ -491,6 +576,65 @@ const stageMenuConfigs = {
       },
     ],
   },
+  offer: {
+    number: '6',
+    title: 'Offer',
+    subtitle: 'Extend & manage offer',
+    badgeStyle: 'linear-gradient(180deg, #ff962f 0%, #ff6a00 100%)',
+    sections: [
+      {
+        title: 'Quick Actions',
+        items: [
+          { label: 'Create Offer' },
+          { label: 'View Offer' },
+          { label: 'Withdraw Offer' },
+          { label: 'Send Email' },
+          { label: '...', disabled: true },
+        ],
+      },
+      {
+        title: 'Offer Actions',
+        items: [
+          { label: 'Edit Offer' },
+          { label: 'Offer Templates' },
+          { label: 'Offer History' },
+          { label: 'Schedule Offer Call' },
+          { label: 'Track Offer Acceptance' },
+        ],
+      },
+      {
+        title: 'Approval Actions',
+        items: [
+          { label: 'Submit For Approval' },
+          { label: 'View Approval Status' },
+          { label: 'Send Offer Reminder' },
+          { label: 'View Approval Workflow' },
+        ],
+      },
+      {
+        title: 'Actions',
+        accent: true,
+        items: [
+          { label: 'AI Offer Acceptance Prediction', icon: 'external-link', tone: 'link' },
+          { label: 'AI Salary Benchmarking', icon: 'external-link', tone: 'link' },
+          { label: 'AI Negotiation & Offer Strategy', icon: 'external-link', tone: 'link' },
+          { label: 'AI Market Competitiveness', icon: 'external-link', tone: 'link' },
+          { label: 'AI Offer Insights', icon: 'external-link', tone: 'link' },
+        ],
+      },
+      {
+        title: 'More Actions ( )',
+        items: [
+          { label: 'View Profile' },
+          { label: 'Mark Declined' },
+          { label: 'Add Note' },
+          { label: 'Mark Accepted' },
+          { label: 'Move to Hired' },
+          { label: 'Activity Log' },
+        ],
+      },
+    ],
+  },
 }
 const pipelineBoardTemplate = [
   {
@@ -620,6 +764,8 @@ watch(job, () => {
   aiInterviewReadinessOpen.value = false
   aiHiringSuccessPredictionCandidateId.value = ''
   aiHiringSuccessPredictionOpen.value = false
+  aiHiringRecommendationCandidateId.value = ''
+  aiHiringRecommendationOpen.value = false
   aiQualificationCandidateId.value = ''
   aiQualificationOpen.value = false
   configureInterviewKitCandidateId.value = ''
@@ -628,6 +774,10 @@ watch(job, () => {
   aiScreeningSummaryOpen.value = false
   aiRiskDetectionCandidateId.value = ''
   aiRiskDetectionOpen.value = false
+  aiConsensusAnalysisCandidateId.value = ''
+  aiConsensusAnalysisOpen.value = false
+  aiCompareFinalistsCandidateId.value = ''
+  aiCompareFinalistsOpen.value = false
   suggestedNextActionCandidateId.value = ''
   suggestedNextActionOpen.value = false
   finalFeedbackReviewCandidateId.value = ''
@@ -670,12 +820,44 @@ watch(job, () => {
   confirmSalaryAlignmentOpen.value = false
   feedbackRequestCandidateId.value = ''
   feedbackRequestOpen.value = false
+  referenceCollectionCandidateId.value = ''
+  referenceCollectionOpen.value = false
+  reviewReferencesCandidateId.value = ''
+  reviewReferencesOpen.value = false
   sendReminderCandidateId.value = ''
   sendReminderOpen.value = false
   assessmentReviewCandidateId.value = ''
   assessmentReviewOpen.value = false
   candidateComparisonCandidateId.value = ''
   candidateComparisonOpen.value = false
+  backupCandidateCandidateId.value = ''
+  backupCandidateOpen.value = false
+  approvalWorkflowCandidateId.value = ''
+  approvalWorkflowOpen.value = false
+  aiOfferAcceptancePredictionCandidateId.value = ''
+  aiOfferAcceptancePredictionOpen.value = false
+  aiOfferInsightsCandidateId.value = ''
+  aiOfferInsightsOpen.value = false
+  aiMarketCompetitivenessCandidateId.value = ''
+  aiMarketCompetitivenessOpen.value = false
+  offerReadinessCandidateId.value = ''
+  offerReadinessOpen.value = false
+  offerAcceptedByCandidateCandidateId.value = ''
+  offerAcceptedByCandidateOpen.value = false
+  offerMarkedAcceptedCandidateId.value = ''
+  offerMarkedAcceptedOpen.value = false
+  candidateOfficiallyHiredCandidateId.value = ''
+  candidateOfficiallyHiredOpen.value = false
+  shareHireUpdateOpen.value = false
+  hireUpdateSharedOpen.value = false
+  offerDeclinedByCandidateCandidateId.value = ''
+  offerDeclinedByCandidateOpen.value = false
+  offerMarkedDeclinedCandidateId.value = ''
+  offerMarkedDeclinedOpen.value = false
+  backgroundCheckCandidateId.value = ''
+  backgroundCheckOpen.value = false
+  backgroundReviewCandidateId.value = ''
+  backgroundReviewOpen.value = false
   reviewerCalibrationCandidateId.value = ''
   reviewerCalibrationOpen.value = false
   trackAssessmentProgressCandidateId.value = ''
@@ -691,6 +873,8 @@ watch(job, () => {
   requestSalaryOpen.value = false
   requestHmDecisionCandidateId.value = ''
   requestHmDecisionOpen.value = false
+  committeeApprovalCandidateId.value = ''
+  committeeApprovalOpen.value = false
   decisionReviewCandidateId.value = ''
   decisionReviewOpen.value = false
   rejectCandidateCandidateId.value = ''
@@ -728,6 +912,7 @@ function hasStageMenu(columnSlug) {
     || columnSlug === 'interview'
     || columnSlug === 'assessment'
     || columnSlug === 'validation'
+    || columnSlug === 'offer'
 }
 
 function onCandidateDragStart(columnSlug, candidateId) {
@@ -777,6 +962,12 @@ function onColumnDrop(columnSlug) {
   }
 
   if (!draggedCandidateId.value || !draggedFromColumnSlug.value || draggedFromColumnSlug.value === columnSlug) {
+    onCandidateDragEnd()
+    return
+  }
+
+  if (columnSlug === 'hired') {
+    openCandidateOfficiallyHired(draggedCandidateId.value, { moveToHired: true })
     onCandidateDragEnd()
     return
   }
@@ -867,6 +1058,20 @@ function findCandidateById(candidateId) {
   return null
 }
 
+function openOfferWorkspace(candidateId = activeStageMenuCandidateId.value, sourceStage = activeStageMenuColumnSlug.value) {
+  const candidate = findCandidateById(candidateId)
+
+  emit('open-offer', {
+    jobId: props.jobId,
+    candidateId: candidate?.id ?? '',
+    candidateName: candidate?.name ?? 'Marvin McKinney',
+    candidateRole: candidate?.role ?? job.value?.title ?? 'Senior Frontend Developer',
+    sourceStage,
+  })
+
+  closeStageMenu()
+}
+
 function moveCandidateToColumn(candidateId, targetColumnSlug) {
   if (!candidateId) {
     return false
@@ -894,6 +1099,16 @@ function moveCandidateToColumn(candidateId, targetColumnSlug) {
   targetColumn.cards.unshift(candidate)
   closeStageMenu()
   return true
+}
+
+function getCandidateColumnSlug(candidateId) {
+  for (const column of pipelineBoard.value) {
+    if (column.cards.some((candidate) => candidate.id === candidateId)) {
+      return column.slug
+    }
+  }
+
+  return ''
 }
 
 function setCandidateInterviewPanelAssigned(candidateId, assigned = true) {
@@ -991,6 +1206,8 @@ const selectedAiScoreCalibrationCandidate = computed(() => (
   ?? null
 ))
 
+const selectedAiScoreCalibrationStage = computed(() => getCandidateStageById(aiScoreCalibrationCandidateId.value))
+
 const selectedAiScorecardBiasCandidate = computed(() => (
   findCandidateById(aiScorecardBiasCandidateId.value)
   ?? pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]
@@ -1067,6 +1284,12 @@ const selectedDecisionReviewCandidate = computed(() => (
   ?? null
 ))
 
+const selectedCommitteeApprovalCandidate = computed(() => (
+  findCandidateById(committeeApprovalCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]
+  ?? null
+))
+
 const selectedPutOnHoldCandidate = computed(() => (
   findCandidateById(putOnHoldCandidateId.value)
   ?? pipelineBoard.value.find((column) => column.slug === 'applied')?.cards[0]
@@ -1115,6 +1338,14 @@ const selectedAiHiringSuccessPredictionCandidate = computed(() => (
   ?? null
 ))
 
+const selectedAiHiringRecommendationCandidate = computed(() => (
+  findCandidateById(aiHiringRecommendationCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]
+  ?? null
+))
+
+const selectedAiHiringRecommendationStage = computed(() => getCandidateStageById(aiHiringRecommendationCandidateId.value))
+
 const selectedAiScreeningSummaryCandidate = computed(() => (
   findCandidateById(aiScreeningSummaryCandidateId.value)
   ?? pipelineBoard.value.find((column) => column.slug === 'screening')?.cards.find((candidate) => candidate.hasAiScreeningSummary)
@@ -1158,6 +1389,22 @@ const selectedAiRiskDetectionCandidate = computed(() => (
 
 const selectedAiRiskDetectionStage = computed(() => getCandidateStageById(aiRiskDetectionCandidateId.value))
 
+const selectedAiConsensusAnalysisCandidate = computed(() => (
+  findCandidateById(aiConsensusAnalysisCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'applied')?.cards[0]
+  ?? null
+))
+
+const selectedAiConsensusAnalysisStage = computed(() => getCandidateStageById(aiConsensusAnalysisCandidateId.value))
+
+const selectedAiCompareFinalistsCandidate = computed(() => (
+  findCandidateById(aiCompareFinalistsCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]
+  ?? null
+))
+
+const selectedAiCompareFinalistsStage = computed(() => getCandidateStageById(aiCompareFinalistsCandidateId.value))
+
 const selectedAddNoteCandidate = computed(() => (
   findCandidateById(addNoteCandidateId.value)
   ?? pipelineBoard.value.find((column) => column.slug === 'applied')?.cards[0]
@@ -1198,6 +1445,16 @@ const selectedRejectCandidate = computed(() => (
 ))
 
 const selectedRejectCandidateStage = computed(() => getCandidateStageById(rejectCandidateCandidateId.value))
+const selectedViewOfferCandidate = computed(() => (
+  findCandidateById(viewOfferCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]
+  ?? null
+))
+const selectedWithdrawOfferCandidate = computed(() => (
+  findCandidateById(withdrawOfferCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]
+  ?? null
+))
 const selectedScheduleHmReviewCandidate = computed(() => (
   findCandidateById(scheduleHmReviewCandidateId.value)
   ?? pipelineBoard.value.find((column) => column.slug === 'screening')?.cards[0]
@@ -1216,6 +1473,25 @@ const selectedFinalFeedbackRequestCandidate = computed(() => (
   ?? null
 ))
 
+const selectedReferenceCollectionCandidate = computed(() => (
+  findCandidateById(referenceCollectionCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]
+  ?? null
+))
+
+const selectedReviewReferencesCandidate = computed(() => (
+  findCandidateById(reviewReferencesCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]
+  ?? pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]
+  ?? null
+))
+
+const selectedSendOfferReminderCandidate = computed(() => (
+  findCandidateById(sendOfferReminderCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]
+  ?? null
+))
+
 const selectedSendReminderCandidate = computed(() => (
   findCandidateById(sendReminderCandidateId.value)
   ?? pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]
@@ -1231,6 +1507,121 @@ const selectedAssessmentReviewCandidate = computed(() => (
 const selectedCandidateComparisonCandidate = computed(() => (
   findCandidateById(candidateComparisonCandidateId.value)
   ?? pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]
+  ?? null
+))
+
+const selectedBackupCandidate = computed(() => (
+  findCandidateById(backupCandidateCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]
+  ?? null
+))
+
+const selectedOfferHistoryCandidate = computed(() => (
+  findCandidateById(offerHistoryCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]
+  ?? null
+))
+
+const selectedApprovalStatusCandidate = computed(() => (
+  findCandidateById(approvalStatusCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]
+  ?? null
+))
+
+const selectedApprovalWorkflowCandidate = computed(() => (
+  findCandidateById(approvalWorkflowCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]
+  ?? null
+))
+
+const selectedAIOfferAcceptancePredictionCandidate = computed(() => (
+  findCandidateById(aiOfferAcceptancePredictionCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]
+  ?? null
+))
+
+const selectedAINegotiationOfferStrategyCandidate = computed(() => (
+  findCandidateById(aiNegotiationOfferStrategyCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]
+  ?? null
+))
+
+const selectedAIOfferInsightsCandidate = computed(() => (
+  findCandidateById(aiOfferInsightsCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]
+  ?? null
+))
+
+const selectedAIMarketCompetitivenessCandidate = computed(() => (
+  findCandidateById(aiMarketCompetitivenessCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]
+  ?? null
+))
+
+const selectedAISalaryBenchmarkCandidate = computed(() => (
+  findCandidateById(aiSalaryBenchmarkCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]
+  ?? null
+))
+
+const selectedOfferAcceptedByCandidateCandidate = computed(() => (
+  findCandidateById(offerAcceptedByCandidateCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'hired')?.cards[0]
+  ?? pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]
+  ?? null
+))
+
+const selectedOfferMarkedAcceptedCandidate = computed(() => (
+  findCandidateById(offerMarkedAcceptedCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'hired')?.cards[0]
+  ?? pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]
+  ?? null
+))
+
+const selectedCandidateOfficiallyHiredCandidate = computed(() => (
+  findCandidateById(candidateOfficiallyHiredCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'hired')?.cards[0]
+  ?? pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]
+  ?? null
+))
+
+const selectedOfferDeclinedByCandidateCandidate = computed(() => (
+  findCandidateById(offerDeclinedByCandidateCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]
+  ?? null
+))
+
+const selectedOfferMarkedDeclinedCandidate = computed(() => (
+  findCandidateById(offerMarkedDeclinedCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]
+  ?? null
+))
+
+const selectedOfferReadinessCandidate = computed(() => (
+  findCandidateById(offerReadinessCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]
+  ?? null
+))
+
+const selectedBackgroundCheckCandidate = computed(() => (
+  findCandidateById(backgroundCheckCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]
+  ?? null
+))
+
+const selectedBackgroundReviewCandidate = computed(() => (
+  findCandidateById(backgroundReviewCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]
+  ?? null
+))
+
+const selectedBackgroundReviewMode = computed(() => (
+  selectedBackgroundReviewCandidate.value?.backgroundReviewMode ?? 'hybrid'
+))
+
+const selectedTrackOfferAcceptanceCandidate = computed(() => (
+  findCandidateById(trackOfferAcceptanceCandidateId.value)
+  ?? pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]
   ?? null
 ))
 
@@ -1305,6 +1696,47 @@ function closeRequestFeedback() {
   feedbackRequestOpen.value = false
 }
 
+function openReferenceCollection(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  referenceCollectionCandidateId.value = candidate.id
+  referenceCollectionOpen.value = true
+  closeStageMenu()
+}
+
+function closeReferenceCollection() {
+  referenceCollectionOpen.value = false
+}
+
+function openReviewReferences(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  reviewReferencesCandidateId.value = candidate.id
+  reviewReferencesOpen.value = true
+  closeStageMenu()
+}
+
+function closeReviewReferences() {
+  reviewReferencesOpen.value = false
+}
+
 function openRequestFinalFeedback(candidateId = activeStageMenuCandidateId.value) {
   const resolvedCandidateId = candidateId
     || activeStageMenuCandidateId.value
@@ -1323,6 +1755,26 @@ function openRequestFinalFeedback(candidateId = activeStageMenuCandidateId.value
 
 function closeRequestFinalFeedback() {
   finalFeedbackRequestOpen.value = false
+}
+
+function openSendOfferReminder(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  sendOfferReminderCandidateId.value = candidate.id
+  sendOfferReminderOpen.value = true
+  closeStageMenu()
+}
+
+function closeSendOfferReminder() {
+  sendOfferReminderOpen.value = false
 }
 
 function openSendReminder(candidateId = activeStageMenuCandidateId.value) {
@@ -1414,6 +1866,481 @@ function openCandidateComparison(candidateId = activeStageMenuCandidateId.value)
 
 function closeCandidateComparison() {
   candidateComparisonOpen.value = false
+}
+
+function openSelectBackupCandidate(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  backupCandidateCandidateId.value = candidate.id
+  backupCandidateOpen.value = true
+  closeStageMenu()
+}
+
+function closeSelectBackupCandidate() {
+  backupCandidateOpen.value = false
+}
+
+function openOfferHistory(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  offerHistoryCandidateId.value = candidate.id
+  offerHistoryOpen.value = true
+  closeStageMenu()
+}
+
+function closeOfferHistory() {
+  offerHistoryOpen.value = false
+}
+
+function openViewOfferFromHistory() {
+  const candidateId = offerHistoryCandidateId.value
+
+  offerHistoryOpen.value = false
+  openViewOffer(candidateId)
+}
+
+function openSendReminderFromHistory() {
+  const candidateId = offerHistoryCandidateId.value
+
+  offerHistoryOpen.value = false
+  openSendOfferReminder(candidateId)
+}
+
+function openWithdrawOfferFromHistory() {
+  const candidateId = offerHistoryCandidateId.value
+
+  offerHistoryOpen.value = false
+  openWithdrawOffer(candidateId)
+}
+
+function openApprovalStatus(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  approvalStatusCandidateId.value = candidate.id
+  approvalStatusOpen.value = true
+  closeStageMenu()
+}
+
+function closeApprovalStatus() {
+  approvalStatusOpen.value = false
+}
+
+function openApprovalWorkflow(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  approvalWorkflowCandidateId.value = candidate.id
+  approvalWorkflowOpen.value = true
+  closeStageMenu()
+}
+
+function closeApprovalWorkflow() {
+  approvalWorkflowOpen.value = false
+}
+
+function openAIOfferAcceptancePrediction(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  aiOfferAcceptancePredictionCandidateId.value = candidate.id
+  aiOfferAcceptancePredictionOpen.value = true
+  closeStageMenu()
+}
+
+function closeAIOfferAcceptancePrediction() {
+  aiOfferAcceptancePredictionOpen.value = false
+}
+
+function openAINegotiationOfferStrategy(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  aiNegotiationOfferStrategyCandidateId.value = candidate.id
+  aiNegotiationOfferStrategyOpen.value = true
+  closeStageMenu()
+}
+
+function closeAINegotiationOfferStrategy() {
+  aiNegotiationOfferStrategyOpen.value = false
+}
+
+function openAIOfferInsights(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  aiOfferInsightsCandidateId.value = candidate.id
+  aiOfferInsightsOpen.value = true
+  closeStageMenu()
+}
+
+function closeAIOfferInsights() {
+  aiOfferInsightsOpen.value = false
+}
+
+function openAIMarketCompetitiveness(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  aiMarketCompetitivenessCandidateId.value = candidate.id
+  aiMarketCompetitivenessOpen.value = true
+  closeStageMenu()
+}
+
+function closeAIMarketCompetitiveness() {
+  aiMarketCompetitivenessOpen.value = false
+}
+
+function openAISalaryBenchmark(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  aiSalaryBenchmarkCandidateId.value = candidate.id
+  aiSalaryBenchmarkOpen.value = true
+  closeStageMenu()
+}
+
+function closeAISalaryBenchmark() {
+  aiSalaryBenchmarkOpen.value = false
+}
+
+function openOfferAcceptedByCandidate(candidateId = offerMarkedAcceptedCandidateId.value || activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || offerMarkedAcceptedCandidateId.value
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'hired')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  offerAcceptedByCandidateCandidateId.value = candidate.id
+  offerAcceptedByCandidateOpen.value = true
+  offerMarkedAcceptedOpen.value = false
+  closeStageMenu()
+}
+
+function closeOfferAcceptedByCandidate() {
+  offerAcceptedByCandidateOpen.value = false
+}
+
+function openOfferMarkedAccepted(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  moveCandidateToColumn(candidate.id, 'hired')
+  offerMarkedAcceptedCandidateId.value = candidate.id
+  offerMarkedAcceptedOpen.value = true
+  closeStageMenu()
+}
+
+function closeOfferMarkedAccepted() {
+  offerMarkedAcceptedOpen.value = false
+}
+
+function finishOfferMarkedAccepted() {
+  offerMarkedAcceptedOpen.value = false
+}
+
+function openCandidateOfficiallyHired(candidateId = activeStageMenuCandidateId.value, options = {}) {
+  const { moveToHired = false } = options
+  const resolvedCandidateId = candidateId
+    || offerAcceptedByCandidateCandidateId.value
+    || offerMarkedAcceptedCandidateId.value
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.slug === 'hired')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  if (moveToHired && getCandidateColumnSlug(candidate.id) !== 'hired') {
+    moveCandidateToColumn(candidate.id, 'hired')
+  }
+
+  candidateOfficiallyHiredCandidateId.value = candidate.id
+  offerMarkedAcceptedCandidateId.value = candidate.id
+  offerAcceptedByCandidateOpen.value = false
+  offerMarkedAcceptedOpen.value = false
+  candidateOfficiallyHiredOpen.value = true
+  closeStageMenu()
+}
+
+function closeCandidateOfficiallyHired() {
+  candidateOfficiallyHiredOpen.value = false
+}
+
+function openShareHireUpdate() {
+  candidateOfficiallyHiredOpen.value = false
+  shareHireUpdateOpen.value = true
+}
+
+function closeShareHireUpdate() {
+  shareHireUpdateOpen.value = false
+}
+
+function submitShareHireUpdate() {
+  shareHireUpdateOpen.value = false
+  hireUpdateSharedOpen.value = true
+}
+
+function closeHireUpdateShared() {
+  hireUpdateSharedOpen.value = false
+}
+
+function reopenShareHireUpdate() {
+  hireUpdateSharedOpen.value = false
+  shareHireUpdateOpen.value = true
+}
+
+function finishHiredCelebrationFlow() {
+  candidateOfficiallyHiredOpen.value = false
+  shareHireUpdateOpen.value = false
+  hireUpdateSharedOpen.value = false
+}
+
+function openOfferDeclinedByCandidate(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  offerDeclinedByCandidateCandidateId.value = candidate.id
+  offerDeclinedByCandidateOpen.value = true
+  closeStageMenu()
+}
+
+function closeOfferDeclinedByCandidate() {
+  offerDeclinedByCandidateOpen.value = false
+}
+
+function submitOfferDeclinedByCandidate() {
+  offerMarkedDeclinedCandidateId.value = offerDeclinedByCandidateCandidateId.value
+  offerDeclinedByCandidateOpen.value = false
+  offerMarkedDeclinedOpen.value = true
+}
+
+function closeOfferMarkedDeclined() {
+  offerMarkedDeclinedOpen.value = false
+}
+
+function finishOfferMarkedDeclined() {
+  offerMarkedDeclinedOpen.value = false
+}
+
+function openViewOfferFromApprovalStatus() {
+  const candidateId = approvalStatusCandidateId.value
+
+  approvalStatusOpen.value = false
+  openViewOffer(candidateId)
+}
+
+function openSendReminderFromApprovalStatus() {
+  const candidateId = approvalStatusCandidateId.value
+
+  approvalStatusOpen.value = false
+  openSendOfferReminder(candidateId)
+}
+
+function openOfferReadinessChecklist(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  offerReadinessCandidateId.value = candidate.id
+  offerReadinessOpen.value = true
+  closeStageMenu()
+}
+
+function closeOfferReadinessChecklist() {
+  offerReadinessOpen.value = false
+}
+
+function openTrackOfferAcceptance(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  trackOfferAcceptanceCandidateId.value = candidate.id
+  trackOfferAcceptanceOpen.value = true
+  closeStageMenu()
+}
+
+function closeTrackOfferAcceptance() {
+  trackOfferAcceptanceOpen.value = false
+}
+
+function openSendReminderFromTrackOfferAcceptance() {
+  const candidateId = trackOfferAcceptanceCandidateId.value
+
+  trackOfferAcceptanceOpen.value = false
+  openSendOfferReminder(candidateId)
+}
+
+function openWithdrawOfferFromTrackOfferAcceptance() {
+  const candidateId = trackOfferAcceptanceCandidateId.value
+
+  trackOfferAcceptanceOpen.value = false
+  openWithdrawOffer(candidateId)
+}
+
+function openViewOfferFromTrackOfferAcceptance() {
+  const candidateId = trackOfferAcceptanceCandidateId.value
+
+  trackOfferAcceptanceOpen.value = false
+  openViewOffer(candidateId)
+}
+
+function openBackgroundCheck(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  backgroundCheckCandidateId.value = candidate.id
+  backgroundCheckOpen.value = true
+  closeStageMenu()
+}
+
+function closeBackgroundCheck() {
+  backgroundCheckOpen.value = false
+}
+
+function setCandidateBackgroundReviewMode(payload = {}) {
+  const { candidateId, reviewMode } = payload
+
+  if (!candidateId || !reviewMode) {
+    return
+  }
+
+  pipelineBoard.value = pipelineBoard.value.map((column) => ({
+    ...column,
+    cards: column.cards.map((candidate) => (
+      candidate.id === candidateId
+        ? { ...candidate, backgroundReviewMode: reviewMode }
+        : candidate
+    )),
+  }))
+}
+
+function openBackgroundReview(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  backgroundReviewCandidateId.value = candidate.id
+  backgroundReviewOpen.value = true
+  closeStageMenu()
+}
+
+function closeBackgroundReview() {
+  backgroundReviewOpen.value = false
 }
 
 function openReviewerCalibration(candidateId = activeStageMenuCandidateId.value) {
@@ -1578,6 +2505,25 @@ function closeAiHiringSuccessPrediction() {
   aiHiringSuccessPredictionOpen.value = false
 }
 
+function openAiHiringRecommendation(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.cards.length)?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  aiHiringRecommendationCandidateId.value = candidate?.id ?? resolvedCandidateId
+  aiHiringRecommendationOpen.value = true
+  closeStageMenu()
+}
+
+function closeAiHiringRecommendation() {
+  aiHiringRecommendationOpen.value = false
+}
+
 function openAiQualification(candidateId = activeStageMenuCandidateId.value) {
   const candidate = findCandidateById(candidateId)
 
@@ -1624,20 +2570,92 @@ function handleScreeningScheduled(candidateId, payload) {
   candidate.hasAiScreeningSummary = true
 }
 
-function openAiRiskDetection(candidateId = activeStageMenuCandidateId.value) {
-  const candidate = findCandidateById(candidateId)
+async function openAiRiskDetection(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.cards.length)?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
 
-  if (!candidate) {
-    return
-  }
-
-  aiRiskDetectionCandidateId.value = candidate.id
-  aiRiskDetectionOpen.value = true
+  aiRiskDetectionCandidateId.value = candidate?.id ?? resolvedCandidateId
   closeStageMenu()
+  await nextTick()
+  aiRiskDetectionOpen.value = true
 }
 
 function closeAiRiskDetection() {
   aiRiskDetectionOpen.value = false
+}
+
+async function openAiConsensusAnalysis(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.cards.length)?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  aiConsensusAnalysisCandidateId.value = candidate?.id ?? resolvedCandidateId
+  closeStageMenu()
+  await nextTick()
+  aiConsensusAnalysisOpen.value = true
+}
+
+function closeAiConsensusAnalysis() {
+  aiConsensusAnalysisOpen.value = false
+}
+
+async function openAiCompareFinalists(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.cards.length)?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  aiCompareFinalistsCandidateId.value = candidate?.id ?? resolvedCandidateId
+  closeStageMenu()
+  await nextTick()
+  aiCompareFinalistsOpen.value = true
+}
+
+function closeAiCompareFinalists() {
+  aiCompareFinalistsOpen.value = false
+}
+
+function handleStageMenuItem(item) {
+  if (item.label === 'AI Hiring Recommendation' || item.label === 'AI Decision Summary') {
+    openAiHiringRecommendation(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (item.label === 'AI Confidence Breakdown' || item.label === 'AI Score Calibration') {
+    openAiScoreCalibration(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (item.label === 'AI Risk Analysis') {
+    openAiRiskDetection(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (item.label === 'AI Consensus Analysis') {
+    openAiConsensusAnalysis(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (item.label === 'AI Compare Finalists') {
+    openAiCompareFinalists(activeStageMenuCandidateId.value)
+    return
+  }
+
+  handleStageMenuAction(item.label)
 }
 
 function openSuggestedNextAction(candidateId = activeStageMenuCandidateId.value) {
@@ -1828,6 +2846,67 @@ function closeRejectCandidate() {
   rejectCandidateOpen.value = false
 }
 
+function openViewOffer(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'offer')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  viewOfferCandidateId.value = candidate.id
+  viewOfferOpen.value = true
+  closeStageMenu()
+}
+
+function closeViewOffer() {
+  viewOfferOpen.value = false
+}
+
+function openWithdrawOffer(candidateId = activeStageMenuCandidateId.value) {
+  const candidate = findCandidateById(candidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  withdrawOfferCandidateId.value = candidate.id
+  withdrawOfferOpen.value = true
+  closeStageMenu()
+}
+
+function closeWithdrawOffer() {
+  withdrawOfferOpen.value = false
+}
+
+function confirmWithdrawOffer() {
+  // The overlay now transitions into its own withdrawn-success view.
+}
+
+function openWithdrawOfferFromViewOffer() {
+  const candidateId = viewOfferCandidateId.value
+
+  viewOfferOpen.value = false
+  openWithdrawOffer(candidateId)
+}
+
+function openSendReminderFromViewOffer() {
+  const candidateId = viewOfferCandidateId.value
+
+  viewOfferOpen.value = false
+  openSendOfferReminder(candidateId)
+}
+
+function openContactCandidateFromViewOffer() {
+  const candidateId = viewOfferCandidateId.value
+
+  viewOfferOpen.value = false
+  openSendEmail(candidateId)
+}
+
 function openConfirmInterest(candidateId = activeStageMenuCandidateId.value) {
   const candidate = findCandidateById(candidateId)
 
@@ -1941,13 +3020,16 @@ function closeAiFeedbackQuality() {
 }
 
 function openAiScoreCalibration(candidateId = activeStageMenuCandidateId.value) {
-  const candidate = findCandidateById(candidateId)
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.slug === 'interview')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.cards.length)?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
 
-  if (!candidate) {
-    return
-  }
-
-  aiScoreCalibrationCandidateId.value = candidate.id
+  aiScoreCalibrationCandidateId.value = candidate?.id ?? resolvedCandidateId
   aiScoreCalibrationOpen.value = true
   closeStageMenu()
 }
@@ -2179,16 +3261,25 @@ function closeRequestSalary() {
   requestSalaryOpen.value = false
 }
 
-function openRequestHmDecision(candidateId = activeStageMenuCandidateId.value) {
-  const candidate = findCandidateById(candidateId)
+async function openRequestHmDecision(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || aiHiringRecommendationCandidateId.value
+    || aiScoreCalibrationCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.slug === 'assessment')?.cards[0]?.id
+    || pipelineBoard.value.find((column) => column.cards.length)?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
 
   if (!candidate) {
     return
   }
 
   requestHmDecisionCandidateId.value = candidate.id
-  requestHmDecisionOpen.value = true
   closeStageMenu()
+  await nextTick()
+  requestHmDecisionOpen.value = true
 }
 
 function closeRequestHmDecision() {
@@ -2213,6 +3304,26 @@ function openDecisionReview(candidateId = activeStageMenuCandidateId.value) {
 
 function closeDecisionReview() {
   decisionReviewOpen.value = false
+}
+
+function openHiringCommitteeApproval(candidateId = activeStageMenuCandidateId.value) {
+  const resolvedCandidateId = candidateId
+    || activeStageMenuCandidateId.value
+    || pipelineBoard.value.find((column) => column.slug === 'validation')?.cards[0]?.id
+    || ''
+  const candidate = findCandidateById(resolvedCandidateId)
+
+  if (!candidate) {
+    return
+  }
+
+  committeeApprovalCandidateId.value = candidate.id
+  committeeApprovalOpen.value = true
+  closeStageMenu()
+}
+
+function closeHiringCommitteeApproval() {
+  committeeApprovalOpen.value = false
 }
 
 function openSendEmail(candidateId = activeStageMenuCandidateId.value) {
@@ -2263,6 +3374,101 @@ function handleStageMenuAction(actionLabel) {
 
   if (actionLabel === 'Move to Offer') {
     moveCandidateToColumn(activeStageMenuCandidateId.value, 'offer')
+    return
+  }
+
+  if (actionLabel === 'Create Offer' || actionLabel === 'Edit Offer') {
+    openOfferWorkspace(activeStageMenuCandidateId.value, activeStageMenuColumnSlug.value)
+    return
+  }
+
+  if (actionLabel === 'View Offer') {
+    openViewOffer()
+    return
+  }
+
+  if (actionLabel === 'Withdraw Offer') {
+    openWithdrawOffer()
+    return
+  }
+
+  if (actionLabel === 'Mark Declined') {
+    openOfferDeclinedByCandidate(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'Offer History') {
+    openOfferHistory()
+    return
+  }
+
+  if (actionLabel === 'View Approval Status') {
+    openApprovalStatus()
+    return
+  }
+
+  if (actionLabel === 'Offer Templates') {
+    openActivityLog()
+    return
+  }
+
+  if (actionLabel === 'Schedule Offer Call') {
+    openScheduleHmReview()
+    return
+  }
+
+  if (actionLabel === 'Track Offer Acceptance') {
+    openTrackOfferAcceptance(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'View Approval Workflow') {
+    openApprovalWorkflow(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'AI Offer Acceptance Prediction') {
+    openAIOfferAcceptancePrediction(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'AI Salary Benchmarking') {
+    openAISalaryBenchmark(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'AI Negotiation & Offer Strategy') {
+    openAINegotiationOfferStrategy(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'AI Market Competitiveness') {
+    openAIMarketCompetitiveness(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'AI Offer Insights') {
+    openAIOfferInsights(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'Submit For Approval') {
+    openHiringCommitteeApproval(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'Send Offer Reminder') {
+    openSendOfferReminder()
+    return
+  }
+
+  if (actionLabel === 'Mark Accepted') {
+    openOfferMarkedAccepted(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'Move to Hired') {
+    openCandidateOfficiallyHired(activeStageMenuCandidateId.value, { moveToHired: true })
     return
   }
 
@@ -2441,6 +3647,16 @@ function handleStageMenuAction(actionLabel) {
     return
   }
 
+  if (actionLabel === 'Request References') {
+    openReferenceCollection(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'Review References') {
+    openReviewReferences(activeStageMenuCandidateId.value)
+    return
+  }
+
   if (actionLabel === 'Assessment Review') {
     openAssessmentReview(activeStageMenuCandidateId.value)
     return
@@ -2456,13 +3672,33 @@ function handleStageMenuAction(actionLabel) {
     return
   }
 
-  if (actionLabel === 'Decision Review' || actionLabel === 'Hiring Committee Review') {
+  if (actionLabel === 'Decision Review') {
     openDecisionReview(activeStageMenuCandidateId.value)
     return
   }
 
+  if (actionLabel === 'Hiring Committee Review') {
+    openHiringCommitteeApproval(activeStageMenuCandidateId.value)
+    return
+  }
+
   if (actionLabel === 'Select Backup Candidate') {
-    openCandidateComparison(activeStageMenuCandidateId.value)
+    openSelectBackupCandidate(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'Offer Readiness Checklist') {
+    openOfferReadinessChecklist(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'Background Check') {
+    openBackgroundCheck(activeStageMenuCandidateId.value)
+    return
+  }
+
+  if (actionLabel === 'Review Background') {
+    openBackgroundReview(activeStageMenuCandidateId.value)
     return
   }
 
@@ -2556,16 +3792,16 @@ function handleStageMenuAction(actionLabel) {
   }
 
   if (actionLabel === 'AI Hiring Recommendation') {
-    openSuggestedNextActionFromMenu(activeStageMenuCandidateId.value)
+    openAiHiringRecommendation(activeStageMenuCandidateId.value)
     return
   }
 
   if (actionLabel === 'AI Decision Summary') {
-    openSuggestedNextActionFromMenu(activeStageMenuCandidateId.value)
+    openAiHiringRecommendation(activeStageMenuCandidateId.value)
     return
   }
 
-  if (actionLabel === 'AI Confidence Breakdown' || actionLabel === 'AI Consensus Analysis') {
+  if (actionLabel === 'AI Confidence Breakdown') {
     openAiScoreCalibration(activeStageMenuCandidateId.value)
     return
   }
@@ -2575,8 +3811,13 @@ function handleStageMenuAction(actionLabel) {
     return
   }
 
+  if (actionLabel === 'AI Consensus Analysis') {
+    openAiConsensusAnalysis(activeStageMenuCandidateId.value)
+    return
+  }
+
   if (actionLabel === 'AI Compare Finalists') {
-    openCandidateComparison(activeStageMenuCandidateId.value)
+    openAiCompareFinalists(activeStageMenuCandidateId.value)
     return
   }
 
@@ -3717,14 +4958,20 @@ onBeforeUnmount(() => {
                       </div>
 
                       <div class="job-pipeline-card-actions">
-                        <button type="button" aria-label="Email candidate">
+                        <button type="button" aria-label="Email candidate" @click.stop="openSendEmail(candidate.id)">
                           <AppIcon name="mail" :size="12" />
                         </button>
-                        <button type="button" aria-label="AI actions">
+                        <button type="button" aria-label="AI actions" @click.stop="openAiHiringRecommendation(candidate.id)">
                           <AppIcon name="spark" :size="12" />
                         </button>
                         <span />
-                        <button type="button" aria-label="More candidate actions">
+                        <button
+                          class="job-pipeline-stage-menu-anchor"
+                          type="button"
+                          aria-label="More candidate actions"
+                          :aria-expanded="activeStageMenuCandidateId === candidate.id"
+                          @click.stop="toggleStageMenu(candidate.id, column.slug, $event)"
+                        >
                           <AppIcon name="more" :size="12" />
                         </button>
                       </div>
@@ -5141,6 +6388,7 @@ onBeforeUnmount(() => {
       <div
         v-if="activeStageMenuCandidateId"
         class="job-pipeline-stage-menu"
+        :class="{ 'is-offer': activeStageMenuColumnSlug === 'offer' }"
         :style="{
           top: `${stageMenuPosition.top}px`,
           left: `${stageMenuPosition.left}px`,
@@ -5167,12 +6415,12 @@ onBeforeUnmount(() => {
             v-for="item in section.items"
             :key="item.label"
             class="job-pipeline-stage-menu__item"
-            :class="[toneClass(item.tone), { 'is-disabled': item.disabled }]"
+            :class="[toneClass(item.tone), { 'is-disabled': item.disabled, 'is-text-only': !item.icon }]"
             type="button"
             :disabled="item.disabled"
-            @click="handleStageMenuAction(item.label)"
+            @pointerdown.stop.prevent="handleStageMenuItem(item)"
           >
-            <span class="job-pipeline-stage-menu__icon" :class="toneClass(item.tone)">
+            <span v-if="item.icon" class="job-pipeline-stage-menu__icon" :class="toneClass(item.tone)">
               <AppIcon :name="item.icon" :size="13" />
             </span>
             <span>{{ item.label }}</span>
@@ -5213,6 +6461,13 @@ onBeforeUnmount(() => {
       :candidate-name="selectedDecisionReviewCandidate?.name"
       :candidate-role="selectedDecisionReviewCandidate?.role"
       @close="closeDecisionReview"
+    />
+
+    <HiringCommitteeApprovalOverlay
+      :open="committeeApprovalOpen"
+      :candidate-name="selectedCommitteeApprovalCandidate?.name"
+      :candidate-role="selectedCommitteeApprovalCandidate?.role"
+      @close="closeHiringCommitteeApproval"
     />
 
     <AICandidateRankingOverlay
@@ -5302,6 +6557,20 @@ onBeforeUnmount(() => {
       @move-shortlisted="moveCandidateToColumn(aiHiringSuccessPredictionCandidateId, 'interview')"
     />
 
+    <AIHiringRecommendationOverlay
+      :open="aiHiringRecommendationOpen"
+      :candidate-name="selectedAiHiringRecommendationCandidate?.name"
+      :candidate-role="selectedAiHiringRecommendationCandidate?.role"
+      :candidate-stage="selectedAiHiringRecommendationStage"
+      @close="closeAiHiringRecommendation"
+      @move-offer="closeAiHiringRecommendation(); moveCandidateToColumn(aiHiringRecommendationCandidateId.value, 'offer')"
+      @schedule-final-interview="closeAiHiringRecommendation(); openScheduleHmReview(aiHiringRecommendationCandidateId.value)"
+      @request-hm-review="closeAiHiringRecommendation(); openRequestHmDecision(aiHiringRecommendationCandidateId.value)"
+      @add-note="closeAiHiringRecommendation(); openAddNote(aiHiringRecommendationCandidateId.value)"
+      @add-to-pool="closeAiHiringRecommendation(); openAddToTalentPool(aiHiringRecommendationCandidateId.value)"
+      @reject-candidate="closeAiHiringRecommendation(); openRejectCandidate(aiHiringRecommendationCandidateId.value)"
+    />
+
     <AIScreeningSummaryOverlay
       :open="aiScreeningSummaryOpen"
       :candidate-name="selectedAiScreeningSummaryCandidate?.name"
@@ -5320,6 +6589,22 @@ onBeforeUnmount(() => {
       @close="closeAiRiskDetection"
       @add-risk-note="openAddNote(aiRiskDetectionCandidateId)"
       @continue-next-stage="openSuggestedNextAction(aiRiskDetectionCandidateId)"
+    />
+
+    <AIConsensusAnalysisOverlay
+      :open="aiConsensusAnalysisOpen"
+      :candidate-name="selectedAiConsensusAnalysisCandidate?.name"
+      :candidate-role="selectedAiConsensusAnalysisCandidate?.role"
+      :candidate-stage="selectedAiConsensusAnalysisStage"
+      @close="closeAiConsensusAnalysis"
+    />
+
+    <AICompareFinalistsOverlay
+      :open="aiCompareFinalistsOpen"
+      :candidate-name="selectedAiCompareFinalistsCandidate?.name"
+      :candidate-role="selectedAiCompareFinalistsCandidate?.role"
+      :candidate-stage="selectedAiCompareFinalistsStage"
+      @close="closeAiCompareFinalists"
     />
 
     <SuggestedNextActionOverlay
@@ -5417,6 +6702,43 @@ onBeforeUnmount(() => {
       @close="closeRejectCandidate"
     />
 
+    <ViewOfferOverlay
+      :open="viewOfferOpen"
+      :candidate-name="selectedViewOfferCandidate?.name"
+      :candidate-role="selectedViewOfferCandidate?.role"
+      @close="closeViewOffer"
+      @withdraw-offer="openWithdrawOfferFromViewOffer"
+      @send-reminder="openSendReminderFromViewOffer"
+      @contact-candidate="openContactCandidateFromViewOffer"
+    />
+
+    <WithdrawOfferOverlay
+      :open="withdrawOfferOpen"
+      :candidate-name="selectedWithdrawOfferCandidate?.name"
+      :candidate-role="selectedWithdrawOfferCandidate?.role"
+      @close="closeWithdrawOffer"
+      @confirm="confirmWithdrawOffer"
+    />
+
+    <OfferHistoryOverlay
+      :open="offerHistoryOpen"
+      :candidate-name="selectedOfferHistoryCandidate?.name"
+      :candidate-role="selectedOfferHistoryCandidate?.role"
+      @close="closeOfferHistory"
+      @view-offer="openViewOfferFromHistory"
+      @send-reminder="openSendReminderFromHistory"
+      @withdraw-offer="openWithdrawOfferFromHistory"
+    />
+
+    <ViewApprovalStatusOverlay
+      :open="approvalStatusOpen"
+      :candidate-name="selectedApprovalStatusCandidate?.name"
+      :candidate-role="selectedApprovalStatusCandidate?.role"
+      @close="closeApprovalStatus"
+      @view-offer="openViewOfferFromApprovalStatus"
+      @send-reminder="openSendReminderFromApprovalStatus"
+    />
+
     <ConfirmAvailabilityOverlay
       :open="confirmAvailabilityOpen"
       :candidate-name="selectedConfirmAvailabilityCandidate?.name"
@@ -5458,12 +6780,35 @@ onBeforeUnmount(() => {
       @send-request="closeRequestFinalFeedback"
     />
 
+    <ReferenceCollectionOverlay
+      :open="referenceCollectionOpen"
+      :candidate-name="selectedReferenceCollectionCandidate?.name"
+      :candidate-role="selectedReferenceCollectionCandidate?.role"
+      @close="closeReferenceCollection"
+    />
+
+    <ReviewReferencesOverlay
+      :open="reviewReferencesOpen"
+      :candidate-name="selectedReviewReferencesCandidate?.name"
+      :candidate-role="selectedReviewReferencesCandidate?.role"
+      @close="closeReviewReferences"
+      @reviewed="closeReviewReferences"
+    />
+
     <SendReminderOverlay
       :open="sendReminderOpen"
       :candidate-name="selectedSendReminderCandidate?.name"
       :candidate-role="selectedSendReminderCandidate?.role"
       @close="closeSendReminder"
       @send-reminder="closeSendReminder"
+    />
+
+    <SendOfferReminderOverlay
+      :open="sendOfferReminderOpen"
+      :candidate-name="selectedSendOfferReminderCandidate?.name"
+      :candidate-role="selectedSendOfferReminderCandidate?.role"
+      @close="closeSendOfferReminder"
+      @send-reminder="closeSendOfferReminder"
     />
 
     <ViewFeedbackStatusOverlay
@@ -5489,6 +6834,150 @@ onBeforeUnmount(() => {
       :candidate-name="selectedCandidateComparisonCandidate?.name"
       :candidate-role="selectedCandidateComparisonCandidate?.role"
       @close="closeCandidateComparison"
+    />
+
+    <SelectBackupCandidateOverlay
+      :open="backupCandidateOpen"
+      :candidate-name="selectedBackupCandidate?.name"
+      :candidate-role="selectedBackupCandidate?.role"
+      @close="closeSelectBackupCandidate"
+      @save="closeSelectBackupCandidate"
+    />
+
+    <OfferReadinessChecklistOverlay
+      :open="offerReadinessOpen"
+      :candidate-name="selectedOfferReadinessCandidate?.name"
+      :candidate-role="selectedOfferReadinessCandidate?.role"
+      @close="closeOfferReadinessChecklist"
+      @move-to-offer="closeOfferReadinessChecklist"
+    />
+
+    <ViewApprovalWorkflowOverlay
+      :open="approvalWorkflowOpen"
+      :candidate-name="selectedApprovalWorkflowCandidate?.name"
+      :candidate-role="selectedApprovalWorkflowCandidate?.role"
+      @close="closeApprovalWorkflow"
+    />
+
+    <AIOfferAcceptancePredictionOverlay
+      :open="aiOfferAcceptancePredictionOpen"
+      :candidate-name="selectedAIOfferAcceptancePredictionCandidate?.name"
+      :candidate-role="selectedAIOfferAcceptancePredictionCandidate?.role"
+      @close="closeAIOfferAcceptancePrediction"
+    />
+
+    <AINegotiationOfferStrategyOverlay
+      :open="aiNegotiationOfferStrategyOpen"
+      :candidate-name="selectedAINegotiationOfferStrategyCandidate?.name"
+      :candidate-role="selectedAINegotiationOfferStrategyCandidate?.role"
+      @close="closeAINegotiationOfferStrategy"
+    />
+
+    <AIOfferInsightsOverlay
+      :open="aiOfferInsightsOpen"
+      :candidate-name="selectedAIOfferInsightsCandidate?.name"
+      :candidate-role="selectedAIOfferInsightsCandidate?.role"
+      @close="closeAIOfferInsights"
+    />
+
+    <AIMarketCompetitivenessOverlay
+      :open="aiMarketCompetitivenessOpen"
+      :candidate-name="selectedAIMarketCompetitivenessCandidate?.name"
+      :candidate-role="selectedAIMarketCompetitivenessCandidate?.role"
+      @close="closeAIMarketCompetitiveness"
+    />
+
+    <AISalaryBenchmarkOverlay
+      :open="aiSalaryBenchmarkOpen"
+      :candidate-name="selectedAISalaryBenchmarkCandidate?.name"
+      :candidate-role="selectedAISalaryBenchmarkCandidate?.role"
+      @close="closeAISalaryBenchmark"
+    />
+
+    <OfferAcceptedByCandidateOverlay
+      :open="offerAcceptedByCandidateOpen"
+      :candidate-name="selectedOfferAcceptedByCandidateCandidate?.name"
+      :candidate-role="selectedOfferAcceptedByCandidateCandidate?.role"
+      @close="closeOfferAcceptedByCandidate"
+      @move-to-hired="openCandidateOfficiallyHired(offerAcceptedByCandidateCandidateId.value || selectedOfferAcceptedByCandidateCandidate?.id, { moveToHired: true })"
+    />
+
+    <OfferMarkedAcceptedOverlay
+      :open="offerMarkedAcceptedOpen"
+      :candidate-name="selectedOfferMarkedAcceptedCandidate?.name"
+      @close="closeOfferMarkedAccepted"
+      @view-offer-details="openOfferAcceptedByCandidate(offerMarkedAcceptedCandidateId.value)"
+      @go-to-onboarding="finishOfferMarkedAccepted"
+    />
+
+    <CandidateOfficiallyHiredOverlay
+      :open="candidateOfficiallyHiredOpen"
+      :candidate-name="selectedCandidateOfficiallyHiredCandidate?.name"
+      :candidate-role="selectedCandidateOfficiallyHiredCandidate?.role"
+      @close="closeCandidateOfficiallyHired"
+      @share-update="openShareHireUpdate"
+      @view-profile="finishHiredCelebrationFlow"
+      @go-to-onboarding="finishHiredCelebrationFlow"
+    />
+
+    <ShareHireUpdateOverlay
+      :open="shareHireUpdateOpen"
+      :candidate-name="selectedCandidateOfficiallyHiredCandidate?.name"
+      :candidate-role="selectedCandidateOfficiallyHiredCandidate?.role"
+      @close="closeShareHireUpdate"
+      @share="submitShareHireUpdate"
+    />
+
+    <HireUpdateSharedOverlay
+      :open="hireUpdateSharedOpen"
+      :candidate-name="selectedCandidateOfficiallyHiredCandidate?.name"
+      :candidate-role="selectedCandidateOfficiallyHiredCandidate?.role"
+      @close="closeHireUpdateShared"
+      @share-another="reopenShareHireUpdate"
+      @view-profile="finishHiredCelebrationFlow"
+      @go-to-onboarding="finishHiredCelebrationFlow"
+    />
+
+    <OfferDeclinedByCandidateOverlay
+      :open="offerDeclinedByCandidateOpen"
+      :candidate-name="selectedOfferDeclinedByCandidateCandidate?.name"
+      :candidate-role="selectedOfferDeclinedByCandidateCandidate?.role"
+      @close="closeOfferDeclinedByCandidate"
+      @submit="submitOfferDeclinedByCandidate"
+    />
+
+    <OfferMarkedDeclinedOverlay
+      :open="offerMarkedDeclinedOpen"
+      @close="closeOfferMarkedDeclined"
+      @done="finishOfferMarkedDeclined"
+    />
+
+    <BackgroundCheckOverlay
+      :open="backgroundCheckOpen"
+      :job-id="jobId"
+      :candidate-id="backgroundCheckCandidateId"
+      :candidate-name="selectedBackgroundCheckCandidate?.name"
+      :candidate-role="selectedBackgroundCheckCandidate?.role"
+      @created="setCandidateBackgroundReviewMode"
+      @close="closeBackgroundCheck"
+    />
+
+    <ReviewBackgroundOverlay
+      :open="backgroundReviewOpen"
+      :candidate-name="selectedBackgroundReviewCandidate?.name"
+      :candidate-role="selectedBackgroundReviewCandidate?.role"
+      :review-mode="selectedBackgroundReviewMode"
+      @close="closeBackgroundReview"
+    />
+
+    <TrackOfferAcceptanceOverlay
+      :open="trackOfferAcceptanceOpen"
+      :candidate-name="selectedTrackOfferAcceptanceCandidate?.name"
+      :candidate-role="selectedTrackOfferAcceptanceCandidate?.role"
+      @close="closeTrackOfferAcceptance"
+      @send-reminder="openSendReminderFromTrackOfferAcceptance"
+      @withdraw-offer="openWithdrawOfferFromTrackOfferAcceptance"
+      @view-offer="openViewOfferFromTrackOfferAcceptance"
     />
 
     <ReviewerCalibrationOverlay
@@ -5548,7 +7037,9 @@ onBeforeUnmount(() => {
       :open="aiScoreCalibrationOpen"
       :candidate-name="selectedAiScoreCalibrationCandidate?.name"
       :candidate-role="selectedAiScoreCalibrationCandidate?.role"
+      :candidate-stage="selectedAiScoreCalibrationStage"
       @close="closeAiScoreCalibration"
+      @request-hm-review="closeAiScoreCalibration(); openRequestHmDecision(aiScoreCalibrationCandidateId.value)"
     />
 
     <AIScorecardBiasDetectionOverlay
@@ -10012,6 +11503,11 @@ onBeforeUnmount(() => {
   color: #6b5cff;
 }
 
+.job-pipeline-stage-menu.is-offer .job-pipeline-stage-menu__section h4,
+.job-pipeline-stage-menu.is-offer .job-pipeline-stage-menu__section h4.is-accent {
+  color: #ff6a00;
+}
+
 .job-pipeline-stage-menu__item {
   width: 100%;
   min-height: 38px;
@@ -10040,6 +11536,10 @@ onBeforeUnmount(() => {
   color: #ef4444;
 }
 
+.job-pipeline-stage-menu__item.is-link {
+  color: #5a67ff;
+}
+
 .job-pipeline-stage-menu__item.is-disabled {
   color: #b8c1d2;
   cursor: not-allowed;
@@ -10063,8 +11563,17 @@ onBeforeUnmount(() => {
   color: #ef4444;
 }
 
+.job-pipeline-stage-menu__icon.is-link {
+  color: #5a67ff;
+}
+
 .job-pipeline-stage-menu__item.is-disabled .job-pipeline-stage-menu__icon {
   color: #c8d0de;
+}
+
+.job-pipeline-stage-menu__item.is-text-only {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
 }
 
 .job-pipeline-column-bar {

@@ -263,8 +263,19 @@ onBeforeUnmount(() => {
                   </div>
 
                   <div class="decision-review-evidence-row__status" :class="`tone-${row.tone}`">
-                    <span class="decision-review-evidence-row__score">{{ row.score }}</span>
-                    <strong>{{ row.status }}</strong>
+                    <template v-if="row.score === 'Pending'">
+                      <div class="decision-review-evidence-row__status-copy is-pending">
+                        <span class="decision-review-evidence-row__pending-icon">
+                          <AppIcon name="clock" :size="16" />
+                        </span>
+                        <strong>{{ row.status }}</strong>
+                        <small>{{ row.score === 'Pending' ? '1 of 2 completed' : '' }}</small>
+                      </div>
+                    </template>
+                    <template v-else>
+                      <span class="decision-review-evidence-row__score">{{ row.score }}</span>
+                      <strong>{{ row.status }}</strong>
+                    </template>
                   </div>
 
                   <ul class="decision-review-evidence-row__details">
@@ -447,11 +458,11 @@ onBeforeUnmount(() => {
   min-height: 0;
   overflow: auto;
   display: grid;
-  grid-template-columns: 276px minmax(0, 1fr);
+  grid-template-columns: 332px minmax(0, 1fr);
 }
 
 .decision-review-sidebar {
-  padding: 30px 26px;
+  padding: 30px 24px;
   background: linear-gradient(180deg, #f8fbff 0%, #f3f7fd 100%);
   border-right: 1px solid #e8eef7;
 }
@@ -624,14 +635,14 @@ onBeforeUnmount(() => {
 
 .decision-review-snapshot-item {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
+  grid-template-columns: 38px minmax(0, 1fr) 18px;
+  align-items: start;
+  gap: 14px;
 }
 
 .decision-review-snapshot-item__icon {
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -639,17 +650,29 @@ onBeforeUnmount(() => {
   background: #f5f7ff;
 }
 
+.decision-review-snapshot-item > div {
+  min-width: 0;
+}
+
 .decision-review-snapshot-item strong {
   display: block;
-  font-size: 0.98rem;
+  font-size: 1rem;
   font-weight: 700;
+  line-height: 1.28;
   color: #1f2a44;
 }
 
 .decision-review-snapshot-item small {
   display: block;
-  margin-top: 3px;
+  margin-top: 5px;
+  font-size: 0.9rem;
+  line-height: 1.45;
   color: #7183a6;
+}
+
+.decision-review-snapshot-item > :last-child {
+  justify-self: end;
+  margin-top: 2px;
 }
 
 .decision-review-main {
@@ -747,6 +770,50 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.decision-review-evidence-row__status-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.decision-review-evidence-row__status-copy strong {
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.decision-review-evidence-row__status-copy.is-pending {
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 4px;
+  justify-items: start;
+}
+
+.decision-review-evidence-row__pending-icon {
+  grid-row: 1 / span 2;
+  width: 56px;
+  height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 5px solid currentColor;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.decision-review-evidence-row__status-copy.is-pending strong {
+  margin: 0;
+  color: inherit;
+}
+
+.decision-review-evidence-row__status-copy.is-pending small {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.3;
+  color: #94a3bd;
 }
 
 .decision-review-evidence-row__score {
@@ -862,31 +929,38 @@ onBeforeUnmount(() => {
   margin-top: 28px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  gap: 14px;
 }
 
 .decision-review-actions__button {
-  min-height: 78px;
+  min-height: 64px;
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 18px 20px;
-  border-radius: 18px;
+  padding: 14px 18px;
+  border-radius: 16px;
   border: 1px solid #dbe4f0;
   background: #ffffff;
   text-align: left;
   cursor: pointer;
 }
 
+.decision-review-actions__button :deep(svg) {
+  flex-shrink: 0;
+}
+
 .decision-review-actions__button strong {
   display: block;
-  font-size: 1rem;
+  font-size: 0.92rem;
   font-weight: 800;
+  line-height: 1.2;
 }
 
 .decision-review-actions__button span {
   display: block;
-  margin-top: 4px;
+  margin-top: 2px;
+  font-size: 0.85rem;
+  line-height: 1.35;
   color: inherit;
   opacity: 0.9;
 }

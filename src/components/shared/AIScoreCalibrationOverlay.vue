@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import AppIcon from './AppIcon.vue'
 
 const props = defineProps({
@@ -9,18 +9,24 @@ const props = defineProps({
   },
   candidateName: {
     type: String,
-    default: 'Michael Chen',
+    default: 'Marvin McKinney',
   },
   candidateRole: {
     type: String,
-    default: 'Senior Software Engineer',
+    default: 'Senior Frontend Developer',
+  },
+  candidateStage: {
+    type: String,
+    default: 'Validation',
   },
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'request-hm-review'])
 
 const previousBodyOverflow = ref('')
 const previousHtmlOverflow = ref('')
+const overlayOpenedAt = ref(0)
+const bodyRef = ref(null)
 
 const candidateInitials = computed(() => (
   props.candidateName
@@ -31,58 +37,54 @@ const candidateInitials = computed(() => (
     .join('')
 ))
 
-const disagreementCards = [
-  {
-    name: 'Alex Rivera',
-    score: '5 / 5',
-    note: 'Alex perceived strong problem solving strengths and dependable cross-functional collaboration.',
-    tone: 'green',
-  },
-  {
-    name: 'Priya Shah',
-    score: '2 / 5',
-    note: 'Priya perceived limited leadership during ambiguous situations and weaker influence evidence.',
-    tone: 'red',
-  },
+const confidenceScore = 96
+
+const profileFacts = computed(() => ([
+  { label: 'Department', value: 'Engineering' },
+  { label: 'Location', value: 'San Francisco, CA' },
+  { label: 'Employment Type', value: 'Full-time' },
+  { label: 'Current Stage', value: props.candidateStage, stage: true },
+  { label: 'Last Updated', value: 'May 25, 2026 - 10:24 AM', meta: 'By NitroSync AI' },
+]))
+
+const evidenceRows = [
+  { label: 'Interview scorecards', note: '5 scorecards from recruiter, tech, team & HM', score: '98%', icon: 'users', tone: 'pink' },
+  { label: 'Assessments', note: '2 assessments including technical and cognitive', score: '91%', icon: 'chart-bars', tone: 'rose' },
+  { label: 'References', note: '3 professional references', score: '100%', icon: 'users', tone: 'violet' },
+  { label: 'Background check', note: 'Identity, criminal, employment, education', score: '100%', icon: 'shield', tone: 'orange' },
+  { label: 'Work authorization', note: 'Right to work verified', score: '100%', icon: 'document', tone: 'green' },
+  { label: 'HM feedback', note: 'Final recommendation from hiring manager', score: '93%', icon: 'star', tone: 'lavender' },
 ]
 
-const confidenceRows = [
-  { label: 'Problem Solving', filled: 5, confidence: 'High', tone: 'green', why: 'Consistent across all evaluations' },
-  { label: 'Communication', filled: 4, confidence: 'High', tone: 'green', why: 'Strong evidence in interviews' },
-  { label: 'Leadership', filled: 2, confidence: 'Low', tone: 'orange', why: 'Limited and conflicting evidence' },
-  { label: 'Collaboration', filled: 3, confidence: 'Medium', tone: 'amber', why: 'Some evidence, varied interpretation' },
+const whyNotHundred = [
+  ['Leadership', 'Leadership was evaluated by only one interviewer.'],
+  ['Assessment score', 'Assessment score was slightly lower than top-tier scores.'],
+  ['Reference timing', 'One reference replied after reminder.'],
 ]
 
-const discussionCards = [
-  {
-    title: 'Leadership',
-    priority: 'High Priority',
-    tone: 'red',
-    copy: 'Significant disagreement between reviewers on leadership potential and examples.',
-    action: 'View discussion guide',
-  },
-  {
-    title: 'Problem Solving',
-    priority: 'Medium Priority',
-    tone: 'amber',
-    copy: 'Different contexts led to varied ratings. Clarify expectations by system design vs. coding.',
-    action: 'View discussion guide',
-  },
-  {
-    title: 'Communication',
-    priority: 'Low Priority',
-    tone: 'blue',
-    copy: 'One reviewer provided limited specific examples. No major alignment concerns.',
-    action: 'View discussion guide',
-  },
+const conclusionPoints = [
+  'The recommendation is reliable.',
+  'All critical validation areas are complete.',
+  'Move forward with confidence.',
 ]
 
-const reviewerRows = [
-  { name: 'Alex Rivera', role: 'Engineering Manager', score: '4.6 / 5', alignment: 'Aligned', alignmentTone: 'green', dots: 4, calibration: 'Well Calibrated', calibrationTone: 'green' },
-  { name: 'Priya Shah', role: 'Senior Engineer', score: '4.5 / 5', alignment: 'Aligned', alignmentTone: 'green', dots: 4, calibration: 'Well Calibrated', calibrationTone: 'green' },
-  { name: 'Daniel Kim', role: 'Staff Engineer', score: '2.8 / 5', alignment: 'Outlier', alignmentTone: 'red', dots: 1, calibration: 'Too Harsh', calibrationTone: 'red' },
-  { name: 'Emma Johnson', role: 'Tech Lead', score: '4.7 / 5', alignment: 'Aligned', alignmentTone: 'green', dots: 4, calibration: 'Well Calibrated', calibrationTone: 'green' },
+const timelineRows = [
+  ['AI Recommendation Generated', 'May 25, 2026 - 10:24 AM', true],
+  ['Assessments Completed', 'May 24, 2026 - 5:15 PM', true],
+  ['References Verified', 'May 24, 2026 - 11:30 AM', true],
+  ['Background Check Passed', 'May 23, 2026 - 4:20 PM', true],
+  ['Hiring Manager Review Pending', 'Next step', false],
 ]
+
+const nextStepActions = [
+  'Schedule Final Interview',
+  'Request Hiring Manager Review',
+  'Add to Backup List',
+]
+
+const confidenceRingStyle = computed(() => ({
+  background: `conic-gradient(#ff4f9c 0deg ${confidenceScore * 3.6}deg, #eef2fb ${confidenceScore * 3.6}deg 360deg)`,
+}))
 
 function syncDocumentScrollLock(isOpen) {
   if (typeof document === 'undefined') {
@@ -105,10 +107,33 @@ function closeOverlay() {
   emit('close')
 }
 
+function runSecondaryAction(action) {
+  if (action === 'Request Hiring Manager Review') {
+    emit('request-hm-review')
+  }
+}
+
+function handleBackdropClick() {
+  if (Date.now() - overlayOpenedAt.value < 180) {
+    return
+  }
+
+  closeOverlay()
+}
+
 watch(
   () => props.open,
-  (isOpen) => {
+  async (isOpen) => {
     syncDocumentScrollLock(isOpen)
+
+    if (isOpen) {
+      overlayOpenedAt.value = Date.now()
+      await nextTick()
+
+      if (bodyRef.value) {
+        bodyRef.value.scrollTop = 0
+      }
+    }
   },
 )
 
@@ -119,249 +144,218 @@ onBeforeUnmount(() => {
 
 <template>
   <Teleport to="body">
-    <div v-if="open" class="score-calibration-overlay" @click.self="closeOverlay">
-      <section class="score-calibration-modal">
-        <header class="score-calibration-modal__header">
-          <div class="score-calibration-modal__title">
-            <span class="score-calibration-modal__title-icon">
-              <AppIcon name="target" :size="18" />
-            </span>
-            <div>
-              <div class="score-calibration-modal__title-row">
-                <h2>AI Score Calibration</h2>
-                <em>Beta</em>
-              </div>
-              <p>Are we aligned enough to make a confident decision?</p>
+    <div v-if="open" class="ai-confidence-overlay" @click.self="handleBackdropClick">
+      <section class="ai-confidence-modal">
+        <header class="ai-confidence-head">
+          <div>
+            <div class="ai-confidence-head__title">
+              <span class="ai-confidence-head__icon">
+                <AppIcon name="target" :size="16" />
+              </span>
+              <h2>AI Confidence Breakdown</h2>
+              <em>AI</em>
             </div>
+            <p>Understand how confident our AI is in this hiring recommendation.</p>
           </div>
 
-          <div class="score-calibration-modal__header-actions">
-            <button type="button">
-              <AppIcon name="info" :size="14" />
-              <span>How does this work?</span>
-            </button>
-            <button class="score-calibration-modal__close" type="button" aria-label="Close AI Score Calibration" @click="closeOverlay">
-              <AppIcon name="close" :size="18" />
-            </button>
-          </div>
+          <button class="ai-confidence-head__close" type="button" aria-label="Close AI Confidence Breakdown" @click="closeOverlay">
+            <AppIcon name="close" :size="16" />
+          </button>
         </header>
 
-        <div class="score-calibration-modal__body">
-          <div class="score-calibration-top">
-            <aside class="candidate-panel">
-              <div class="candidate-panel__identity">
-                <span class="candidate-panel__avatar">{{ candidateInitials }}</span>
-                <div>
-                  <strong>{{ candidateName }}</strong>
-                  <p>{{ candidateRole }}</p>
-                  <span class="candidate-panel__badge">1 Interview Complete</span>
-                </div>
-              </div>
-
-              <div class="candidate-panel__meta">
-                <article><span>Stage</span><strong>Interview</strong></article>
-                <article><span>Round</span><strong>Technical + Behavioral</strong></article>
-                <article><span>Completed On</span><strong>Apr 24, 2025</strong></article>
-                <article><span>Reviewers</span><strong>4</strong></article>
-              </div>
-
-              <button type="button">View Candidate Profile</button>
-
-              <div class="candidate-panel__note">
-                <AppIcon name="spark" :size="15" />
-                <p>AI analyzes scores, feedback and evidence across all reviewers to identify alignment, disagreement and areas that need discussion.</p>
-              </div>
-            </aside>
-
-            <div class="score-calibration-main">
-              <div class="top-metrics-grid">
-                <section class="panel">
-                  <div class="panel__label is-violet">AI Executive Summary</div>
-                  <div class="summary-panel">
-                    <span><AppIcon name="sparkles" :size="20" /></span>
-                    <p>
-                      The hiring team is largely aligned on the candidate’s technical abilities and communication skills.
-                      However, there is <strong>significant disagreement on leadership potential</strong>. A short calibration
-                      discussion focused on leadership is recommended before making the final decision.
-                    </p>
-                  </div>
-                </section>
-
-                <section class="panel panel--alignment">
-                  <div class="panel__head">
-                    <div class="panel__label">Team Alignment</div>
-                    <AppIcon name="info" :size="13" />
-                  </div>
-                  <div class="alignment-panel">
-                    <div>
-                      <strong>68%</strong>
-                      <span>Moderate Alignment</span>
-                      <p>Reviewers disagree on 2 critical competencies.</p>
-                    </div>
-                    <div class="alignment-gauge">
-                      <div class="alignment-gauge__arc">
-                        <div class="alignment-gauge__needle"></div>
-                      </div>
-                      <div class="alignment-gauge__scale">
-                        <span>0</span>
-                        <span>50</span>
-                        <span>100</span>
-                      </div>
-                    </div>
-                  </div>
-                  <button type="button">Read full AI summary</button>
-                </section>
-              </div>
-
-              <div class="top-details-grid">
-                <section class="panel">
-                  <div class="panel__label">Biggest Disagreement</div>
-                  <div class="disagreement-card">
-                    <div class="disagreement-card__head">
-                      <strong>Leadership</strong>
-                      <span>High Impact</span>
-                    </div>
-
-                    <div class="disagreement-card__versus">
-                      <article v-for="item in disagreementCards" :key="item.name">
-                        <div class="disagreement-card__reviewer">
-                          <span>{{ item.name.split(' ').map((part) => part[0]).join('') }}</span>
-                          <div>
-                            <strong>{{ item.name }}</strong>
-                            <small>{{ item.score }}</small>
-                          </div>
-                        </div>
-                        <p>{{ item.note }}</p>
-                      </article>
-                    </div>
-
-                    <div class="disagreement-card__footer">
-                      <AppIcon name="spark" :size="14" />
-                      <span>AI Recommendation</span>
-                      <small>Review leadership examples together to reach alignment.</small>
-                    </div>
-                  </div>
-                </section>
-
-                <section class="panel">
-                  <div class="panel__head">
-                    <div class="panel__label">Evidence Confidence</div>
-                    <AppIcon name="info" :size="13" />
-                  </div>
-                  <div class="confidence-list">
-                    <article v-for="item in confidenceRows" :key="item.label">
-                      <strong>{{ item.label }}</strong>
-                      <div class="confidence-list__bars">
-                        <i
-                          v-for="bar in 5"
-                          :key="`${item.label}-${bar}`"
-                          :class="{ 'is-filled': bar <= item.filled, [`is-${item.tone}`]: true }"
-                        />
-                      </div>
-                      <span :class="`is-${item.tone}`">{{ item.confidence }}</span>
-                      <small>{{ item.why }}</small>
-                    </article>
-                  </div>
-                  <button type="button">View all competency details</button>
-                </section>
-
-                <section class="panel panel--recommendation">
-                  <div class="panel__head">
-                    <span class="panel__head-icon">
-                      <AppIcon name="checkCircle" :size="14" />
-                    </span>
-                    <div class="panel__label">Recommended Action</div>
-                  </div>
-                  <div class="recommended-action-card">
-                    <small>AI Recommendation</small>
-                    <strong>Proceed with a short calibration discussion.</strong>
-                    <p>Additional interviews are not recommended before the team aligns on leadership interpretation.</p>
-                    <div class="recommended-action-card__meta">
-                      <article><span>Estimated duration</span><strong>10 minutes</strong></article>
-                      <article><span>Focus</span><strong>Leadership only</strong></article>
-                      <article><span>Additional interviews</span><strong>Not recommended</strong></article>
-                    </div>
-                    <button type="button">Start Calibration Discussion</button>
-                  </div>
-                </section>
+        <div ref="bodyRef" class="ai-confidence-body">
+          <section class="ai-confidence-profile">
+            <div class="ai-confidence-profile__identity">
+              <span class="ai-confidence-profile__avatar">{{ candidateInitials }}</span>
+              <div>
+                <strong>{{ candidateName }}</strong>
+                <p>{{ candidateRole }}</p>
+                <button type="button" class="ai-confidence-link">
+                  <span>View candidate profile</span>
+                  <AppIcon name="external-link" :size="12" />
+                </button>
               </div>
             </div>
-          </div>
 
-          <div class="score-calibration-bottom">
-            <section class="panel">
-              <div class="panel__head">
-                <div class="panel__label">What Should The Team Discuss?</div>
-                <AppIcon name="info" :size="13" />
-              </div>
-              <div class="discussion-grid">
-                <article v-for="item in discussionCards" :key="item.title">
-                  <div class="discussion-grid__head">
-                    <strong>{{ item.title }}</strong>
-                    <span :class="`is-${item.tone}`">{{ item.priority }}</span>
+            <div class="ai-confidence-profile__facts">
+              <article v-for="item in profileFacts" :key="item.label">
+                <small>{{ item.label }}</small>
+                <strong :class="{ 'is-stage': item.stage }">{{ item.value }}</strong>
+                <span v-if="item.meta">{{ item.meta }}</span>
+              </article>
+            </div>
+          </section>
+
+          <div class="ai-confidence-top-grid">
+            <section class="ai-confidence-card ai-confidence-card--overall">
+              <div class="ai-confidence-overall">
+                <div class="ai-confidence-ring" :style="confidenceRingStyle">
+                  <div>
+                    <strong>{{ confidenceScore }}%</strong>
+                    <span>High Confidence</span>
+                    <small>
+                      <AppIcon name="shield" :size="11" />
+                    </small>
                   </div>
-                  <p>{{ item.copy }}</p>
-                  <button type="button">{{ item.action }}</button>
-                </article>
-              </div>
-              <div class="discussion-footer">
-                <AppIcon name="spark" :size="14" />
-                <span>Focus on high priority topics first to save time.</span>
+                </div>
+
+                <div class="ai-confidence-overall__content">
+                  <div class="ai-confidence-card__head ai-confidence-card__head--inline">
+                    <span>1.</span>
+                    <strong>Overall Confidence</strong>
+                  </div>
+
+                  <div class="ai-confidence-overall__copy">
+                  <p>Our AI is highly confident in this recommendation based on the evidence analyzed.</p>
+                  </div>
+
+                  <div class="ai-confidence-metrics">
+                    <article><small>Confidence Level</small><strong>High</strong></article>
+                    <article><small>Data Completeness</small><strong>98%</strong></article>
+                    <article><small>Evidence Quality</small><strong>High</strong></article>
+                  </div>
+                </div>
               </div>
             </section>
 
-            <section class="panel">
-              <div class="panel__head">
-                <div class="panel__label">Reviewer Overview</div>
-                <AppIcon name="info" :size="13" />
+            <section class="ai-confidence-card">
+              <div class="ai-confidence-card__head">
+                <span>2.</span>
+                <strong>Evidence Used</strong>
               </div>
 
-              <div class="reviewer-table">
-                <div class="reviewer-table__head">
-                  <span>Reviewer</span>
-                  <span>Overall Score (Avg)</span>
-                  <span>Alignment</span>
-                  <span>Consistency</span>
-                  <span>Calibration</span>
-                </div>
-
-                <article v-for="item in reviewerRows" :key="item.name" class="reviewer-table__row">
-                  <div class="reviewer-table__identity">
-                    <span>{{ item.name.split(' ').map((part) => part[0]).join('') }}</span>
+              <div class="ai-confidence-evidence">
+                <article v-for="item in evidenceRows" :key="item.label">
+                  <div class="ai-confidence-evidence__label">
+                    <span class="is-icon" :class="`is-${item.tone}`">
+                      <AppIcon :name="item.icon" :size="13" />
+                    </span>
                     <div>
-                      <strong>{{ item.name }}</strong>
-                      <small>{{ item.role }}</small>
+                      <strong>{{ item.label }}</strong>
+                      <small>{{ item.note }}</small>
                     </div>
                   </div>
-                  <strong class="reviewer-table__score">{{ item.score }}</strong>
-                  <strong :class="`is-${item.alignmentTone}`">{{ item.alignment }}</strong>
-                  <div class="reviewer-table__dots">
-                    <i v-for="dot in 4" :key="`${item.name}-${dot}`" :class="{ 'is-filled': dot <= item.dots, [`is-${item.alignmentTone}`]: true }" />
+                  <em>{{ item.score }}</em>
+                </article>
+              </div>
+            </section>
+          </div>
+
+          <div class="ai-confidence-middle-grid">
+            <section class="ai-confidence-card">
+              <div class="ai-confidence-card__head">
+                <span>3.</span>
+                <strong>Why isn't confidence 100%?</strong>
+              </div>
+
+              <div class="ai-confidence-alert-list">
+                <article v-for="item in whyNotHundred" :key="item[0]">
+                  <AppIcon name="alert" :size="13" />
+                  <div>
+                    <strong>{{ item[0] }}</strong>
+                    <p>{{ item[1] }}</p>
                   </div>
-                  <strong :class="`is-${item.calibrationTone}`">{{ item.calibration }}</strong>
+                </article>
+              </div>
+            </section>
+
+            <section class="ai-confidence-card ai-confidence-card--conclusion">
+              <div class="ai-confidence-card__head">
+                <span>4.</span>
+                <strong>AI Conclusion</strong>
+              </div>
+
+              <ul class="ai-confidence-checks">
+                <li v-for="item in conclusionPoints" :key="item">
+                  <AppIcon name="check" :size="13" />
+                  <span>{{ item }}</span>
+                </li>
+              </ul>
+            </section>
+          </div>
+
+          <div class="ai-confidence-bottom-grid">
+            <section class="ai-confidence-card">
+              <div class="ai-confidence-card__head">
+                <span>5.</span>
+                <strong>Recommendation Audit Timeline</strong>
+              </div>
+
+              <div class="ai-confidence-timeline">
+                <div class="ai-confidence-timeline__line" />
+                <article v-for="item in timelineRows" :key="item[0]">
+                  <span :class="{ 'is-pending': !item[2] }" />
+                  <strong>{{ item[0] }}</strong>
+                  <small>{{ item[1] }}</small>
                 </article>
               </div>
 
-              <button class="reviewer-table__footer-link" type="button">View reviewer details</button>
+              <p class="ai-confidence-note">
+                <AppIcon name="info" :size="12" />
+                <span>All times shown in your local time zone.</span>
+              </p>
+            </section>
+
+            <section class="ai-confidence-card">
+              <div class="ai-confidence-card__head">
+                <span>6.</span>
+                <strong>Recommended Next Step</strong>
+              </div>
+
+              <button type="button" class="ai-confidence-primary-action">
+                <AppIcon name="sparkles" :size="14" />
+                <span>Move to Offer</span>
+              </button>
+
+              <p class="ai-confidence-next-copy">
+                Based on the strong validation across all critical areas, AI recommends moving this candidate to the Offer stage.
+              </p>
+
+              <small class="ai-confidence-other-label">Other actions</small>
+              <div class="ai-confidence-secondary-actions">
+                <button
+                  v-for="item in nextStepActions"
+                  :key="item"
+                  type="button"
+                  @click="runSecondaryAction(item)"
+                >
+                  {{ item }}
+                </button>
+              </div>
             </section>
           </div>
         </div>
 
-        <footer class="score-calibration-modal__footer">
-          <p>
-            <AppIcon name="info" :size="13" />
-            <span>AI insights are based on available data and reviewer feedback. Use your judgment and context before making decisions.</span>
-          </p>
+        <footer class="ai-confidence-foot">
+          <div class="ai-confidence-foot__top">
+            <label class="ai-confidence-foot__intro">
+              <span>Override AI Recommendation</span>
+              <small>If you disagree with the AI recommendation, provide a reason. This will be logged.</small>
+            </label>
 
-          <div class="score-calibration-modal__footer-actions">
-            <button type="button">
-              <AppIcon name="share" :size="15" />
-              <span>Share Analysis</span>
+            <label class="ai-confidence-foot__field">
+              <span>Reason</span>
+              <select>
+                <option>Select a reason</option>
+              </select>
+            </label>
+
+            <label class="ai-confidence-foot__field">
+              <span>Additional comments (optional)</span>
+              <input type="text" placeholder="Add your comments here...">
+            </label>
+
+            <div class="ai-confidence-foot__primary">
+              <button type="button" class="ai-confidence-override-button">Override Recommendation</button>
+            </div>
+          </div>
+
+          <div class="ai-confidence-foot__bottom">
+            <button type="button" class="ai-confidence-supporting">
+              <AppIcon name="spark" :size="14" />
+              <span>View supporting evidence</span>
             </button>
-            <button class="is-primary" type="button">
-              <AppIcon name="document" :size="15" />
-              <span>Download Calibration Report</span>
-            </button>
+            <button type="button" class="ai-confidence-close-button" @click="closeOverlay">Close</button>
           </div>
         </footer>
       </section>
@@ -370,875 +364,743 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.score-calibration-overlay {
+.ai-confidence-overlay {
   position: fixed;
   inset: 0;
   z-index: 1710;
   display: grid;
   place-items: center;
   padding: 16px;
-  background: rgba(226, 232, 240, 0.72);
+  background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(8px);
 }
 
-.score-calibration-modal {
-  width: min(1500px, calc(100vw - 32px));
+.ai-confidence-modal {
+  width: min(1460px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   overflow: hidden;
-  border: 1px solid #dde6f3;
-  border-radius: 22px;
+  border: 1px solid #e7edf8;
+  border-radius: 18px;
   background: #fff;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.14);
 }
 
-.score-calibration-modal__header,
-.score-calibration-modal__title,
-.score-calibration-modal__title-row,
-.score-calibration-modal__header-actions,
-.candidate-panel__identity,
-.content-section__title,
-.summary-panel,
-.panel__head,
-.disagreement-card__reviewer,
-.disagreement-card__footer,
-.recommended-action-card__meta,
-.discussion-grid__head,
-.discussion-footer,
-.reviewer-table__identity,
-.score-calibration-modal__footer,
-.score-calibration-modal__footer p,
-.score-calibration-modal__footer-actions,
-.score-calibration-modal__footer-actions button {
+.ai-confidence-head,
+.ai-confidence-head__title,
+.ai-confidence-profile__identity,
+.ai-confidence-overall,
+.ai-confidence-card__head,
+.ai-confidence-evidence article,
+.ai-confidence-evidence__label,
+.ai-confidence-alert-list article,
+.ai-confidence-note,
+.ai-confidence-foot__bottom,
+.ai-confidence-foot__primary {
   display: flex;
   align-items: center;
 }
 
-.score-calibration-modal__header,
-.score-calibration-modal__footer {
+.ai-confidence-head {
   justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #edf2fb;
+  background: linear-gradient(180deg, rgba(255, 79, 156, 0.04) 0%, rgba(255, 255, 255, 0) 100%);
 }
 
-.score-calibration-modal__header {
-  padding: 16px 22px;
-  border-bottom: 1px solid #e7edf6;
-}
-
-.score-calibration-modal__title {
-  gap: 10px;
-}
-
-.score-calibration-modal__title-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: #eef1ff;
-  color: #5a54f3;
-}
-
-.score-calibration-modal__title h2,
-.candidate-panel__identity strong {
-  margin: 0;
-  color: #1f2940;
-}
-
-.score-calibration-modal__title-row {
+.ai-confidence-head__title {
   gap: 8px;
 }
 
-.score-calibration-modal__title-row em {
+.ai-confidence-head__icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
   display: inline-flex;
   align-items: center;
-  min-height: 18px;
-  padding: 0 6px;
-  border-radius: 6px;
-  background: #eef1ff;
-  color: #5a54f3;
-  font-size: 0.62rem;
-  font-style: normal;
-  font-weight: 800;
-  text-transform: uppercase;
+  justify-content: center;
+  background: linear-gradient(135deg, #ff5aa7 0%, #ff2d89 100%);
+  color: #fff;
 }
 
-.score-calibration-modal__title p,
-.candidate-panel__identity p,
-.candidate-panel__note p,
-.summary-panel p,
-.alignment-panel p,
-.disagreement-card__versus p,
-.confidence-list small,
-.recommended-action-card p,
-.discussion-grid p,
-.reviewer-table small,
-.score-calibration-modal__footer p {
+.ai-confidence-head h2 {
   margin: 0;
-  color: #748197;
+  color: #243454;
+  font-size: 1.05rem;
 }
 
-.score-calibration-modal__title h2 {
-  font-size: 1rem;
+.ai-confidence-head em {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #fff0f7;
+  color: #ff4f9c;
+  font-style: normal;
+  font-size: 0.62rem;
+  font-weight: 800;
 }
 
-.score-calibration-modal__title p {
-  margin-top: 2px;
-  font-size: 0.84rem;
+.ai-confidence-head p {
+  margin: 2px 0 0;
+  color: #8390aa;
+  font-size: 0.7rem;
 }
 
-.score-calibration-modal__header-actions {
-  gap: 10px;
-}
-
-.score-calibration-modal__header-actions button,
-.score-calibration-modal__footer-actions button,
-.candidate-panel button,
-.panel button,
-.discussion-grid button {
+.ai-confidence-head__close,
+.ai-confidence-primary-action,
+.ai-confidence-secondary-actions button,
+.ai-confidence-override-button,
+.ai-confidence-supporting,
+.ai-confidence-close-button {
+  border: 1px solid #dfe6f5;
+  background: #fff;
   font: inherit;
   cursor: pointer;
 }
 
-.score-calibration-modal__header-actions button,
-.score-calibration-modal__footer-actions button {
-  height: 34px;
-  border: 1px solid #dbe4f1;
-  border-radius: 10px;
-  background: #fff;
-  color: #445066;
-}
-
-.score-calibration-modal__header-actions button {
-  gap: 6px;
-  padding: 0 12px;
-}
-
-.score-calibration-modal__close {
-  width: 34px;
-  padding: 0;
+.ai-confidence-head__close {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
+  color: #66758f;
 }
 
-.score-calibration-modal__body {
+.ai-confidence-body {
   overflow: auto;
-  padding: 22px;
-}
-
-.score-calibration-top {
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: 18px;
-}
-
-.candidate-panel {
-  padding: 16px;
-  border: 1px solid #e7edf6;
-  border-radius: 16px;
-  background: #fff;
-}
-
-.candidate-panel__identity {
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.candidate-panel__avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #ffcc82 0%, #3d6f6f 100%);
-  color: #fff;
-  font-weight: 800;
-  flex: 0 0 46px;
-}
-
-.candidate-panel__identity p {
-  margin-top: 4px;
-}
-
-.candidate-panel__badge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 22px;
-  margin-top: 8px;
-  padding: 0 8px;
-  border-radius: 999px;
-  background: #dff8ec;
-  color: #0d9a62;
-  font-size: 0.69rem;
-  font-weight: 800;
-}
-
-.candidate-panel__meta {
-  display: grid;
-  gap: 12px;
-  margin-top: 18px;
-}
-
-.candidate-panel__meta article {
-  display: grid;
-  gap: 3px;
-}
-
-.candidate-panel__meta span,
-.panel__label,
-.reviewer-table__head {
-  color: #9aa5b7;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.candidate-panel__meta strong {
-  color: #1f2940;
-  font-size: 0.83rem;
-}
-
-.candidate-panel button {
-  width: 100%;
-  height: 38px;
-  margin-top: 18px;
-  border: 1px solid #dbe4f1;
-  border-radius: 10px;
-  background: #fff;
-  color: #3f4c67;
-  font-weight: 700;
-}
-
-.candidate-panel__note {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  gap: 10px;
-  margin-top: 18px;
-  padding: 14px;
-  border-radius: 12px;
-  background: #f7f9ff;
-}
-
-.candidate-panel__note :deep(svg) {
-  color: #5a54f3;
-  margin-top: 2px;
-}
-
-.candidate-panel__note p {
-  font-size: 0.78rem;
-  line-height: 1.55;
-}
-
-.score-calibration-main {
-  display: grid;
-  gap: 18px;
-}
-
-.top-metrics-grid {
-  display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: 18px;
-}
-
-.top-details-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 0.92fr;
-  gap: 18px;
-}
-
-.panel {
-  padding: 16px;
-  border: 1px solid #e7edf6;
-  border-radius: 16px;
-  background: #fff;
-}
-
-.panel__label {
-  color: #5562f1;
-}
-
-.panel__label.is-violet {
-  color: #5562f1;
-}
-
-.panel__head {
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.panel__head-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #ebfbf3;
-  color: #16a668;
-}
-
-.panel__head :deep(svg:last-child) {
-  color: #a0abbe;
-}
-
-.summary-panel {
-  align-items: flex-start;
-  gap: 14px;
-  margin-top: 16px;
-}
-
-.summary-panel span {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #f3f4ff;
-  color: #5a54f3;
-  flex: 0 0 40px;
-}
-
-.summary-panel p {
-  line-height: 1.7;
-}
-
-.summary-panel strong {
-  color: #d5436a;
-}
-
-.alignment-panel {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 140px;
-  gap: 14px;
-  margin-top: 14px;
-}
-
-.alignment-panel strong {
-  display: block;
-  color: #f3921f;
-  font-size: 3rem;
-  line-height: 1;
-}
-
-.alignment-panel span {
-  display: block;
-  margin-top: 4px;
-  color: #f3921f;
-  font-weight: 700;
-}
-
-.alignment-panel p {
-  margin-top: 12px;
-  line-height: 1.5;
-}
-
-.alignment-gauge__arc {
-  position: relative;
-  width: 120px;
-  height: 60px;
-  overflow: hidden;
-}
-
-.alignment-gauge__arc::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 120px 120px 0 0;
-  background: conic-gradient(from 180deg, #d9dde7 0 54deg, #f39b22 54deg 122deg, #d9dde7 122deg 180deg);
-}
-
-.alignment-gauge__arc::after {
-  content: '';
-  position: absolute;
-  left: 18px;
-  right: 18px;
-  bottom: 0;
-  height: 42px;
-  border-radius: 90px 90px 0 0;
-  background: #fff;
-}
-
-.alignment-gauge__needle {
-  position: absolute;
-  left: 50%;
-  bottom: 2px;
-  width: 3px;
-  height: 48px;
-  background: #1f2940;
-  transform-origin: bottom center;
-  transform: translateX(-50%) rotate(28deg);
-  border-radius: 999px;
-  z-index: 1;
-}
-
-.alignment-gauge__needle::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: -3px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #1f2940;
-  transform: translateX(-50%);
-}
-
-.alignment-gauge__scale {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 4px;
-  color: #9aa4b7;
-  font-size: 0.66rem;
-}
-
-.panel--alignment button,
-.confidence-list + button,
-.reviewer-table__footer-link {
-  margin-top: 14px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #5662f1;
-  font-weight: 700;
-}
-
-.disagreement-card {
-  margin-top: 14px;
-}
-
-.disagreement-card__head,
-.discussion-grid__head {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.disagreement-card__head span,
-.discussion-grid__head span {
-  display: inline-flex;
-  align-items: center;
-  min-height: 20px;
-  padding: 0 8px;
-  border-radius: 6px;
-  background: #fff1e3;
-  color: #f3921f;
-  font-size: 0.66rem;
-  font-weight: 800;
-}
-
-.disagreement-card__versus {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 12px;
-  margin-top: 14px;
-}
-
-.disagreement-card__versus article {
   padding: 12px;
-  border: 1px solid #edf2f8;
-  border-radius: 12px;
-  background: #fbfcff;
+  padding-bottom: 18px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 79, 156, 0.05), transparent 18%),
+    linear-gradient(180deg, #fff 0%, #fcfdff 100%);
 }
 
-.disagreement-card__reviewer {
-  gap: 10px;
+.ai-confidence-profile,
+.ai-confidence-card {
+  border: 1px solid #edf2fb;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(27, 39, 76, 0.04);
 }
 
-.disagreement-card__reviewer span,
-.reviewer-table__identity span {
+.ai-confidence-profile {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 14px;
+  padding: 12px 16px;
+}
+
+.ai-confidence-profile__identity {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ai-confidence-profile__avatar {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #ffcc82 0%, #3d6f6f 100%);
+  background: linear-gradient(135deg, #1d1d1d 0%, #db8a6d 100%);
   color: #fff;
-  font-size: 0.7rem;
   font-weight: 800;
-  flex: 0 0 30px;
 }
 
-.disagreement-card__reviewer small {
+.ai-confidence-profile__identity strong {
   display: block;
-  margin-top: 2px;
-  color: #5662f1;
-  font-size: 0.7rem;
-  font-weight: 700;
+  color: #243454;
+  font-size: 0.92rem;
 }
 
-.disagreement-card__versus p {
-  margin-top: 10px;
-  font-size: 0.79rem;
-  line-height: 1.5;
-}
-
-.disagreement-card__footer {
-  gap: 8px;
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid #edf2f8;
-  flex-wrap: wrap;
-}
-
-.disagreement-card__footer span {
-  color: #5662f1;
+.ai-confidence-profile__identity p {
+  margin: 3px 0 0;
+  color: #73829d;
   font-size: 0.72rem;
-  font-weight: 800;
-  text-transform: uppercase;
 }
 
-.disagreement-card__footer small {
-  color: #7a879a;
-}
-
-.confidence-list {
-  display: grid;
-  gap: 12px;
-  margin-top: 14px;
-}
-
-.confidence-list article {
-  display: grid;
-  grid-template-columns: 112px 64px 54px minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-}
-
-.confidence-list article strong:first-child {
-  color: #1f2940;
-  font-size: 0.8rem;
-}
-
-.confidence-list__bars {
-  display: flex;
-  gap: 4px;
-}
-
-.confidence-list__bars i {
-  width: 9px;
-  height: 4px;
-  border-radius: 999px;
-  background: #dde4ee;
-}
-
-.confidence-list__bars i.is-filled.is-green {
-  background: #19b66b;
-}
-
-.confidence-list__bars i.is-filled.is-orange {
-  background: #f3921f;
-}
-
-.confidence-list__bars i.is-filled.is-amber {
-  background: #ffb145;
-}
-
-.confidence-list span {
-  font-size: 0.77rem;
-  font-weight: 700;
-}
-
-.confidence-list span.is-green {
-  color: #19b66b;
-}
-
-.confidence-list span.is-orange {
-  color: #f3921f;
-}
-
-.confidence-list span.is-amber {
-  color: #ff9f2d;
-}
-
-.confidence-list small {
-  font-size: 0.76rem;
-  line-height: 1.45;
-}
-
-.recommended-action-card {
-  margin-top: 14px;
-}
-
-.recommended-action-card small {
-  display: block;
-  color: #19b66b;
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.recommended-action-card strong {
-  display: block;
-  margin-top: 8px;
-  color: #178a54;
-  font-size: 1.2rem;
-  line-height: 1.35;
-}
-
-.recommended-action-card p {
-  margin-top: 10px;
-  line-height: 1.55;
-}
-
-.recommended-action-card__meta {
-  display: grid;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.recommended-action-card__meta article {
-  display: grid;
-  gap: 4px;
-}
-
-.recommended-action-card__meta span {
-  color: #9aa4b7;
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.recommended-action-card__meta strong {
-  margin-top: 0;
-  color: #1f2940;
-  font-size: 0.82rem;
-}
-
-.recommended-action-card button {
-  width: 100%;
-  height: 40px;
-  margin-top: 16px;
-  border: 0;
-  border-radius: 10px;
-  background: linear-gradient(90deg, #17a75f 0%, #138f53 100%);
-  color: #fff;
-  font-weight: 700;
-}
-
-.score-calibration-bottom {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
-  margin-top: 18px;
-}
-
-.discussion-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 14px;
-}
-
-.discussion-grid article {
-  padding: 14px;
-  border: 1px solid #edf2f8;
-  border-radius: 12px;
-  background: #fbfcff;
-}
-
-.discussion-grid__head strong {
-  color: #1f2940;
-}
-
-.discussion-grid__head span.is-red {
-  background: #ffe9e9;
-  color: #ef5350;
-}
-
-.discussion-grid__head span.is-amber {
-  background: #fff1e3;
-  color: #f3921f;
-}
-
-.discussion-grid__head span.is-blue {
-  background: #edf1ff;
-  color: #5662f1;
-}
-
-.discussion-grid p {
-  margin-top: 10px;
-  font-size: 0.8rem;
-  line-height: 1.55;
-}
-
-.discussion-grid button {
-  margin-top: 14px;
+.ai-confidence-link {
+  margin-top: 7px;
   padding: 0;
   border: 0;
   background: transparent;
-  color: #5662f1;
-  font-weight: 700;
-}
-
-.discussion-footer {
-  gap: 8px;
-  margin-top: 16px;
-  color: #7a879a;
-  font-size: 0.78rem;
-}
-
-.reviewer-table {
-  margin-top: 14px;
-}
-
-.reviewer-table__head,
-.reviewer-table__row {
-  display: grid;
-  grid-template-columns: 1.25fr 0.62fr 0.5fr 0.55fr 0.7fr;
-  gap: 12px;
+  display: inline-flex;
   align-items: center;
+  gap: 5px;
+  color: #ff4f9c;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
 }
 
-.reviewer-table__head {
-  padding-bottom: 10px;
-}
-
-.reviewer-table__row {
-  padding: 14px 0;
-  border-top: 1px solid #edf2f8;
-}
-
-.reviewer-table__identity {
+.ai-confidence-profile__facts {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
 }
 
-.reviewer-table__identity strong,
-.reviewer-table__score {
-  color: #1f2940;
+.ai-confidence-profile__facts small,
+.ai-confidence-foot__intro span,
+.ai-confidence-foot__field span,
+.ai-confidence-metrics small {
+  display: block;
+  color: #95a1b6;
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.reviewer-table__identity small {
+.ai-confidence-profile__facts strong {
   display: block;
-  margin-top: 3px;
+  margin-top: 5px;
+  color: #243454;
   font-size: 0.74rem;
 }
 
-.reviewer-table strong.is-green {
-  color: #18b96a;
+.ai-confidence-profile__facts span {
+  display: block;
+  margin-top: 4px;
+  color: #8f9cb0;
+  font-size: 0.63rem;
 }
 
-.reviewer-table strong.is-red {
-  color: #ef5350;
+.ai-confidence-profile__facts strong.is-stage {
+  color: #ff4f9c;
 }
 
-.reviewer-table__dots {
-  display: flex;
-  gap: 4px;
-}
-
-.reviewer-table__dots i {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #dde4ee;
-}
-
-.reviewer-table__dots i.is-filled.is-green {
-  background: #18b96a;
-}
-
-.reviewer-table__dots i.is-filled.is-red {
-  background: #ef5350;
-}
-
-.score-calibration-modal__footer {
-  padding: 14px 22px;
-  border-top: 1px solid #e7edf6;
-}
-
-.score-calibration-modal__footer p {
-  gap: 8px;
-  font-size: 0.8rem;
-}
-
-.score-calibration-modal__footer p :deep(svg) {
-  color: #94a0b4;
-}
-
-.score-calibration-modal__footer-actions {
-  display: flex;
+.ai-confidence-top-grid,
+.ai-confidence-middle-grid,
+.ai-confidence-bottom-grid,
+.ai-confidence-foot__top {
+  display: grid;
   gap: 10px;
 }
 
-.score-calibration-modal__footer-actions button {
+.ai-confidence-top-grid {
+  grid-template-columns: 1.08fr 1fr;
+  margin-top: 10px;
+}
+
+.ai-confidence-middle-grid {
+  grid-template-columns: 0.86fr 0.9fr;
+  margin-top: 10px;
+}
+
+.ai-confidence-bottom-grid {
+  grid-template-columns: 1.2fr 0.9fr;
+  margin-top: 10px;
+}
+
+.ai-confidence-card {
+  padding: 14px;
+}
+
+.ai-confidence-card--overall {
+  background: linear-gradient(180deg, rgba(255, 90, 167, 0.05) 0%, #fff 100%);
+}
+
+.ai-confidence-card__head {
   gap: 8px;
-  padding: 0 16px;
 }
 
-.score-calibration-modal__footer-actions button.is-primary {
-  border: 0;
-  background: linear-gradient(90deg, #5c57ef 0%, #4b46d7 100%);
+.ai-confidence-card__head span {
+  color: #ff4f9c;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.ai-confidence-card__head strong {
+  color: #243454;
+  font-size: 0.82rem;
+}
+
+.ai-confidence-card__head--inline {
+  margin-bottom: 6px;
+}
+
+.ai-confidence-overall {
+  display: grid;
+  grid-template-columns: 146px minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.ai-confidence-ring {
+  width: 116px;
+  height: 116px;
+  padding: 8px;
+  border-radius: 50%;
+  flex: 0 0 116px;
+}
+
+.ai-confidence-ring > div {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px #edf2fb;
+  text-align: center;
+}
+
+.ai-confidence-ring strong {
+  display: block;
+  color: #1f2940;
+  font-size: 1.85rem;
+  line-height: 1;
+}
+
+.ai-confidence-ring span {
+  display: block;
+  margin-top: 4px;
+  color: #ff4f9c;
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.ai-confidence-ring small {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: #fff4f8;
+  color: #ff4f9c;
+}
+
+.ai-confidence-overall__content {
+  display: grid;
+  gap: 6px;
+  align-content: center;
+}
+
+.ai-confidence-overall__copy {
+  max-width: 430px;
+}
+
+.ai-confidence-overall__copy p,
+.ai-confidence-next-copy,
+.ai-confidence-alert-list p {
+  margin: 0;
+  color: #6e7d97;
+  font-size: 0.72rem;
+  line-height: 1.6;
+}
+
+.ai-confidence-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.ai-confidence-metrics strong {
+  display: block;
+  margin-top: 6px;
+  color: #243454;
+  font-size: 0.78rem;
+}
+
+.ai-confidence-evidence {
+  display: grid;
+  gap: 0;
+  margin-top: 12px;
+}
+
+.ai-confidence-evidence article {
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid #f2f5fb;
+}
+
+.ai-confidence-evidence article:first-child {
+  padding-top: 2px;
+  border-top: 0;
+}
+
+.ai-confidence-evidence__label {
+  gap: 10px;
+  min-width: 0;
+}
+
+.ai-confidence-evidence__label .is-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 26px;
+}
+
+.ai-confidence-evidence__label .is-pink {
+  background: #fff0f7;
+  color: #ff4f9c;
+}
+
+.ai-confidence-evidence__label .is-rose {
+  background: #fff4f8;
+  color: #ff709f;
+}
+
+.ai-confidence-evidence__label .is-violet {
+  background: #f4f1ff;
+  color: #8a63ff;
+}
+
+.ai-confidence-evidence__label .is-orange {
+  background: #fff4e8;
+  color: #fb923c;
+}
+
+.ai-confidence-evidence__label .is-green {
+  background: #ecfbf3;
+  color: #19b66b;
+}
+
+.ai-confidence-evidence__label .is-lavender {
+  background: #f5f0ff;
+  color: #aa71ff;
+}
+
+.ai-confidence-evidence__label strong {
+  display: block;
+  color: #243454;
+  font-size: 0.74rem;
+}
+
+.ai-confidence-evidence__label small {
+  display: block;
+  margin-top: 3px;
+  color: #7d8ba0;
+  font-size: 0.67rem;
+}
+
+.ai-confidence-evidence em {
+  color: #19b66b;
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.ai-confidence-alert-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.ai-confidence-middle-grid > .ai-confidence-card:first-child {
+  background: linear-gradient(180deg, rgba(251, 146, 60, 0.06) 0%, #fff 100%);
+}
+
+.ai-confidence-alert-list article {
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.ai-confidence-alert-list article :deep(svg) {
+  color: #fb923c;
+  margin-top: 2px;
+  flex: 0 0 auto;
+}
+
+.ai-confidence-alert-list strong,
+.ai-confidence-timeline strong {
+  display: block;
+  color: #243454;
+  font-size: 0.72rem;
+}
+
+.ai-confidence-card--conclusion {
+  background: linear-gradient(180deg, #f9fffb 0%, #fff 100%);
+}
+
+.ai-confidence-checks {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ai-confidence-checks li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #5b6a85;
+  font-size: 0.72rem;
+}
+
+.ai-confidence-checks li :deep(svg) {
+  color: #19b66b;
+  margin-top: 1px;
+  flex: 0 0 auto;
+}
+
+.ai-confidence-timeline {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.ai-confidence-timeline__line {
+  position: absolute;
+  top: 12px;
+  left: 32px;
+  right: 32px;
+  height: 2px;
+  background: linear-gradient(90deg, #ff4f9c 0%, #ff4f9c 78%, #f1c5d8 78%, #f1c5d8 100%);
+}
+
+.ai-confidence-timeline article {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  min-width: 0;
+}
+
+.ai-confidence-timeline article > span {
+  width: 22px;
+  height: 22px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  display: block;
+  background: linear-gradient(135deg, #ff5aa7 0%, #ff2d89 100%);
+  box-shadow: 0 0 0 5px #fff;
+}
+
+.ai-confidence-timeline article > span.is-pending {
+  background: #fff;
+  border: 2px solid #ff4f9c;
+}
+
+.ai-confidence-timeline small {
+  display: block;
+  margin-top: 5px;
+  color: #8f9cb0;
+  font-size: 0.63rem;
+  line-height: 1.5;
+}
+
+.ai-confidence-timeline strong {
+  line-height: 1.4;
+}
+
+.ai-confidence-note {
+  gap: 7px;
+  margin-top: 14px;
+  color: #8f9cb0;
+  font-size: 0.63rem;
+}
+
+.ai-confidence-primary-action {
+  width: 100%;
+  height: 40px;
+  border-color: transparent;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #ff5aa7 0%, #ff2d89 100%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
 }
 
-@media (max-width: 1360px) {
-  .top-details-grid,
-  .score-calibration-bottom {
+.ai-confidence-next-copy {
+  margin-top: 12px;
+}
+
+.ai-confidence-other-label {
+  display: block;
+  margin-top: 12px;
+  color: #8f9cb0;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ai-confidence-secondary-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ai-confidence-secondary-actions button {
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: #334155;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.ai-confidence-foot {
+  padding: 10px 16px 12px;
+  border-top: 1px solid #edf2fb;
+  background: linear-gradient(180deg, rgba(255, 79, 156, 0.03) 0%, #fff 100%);
+}
+
+.ai-confidence-foot__top {
+  grid-template-columns: 260px 220px minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.ai-confidence-foot__intro,
+.ai-confidence-foot__field {
+  display: grid;
+  gap: 7px;
+}
+
+.ai-confidence-foot__intro small {
+  color: #93a0b4;
+  font-size: 0.63rem;
+  line-height: 1.45;
+}
+
+.ai-confidence-foot__field select,
+.ai-confidence-foot__field input {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #dfe6f5;
+  border-radius: 9px;
+  outline: none;
+  background: #fff;
+  color: #243454;
+  font: inherit;
+  font-size: 0.69rem;
+}
+
+.ai-confidence-foot__field input::placeholder {
+  color: #9aa7bb;
+}
+
+.ai-confidence-override-button {
+  height: 40px;
+  padding: 0 18px;
+  border-color: transparent;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #ff5aa7 0%, #ff2d89 100%);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.ai-confidence-foot__bottom {
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.ai-confidence-supporting,
+.ai-confidence-close-button {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #334155;
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ai-confidence-supporting {
+  border-color: #ffd4e7;
+  color: #ff4f9c;
+  background: #fff8fc;
+}
+
+@media (max-width: 1320px) {
+  .ai-confidence-top-grid,
+  .ai-confidence-middle-grid,
+  .ai-confidence-bottom-grid {
     grid-template-columns: 1fr;
+  }
+
+  .ai-confidence-profile__facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 1180px) {
-  .score-calibration-top,
-  .top-metrics-grid {
+@media (max-width: 1040px) {
+  .ai-confidence-profile,
+  .ai-confidence-foot__top,
+  .ai-confidence-metrics,
+  .ai-confidence-secondary-actions {
     grid-template-columns: 1fr;
   }
 
-  .discussion-grid {
+  .ai-confidence-overall {
     grid-template-columns: 1fr;
   }
 
-  .reviewer-table {
-    overflow-x: auto;
+  .ai-confidence-overall__content {
+    gap: 8px;
   }
 
-  .reviewer-table__head,
-  .reviewer-table__row {
-    min-width: 760px;
+  .ai-confidence-timeline {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-confidence-timeline__line {
+    display: none;
+  }
+
+  .ai-confidence-timeline article {
+    text-align: left;
+  }
+
+  .ai-confidence-timeline article > span {
+    margin-left: 0;
+  }
+
+  .ai-confidence-foot__bottom {
+    flex-wrap: wrap;
   }
 }
 
 @media (max-width: 720px) {
-  .score-calibration-overlay {
+  .ai-confidence-overlay {
     padding: 10px;
   }
 
-  .score-calibration-modal {
+  .ai-confidence-modal {
     width: 100%;
     max-height: calc(100vh - 20px);
-    border-radius: 18px;
+    border-radius: 16px;
   }
 
-  .score-calibration-modal__header,
-  .score-calibration-modal__body,
-  .score-calibration-modal__footer {
-    padding-left: 16px;
-    padding-right: 16px;
+  .ai-confidence-head,
+  .ai-confidence-body,
+  .ai-confidence-foot {
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
-  .score-calibration-modal__header,
-  .score-calibration-modal__footer {
-    display: grid;
-    gap: 12px;
-  }
-
-  .score-calibration-modal__header-actions,
-  .score-calibration-modal__footer-actions {
-    flex-wrap: wrap;
-    justify-content: flex-start;
-  }
-
-  .alignment-panel,
-  .disagreement-card__versus {
+  .ai-confidence-profile__facts {
     grid-template-columns: 1fr;
   }
 
-  .confidence-list article {
-    grid-template-columns: 1fr;
+  .ai-confidence-overall {
+    flex-direction: column;
   }
 }
 </style>

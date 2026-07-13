@@ -4,7 +4,7 @@ import AppIcon from '../shared/AppIcon.vue'
 import AppSelect from '../shared/AppSelect.vue'
 import { jobs, jobsAttention, jobsSummary, pipelineHealth, quickFilters } from '../../data/jobs'
 
-const emit = defineEmits(['open-job', 'create-job', 'open-pipeline'])
+const emit = defineEmits(['open-job', 'create-job', 'open-pipeline', 'open-offer'])
 
 const viewTabs = [
   { id: 'list', label: 'List View', icon: 'list' },
@@ -4599,7 +4599,12 @@ function handleReadyForActionAction(actionId, item) {
   }
 
   if ((actionId === 'create-offer' || actionId === 'send-offer') && payload) {
-    openActionPlanModal()
+    emit('open-offer', {
+      jobId: payload.id,
+      candidateName: 'Marvin McKinney',
+      candidateRole: payload.title,
+      sourceStage: 'validation',
+    })
     return
   }
 
@@ -4657,7 +4662,12 @@ function handleUpcomingRiskAction(actionId, item) {
   }
 
   if (actionId === 'create-offer' && payload) {
-    openBoostJobModal(payload)
+    emit('open-offer', {
+      jobId: payload.id,
+      candidateName: 'Marvin McKinney',
+      candidateRole: payload.title,
+      sourceStage: 'validation',
+    })
     return
   }
 

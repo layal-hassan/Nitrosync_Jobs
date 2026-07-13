@@ -113,3 +113,58 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+button[aria-label^='Close'],
+button[aria-label*=' Close'],
+button[aria-label^='Dismiss'],
+button[aria-label*=' dismiss'] {
+  width: 48px !important;
+  min-width: 48px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 48px !important;
+  border: 1px solid #dbe4f0 !important;
+  border-radius: 16px !important;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%) !important;
+  box-shadow:
+    0 10px 24px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
+  color: #223251 !important;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease !important;
+}
+
+button[aria-label^='Close']:hover,
+button[aria-label*=' Close']:hover,
+button[aria-label^='Dismiss']:hover,
+button[aria-label*=' dismiss']:hover {
+  transform: translateY(-1px);
+  border-color: #cfdbea !important;
+  box-shadow:
+    0 14px 28px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96) !important;
+}
+
+button[aria-label^='Close']:focus-visible,
+button[aria-label*=' Close']:focus-visible,
+button[aria-label^='Dismiss']:focus-visible,
+button[aria-label*=' dismiss']:focus-visible {
+  outline: 3px solid rgba(111, 87, 255, 0.18);
+  outline-offset: 2px;
+}
+
+button[aria-label^='Close'] svg,
+button[aria-label*=' Close'] svg,
+button[aria-label^='Dismiss'] svg,
+button[aria-label*=' dismiss'] svg {
+  width: 20px !important;
+  height: 20px !important;
+  color: currentColor !important;
+}
